@@ -5,11 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Pokemon Journey Rater</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
@@ -21,7 +17,6 @@
     ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--bg); }
     ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
 
-    /* ── NAV ── */
     nav {
       position: sticky; top: 0; z-index: 200;
       background: rgba(13,13,13,0.92); backdrop-filter: blur(16px);
@@ -44,26 +39,20 @@
     .user-btn:hover { border-color: #555; }
     .user-avatar { width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(135deg, var(--accent2), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; color: white; flex-shrink: 0; }
 
-    /* ── VIEWS ── */
-    .view { display: none; }
-    .view.active { display: block; }
+    .view { display: none; } .view.active { display: block; }
 
-    /* ── GEN TABS ── */
     .gen-bar { display: flex; gap: 8px; overflow-x: auto; padding: 20px 32px 0; scrollbar-width: none; }
     .gen-bar::-webkit-scrollbar { display: none; }
     .gen-btn { flex-shrink: 0; padding: 7px 16px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--muted); transition: all 0.2s; }
     .gen-btn:hover { border-color: #555; color: var(--text); }
     .gen-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
 
-    /* ── SORT BAR ── */
     .sort-bar { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; gap: 12px; flex-wrap: wrap; }
     .pokemon-count { font-size: 0.85rem; color: var(--muted); }
     .sort-select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 7px 12px; border-radius: 8px; font-size: 0.85rem; font-family: 'Inter', sans-serif; cursor: pointer; outline: none; }
 
-    /* ── GRID ── */
     .pokemon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; padding: 0 32px 40px; }
 
-    /* ── CARD ── */
     .poke-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 6px; position: relative; overflow: hidden; }
     .poke-card:hover { border-color: #444; transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
     .poke-card-num { font-size: 0.7rem; color: var(--muted); font-weight: 600; align-self: flex-start; }
@@ -72,32 +61,25 @@
     .poke-card-name { font-size: 0.82rem; font-weight: 700; text-transform: capitalize; text-align: center; }
     .poke-card-types { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
     .type-badge { font-size: 0.62rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.4px; color: white; }
-
-    /* community stars on card */
     .poke-card-rating { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; }
     .poke-card-stars { display: flex; gap: 1px; }
     .poke-card-stars .s { font-size: 0.72rem; color: #333; }
     .poke-card-stars .s.filled { color: var(--accent); }
     .poke-card-votes { font-size: 0.65rem; color: var(--muted); }
 
-    /* skeleton */
     .skeleton { background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     .skel-line { height: 10px; border-radius: 5px; }
 
-    /* load more */
     .load-more-wrap { display: flex; justify-content: center; padding: 0 32px 60px; }
     .load-more-btn { padding: 12px 40px; border-radius: 999px; font-size: 0.9rem; font-weight: 600; background: var(--surface2); border: 1px solid var(--border); color: var(--text); cursor: pointer; transition: all 0.2s; }
     .load-more-btn:hover { border-color: var(--accent); color: var(--accent); }
-    .load-more-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* ── MODAL ── */
     .modal-overlay { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); align-items: center; justify-content: center; padding: 20px; }
     .modal-overlay.open { display: flex; }
     .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; width: 100%; max-width: 620px; max-height: 90vh; overflow-y: auto; position: relative; }
     .modal-close { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); font-size: 1rem; transition: all 0.2s; z-index: 10; }
     .modal-close:hover { color: var(--text); }
-
     .modal-hero { padding: 32px; display: flex; gap: 24px; align-items: flex-start; border-bottom: 1px solid var(--border); }
     .modal-img { width: 140px; height: 140px; object-fit: contain; filter: drop-shadow(0 8px 24px rgba(0,0,0,0.5)); flex-shrink: 0; }
     .modal-info { flex: 1; padding-top: 4px; }
@@ -106,8 +88,6 @@
     .modal-types { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
     .modal-type-badge { font-size: 0.8rem; font-weight: 700; padding: 4px 14px; border-radius: 999px; text-transform: capitalize; color: white; }
     .modal-gen { font-size: 0.8rem; color: var(--muted); }
-
-    /* community score in hero */
     .modal-community-score { margin-top: 12px; display: flex; align-items: center; gap: 10px; }
     .community-avg { font-size: 1.5rem; font-weight: 900; color: var(--accent); }
     .community-detail { display: flex; flex-direction: column; gap: 2px; }
@@ -115,10 +95,7 @@
     .community-stars .s { font-size: 0.85rem; color: #333; }
     .community-stars .s.filled { color: var(--accent); }
     .community-label { font-size: 0.75rem; color: var(--muted); }
-
     .modal-body { padding: 28px 32px; display: flex; flex-direction: column; gap: 28px; }
-
-    /* ── RATING ── */
     .section-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 12px; }
     .stars-input { display: flex; gap: 8px; }
     .star-btn { font-size: 2rem; cursor: pointer; color: #333; transition: color 0.15s, transform 0.15s; border: none; background: none; padding: 0; line-height: 1; }
@@ -126,24 +103,25 @@
     .star-btn:hover { transform: scale(1.15); }
     .my-rating-note { margin-top: 8px; font-size: 0.82rem; color: var(--muted); }
     .my-rating-note span { color: var(--accent); font-weight: 700; }
-
-    /* ── COMMENTS ── */
+    .ratings-breakdown { margin-top: 10px; }
+    .rating-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .rating-row-label { font-size: 0.75rem; color: var(--muted); width: 30px; flex-shrink: 0; }
+    .rating-bar-wrap { flex: 1; height: 6px; background: #2a2a2a; border-radius: 3px; overflow: hidden; }
+    .rating-bar-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.5s; }
+    .rating-row-count { font-size: 0.72rem; color: var(--muted); width: 20px; text-align: right; flex-shrink: 0; }
     .comment-input-wrap { display: flex; flex-direction: column; gap: 10px; }
-    .comment-author-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.85rem; outline: none; width: 100%; transition: border-color 0.2s; }
-    .comment-author-input:focus { border-color: var(--accent2); }
     .comment-textarea { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.88rem; resize: vertical; min-height: 80px; outline: none; transition: border-color 0.2s; width: 100%; }
     .comment-textarea:focus { border-color: var(--accent2); }
-    .comment-textarea::placeholder, .comment-author-input::placeholder { color: var(--muted); }
+    .comment-textarea::placeholder { color: var(--muted); }
     .comment-btn { align-self: flex-end; padding: 9px 22px; border-radius: 999px; background: var(--accent2); color: white; font-weight: 600; font-size: 0.85rem; border: none; cursor: pointer; transition: opacity 0.2s; }
     .comment-btn:hover { opacity: 0.85; }
     .comment-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .comments-list { display: flex; flex-direction: column; gap: 10px; }
+    .comments-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
     .comment-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; position: relative; }
-    .comment-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .comment-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
     .comment-avatar { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, var(--accent2), #7c3aed); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 800; color: white; flex-shrink: 0; }
     .comment-username { font-size: 0.82rem; font-weight: 700; }
-    .comment-date { font-size: 0.72rem; color: var(--muted); }
+    .comment-date { font-size: 0.72rem; color: var(--muted); margin-left: auto; }
     .comment-own-badge { font-size: 0.65rem; background: rgba(59,91,167,0.2); color: #89aaff; border-radius: 999px; padding: 2px 7px; font-weight: 600; }
     .comment-rating-badge { font-size: 0.72rem; color: var(--accent); font-weight: 700; }
     .comment-text { font-size: 0.88rem; line-height: 1.6; }
@@ -152,15 +130,6 @@
     .no-comments { font-size: 0.85rem; color: var(--muted); text-align: center; padding: 20px 0; }
     .comments-loading { font-size: 0.85rem; color: var(--muted); text-align: center; padding: 16px 0; }
 
-    /* all ratings breakdown */
-    .ratings-breakdown { margin-top: 6px; }
-    .rating-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-    .rating-row-label { font-size: 0.75rem; color: var(--muted); width: 30px; flex-shrink: 0; }
-    .rating-bar-wrap { flex: 1; height: 6px; background: #2a2a2a; border-radius: 3px; overflow: hidden; }
-    .rating-bar-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.5s; }
-    .rating-row-count { font-size: 0.72rem; color: var(--muted); width: 20px; text-align: right; flex-shrink: 0; }
-
-    /* ── RANKINGS ── */
     #view-rankings { padding: 32px; }
     .rankings-header { margin-bottom: 28px; }
     .rankings-header h1 { font-size: 2rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 6px; }
@@ -183,9 +152,7 @@
     .rank-score { font-size: 1.5rem; font-weight: 900; color: var(--accent); }
     .rank-votes { font-size: 0.72rem; color: var(--muted); }
     .empty-rankings { text-align: center; padding: 60px 0; color: var(--muted); }
-    .rankings-loading { text-align: center; padding: 60px 0; color: var(--muted); }
 
-    /* ── USERNAME MODAL ── */
     .name-modal-overlay { display: none; position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); align-items: center; justify-content: center; padding: 20px; }
     .name-modal-overlay.open { display: flex; }
     .name-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; padding: 40px; max-width: 400px; width: 100%; text-align: center; }
@@ -193,31 +160,26 @@
     .name-modal p { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; line-height: 1.6; }
     .name-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 1rem; outline: none; text-align: center; transition: border-color 0.2s; margin-bottom: 16px; }
     .name-input:focus { border-color: var(--accent2); }
-    .name-save-btn { width: 100%; padding: 14px; border-radius: 999px; background: linear-gradient(135deg, var(--accent2), #5b21b6); color: white; font-weight: 700; font-size: 1rem; border: none; cursor: pointer; transition: opacity 0.2s; }
+    .name-save-btn { width: 100%; padding: 14px; border-radius: 999px; background: linear-gradient(135deg, var(--accent2), #5b21b6); color: white; font-weight: 700; font-size: 1rem; border: none; cursor: pointer; }
     .name-save-btn:hover { opacity: 0.9; }
     .name-skip { margin-top: 12px; font-size: 0.82rem; color: var(--muted); cursor: pointer; }
     .name-skip:hover { color: var(--text); }
 
-    /* ── TOAST ── */
+    .setup-banner { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); border-radius: 12px; padding: 16px 20px; margin: 20px 32px 0; font-size: 0.88rem; line-height: 1.7; color: #ccc; display: none; }
+    .setup-banner strong { color: #60a5fa; }
+    .setup-banner code { background: var(--surface2); padding: 1px 6px; border-radius: 4px; font-size: 0.82rem; color: #aaa; }
+    .setup-banner.show { display: block; }
+
     .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface2); border: 1px solid var(--border); border-radius: 999px; padding: 12px 24px; font-size: 0.88rem; font-weight: 600; z-index: 1000; transition: transform 0.3s; pointer-events: none; white-space: nowrap; }
     .toast.show { transform: translateX(-50%) translateY(0); }
-
-    /* ── LOADER ── */
     .global-loader { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 32px; gap: 16px; color: var(--muted); }
     .pokeball-spin { width: 48px; height: 48px; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── SETUP BANNER ── */
-    .setup-banner { background: rgba(255,203,5,0.08); border: 1px solid rgba(255,203,5,0.2); border-radius: 12px; padding: 16px 20px; margin: 20px 32px 0; font-size: 0.88rem; line-height: 1.7; color: #ddd; display: none; }
-    .setup-banner strong { color: var(--accent); }
-    .setup-banner code { background: var(--surface2); padding: 1px 6px; border-radius: 4px; font-size: 0.82rem; color: #aaa; }
-    .setup-banner.show { display: block; }
-
-    /* ── RESPONSIVE ── */
     @media (max-width: 640px) {
-      nav { padding: 0 14px; gap: 10px; }
-      .nav-tabs .nav-tab { padding: 7px 12px; font-size: 0.8rem; }
-      .nav-search { max-width: 140px; }
+      nav { padding: 0 14px; gap: 8px; }
+      .nav-tabs .nav-tab { padding: 7px 10px; font-size: 0.78rem; }
+      .nav-search { max-width: 120px; }
       .pokemon-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; padding: 0 16px 40px; }
       .gen-bar { padding: 14px 16px 0; }
       .sort-bar { padding: 10px 16px; }
@@ -235,11 +197,11 @@
 <div class="name-modal-overlay" id="name-modal-overlay">
   <div class="name-modal">
     <div style="font-size:2.5rem;margin-bottom:12px">&#x1F464;</div>
-    <h2>What's your name?</h2>
-    <p>Your name will show on your reviews so friends know who said what.</p>
+    <h2>What's your trainer name?</h2>
+    <p>Your name shows on your reviews so friends know who said what.</p>
     <input class="name-input" id="name-input" type="text" placeholder="Enter your trainer name..." maxlength="24"/>
     <button class="name-save-btn" onclick="saveName()">Let's Go!</button>
-    <div class="name-skip" onclick="saveName(true)">Skip for now (show as Anonymous)</div>
+    <div class="name-skip" onclick="saveName(true)">Skip (show as Anonymous)</div>
   </div>
 </div>
 
@@ -258,7 +220,7 @@
       <svg width="14" height="14" fill="none" stroke="#777" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <input type="text" id="search-input" placeholder="Search..." oninput="onSearch(this.value)"/>
     </div>
-    <div class="user-btn" onclick="openNameModal()" title="Change your trainer name">
+    <div class="user-btn" onclick="openNameModal()" title="Change trainer name">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">Set Name</span>
     </div>
@@ -267,8 +229,9 @@
 
 <!-- SETUP BANNER -->
 <div class="setup-banner" id="setup-banner">
-  <strong>&#x26A0; Firebase not configured yet.</strong> To enable community ratings, open this file and replace the Firebase config at the bottom with your project's config.
-  Go to <strong>console.firebase.google.com</strong> → Create project → Add web app → Copy config. Then create a <strong>Firestore Database</strong> in test mode.
+  <strong>&#x26A0; Supabase not configured yet.</strong>
+  Replace <code>YOUR_SUPABASE_URL</code> and <code>YOUR_SUPABASE_ANON_KEY</code> in this file with your project's values from
+  <strong>supabase.com → Project Settings → API</strong>. Also run the SQL setup in the Supabase SQL Editor (see comments in the script).
 </div>
 
 <!-- BROWSE VIEW -->
@@ -314,62 +277,86 @@
 <div id="view-rankings" class="view">
   <div class="rankings-header">
     <h1>&#x1F3C6; Community Rankings</h1>
-    <p>Top Pokémon ranked by average community rating. Rate more to grow the list!</p>
+    <p>Top Pokémon ranked by average community rating.</p>
   </div>
   <div class="rankings-list" id="rankings-list">
-    <div class="rankings-loading">Loading rankings...</div>
+    <div class="empty-rankings"><p>Loading...</p></div>
   </div>
 </div>
 
 <!-- POKEMON MODAL -->
 <div class="modal-overlay" id="modal-overlay" onclick="closeModalOnBg(event)">
-  <div class="modal" id="modal">
+  <div class="modal">
     <button class="modal-close" onclick="closeModal()">&#x2715;</button>
     <div id="modal-hero"></div>
     <div class="modal-body" id="modal-body"></div>
   </div>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
-// ═══════════════════════════════════════════════════════
-// FIREBASE CONFIG — replace with your project's config
-// Get it from: console.firebase.google.com
-// ═══════════════════════════════════════════════════════
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
+// ═══════════════════════════════════════════════
+// SUPABASE CONFIG — replace with your values
+// Get from: supabase.com → Project Settings → API
+// ═══════════════════════════════════════════════
+const SUPABASE_URL  = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON = 'YOUR_SUPABASE_ANON_KEY';
 
-// ═══════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════
-let db = null;
-let firebaseReady = false;
+/*
+  ─────────────────────────────────────────────
+  RUN THIS SQL IN YOUR SUPABASE SQL EDITOR ONCE
+  (supabase.com → SQL Editor → New query)
+  ─────────────────────────────────────────────
 
-try {
-  firebase.initializeApp(firebaseConfig);
-  db = firebase.firestore();
-  if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'YOUR_API_KEY') {
-    firebaseReady = false;
-    document.getElementById('setup-banner').classList.add('show');
-  } else {
-    firebaseReady = true;
-  }
-} catch(e) {
+  create table ratings (
+    id text primary key,
+    pokemon_id integer not null,
+    user_id text not null,
+    username text,
+    stars integer not null,
+    updated_at timestamptz default now()
+  );
+
+  create table comments (
+    id uuid primary key default gen_random_uuid(),
+    pokemon_id integer not null,
+    user_id text not null,
+    username text,
+    text text not null,
+    stars integer,
+    created_at timestamptz default now()
+  );
+
+  alter table ratings enable row level security;
+  alter table comments enable row level security;
+  create policy "public read ratings"  on ratings for select using (true);
+  create policy "public write ratings" on ratings for insert with check (true);
+  create policy "public update ratings" on ratings for update using (true);
+  create policy "public read comments"  on comments for select using (true);
+  create policy "public write comments" on comments for insert with check (true);
+  create policy "public delete comments" on comments for delete using (true);
+
+  alter publication supabase_realtime add table comments;
+*/
+
+// ═══════════════════════════════════════════════
+// INIT CLIENT
+// ═══════════════════════════════════════════════
+let supabase = null;
+let dbReady = false;
+
+if (SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  dbReady = true;
+} else {
   document.getElementById('setup-banner').classList.add('show');
 }
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // CONSTANTS
-// ═══════════════════════════════════════════════════════
-const TOTAL_POKEMON = 1025;
+// ═══════════════════════════════════════════════
+const TOTAL = 1025;
 const PAGE_SIZE = 60;
 const SPRITE = id => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
 const ART    = id => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
@@ -378,8 +365,10 @@ const GENS = {
   1:[1,151], 2:[152,251], 3:[252,386], 4:[387,493],
   5:[494,649], 6:[650,721], 7:[722,809], 8:[810,905], 9:[906,1025]
 };
-const GEN_NAMES = { 1:'Kanto', 2:'Johto', 3:'Hoenn', 4:'Sinnoh', 5:'Unova', 6:'Kalos', 7:'Alola', 8:'Galar', 9:'Paldea' };
-
+const GEN_NAMES = {
+  1:'Kanto', 2:'Johto', 3:'Hoenn', 4:'Sinnoh',
+  5:'Unova', 6:'Kalos', 7:'Alola', 8:'Galar', 9:'Paldea'
+};
 const TYPE_COLORS = {
   normal:'#9399A4', fire:'#FF7F00', water:'#3692DC', electric:'#FAC000',
   grass:'#38BF4B', ice:'#4CD1C0', fighting:'#CE4069', poison:'#AB6AC8',
@@ -388,106 +377,107 @@ const TYPE_COLORS = {
   steel:'#5A8EA2', fairy:'#EC8FE6'
 };
 
-// ═══════════════════════════════════════════════════════
-// USER IDENTITY
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// USER
+// ═══════════════════════════════════════════════
 function getUID() {
-  let uid = localStorage.getItem('pr_uid');
-  if (!uid) { uid = 'user_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('pr_uid', uid); }
-  return uid;
+  let u = localStorage.getItem('pr_uid');
+  if (!u) { u = 'u_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('pr_uid', u); }
+  return u;
 }
 function getUsername() { return localStorage.getItem('pr_username') || 'Anonymous'; }
-function setUsername(name) {
-  localStorage.setItem('pr_username', name || 'Anonymous');
-  updateUserDisplay();
-}
-function updateUserDisplay() {
-  const name = getUsername();
-  document.getElementById('user-name-display').textContent = name;
-  document.getElementById('user-avatar').textContent = name.charAt(0).toUpperCase();
-}
 function openNameModal() {
-  document.getElementById('name-input').value = getUsername() === 'Anonymous' ? '' : getUsername();
+  const cur = getUsername();
+  document.getElementById('name-input').value = cur === 'Anonymous' ? '' : cur;
   document.getElementById('name-modal-overlay').classList.add('open');
 }
 function saveName(skip) {
   const val = skip ? '' : document.getElementById('name-input').value.trim();
-  setUsername(val || 'Anonymous');
+  localStorage.setItem('pr_username', val || 'Anonymous');
+  updateUserDisplay();
   document.getElementById('name-modal-overlay').classList.remove('open');
   showToast('Name saved!');
 }
+function updateUserDisplay() {
+  const n = getUsername();
+  document.getElementById('user-name-display').textContent = n;
+  document.getElementById('user-avatar').textContent = n.charAt(0).toUpperCase();
+}
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // STATE
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 let allPokemon = [];
 let filteredPokemon = [];
 let displayedCount = 0;
 let typeCache = {};
-let communityStats = {};   // id -> { avg, count }
+let communityStats = {};   // pokemon_id -> { avg, count }
 let currentGen = 'all';
 let currentSort = 'number';
 let searchQuery = '';
-let currentModalId = null;
-let modalUnsub = null;
+let realtimeChannel = null;
 
-// ═══════════════════════════════════════════════════════
-// LOCAL FALLBACK STORAGE (used if firebase not configured)
-// ═══════════════════════════════════════════════════════
-function getLocalRatings() { try { return JSON.parse(localStorage.getItem('pr_ratings') || '{}'); } catch { return {}; } }
-function saveLocalRating(id, val) { const r = getLocalRatings(); r[id] = val; localStorage.setItem('pr_ratings', JSON.stringify(r)); }
-function getLocalComments() { try { return JSON.parse(localStorage.getItem('pr_comments') || '{}'); } catch { return {}; } }
-function saveLocalComment(id, text) {
-  const all = getLocalComments();
-  if (!all[id]) all[id] = [];
-  all[id].unshift({ id: Date.now().toString(), text, username: getUsername(), date: new Date().toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}), uid: getUID() });
-  localStorage.setItem('pr_comments', JSON.stringify(all));
-  return all[id];
-}
+// ═══════════════════════════════════════════════
+// LOCAL FALLBACK (when Supabase not configured)
+// ═══════════════════════════════════════════════
+function localRatings() { try { return JSON.parse(localStorage.getItem('pr_r')||'{}'); } catch { return {}; } }
+function localComments() { try { return JSON.parse(localStorage.getItem('pr_c')||'{}'); } catch { return {}; } }
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // TYPE CACHE
-// ═══════════════════════════════════════════════════════
-function loadTypeCache() { try { typeCache = JSON.parse(localStorage.getItem('pr_types') || '{}'); } catch { typeCache = {}; } }
+// ═══════════════════════════════════════════════
+function loadTypeCache() { try { typeCache = JSON.parse(localStorage.getItem('pr_types')||'{}'); } catch { typeCache = {}; } }
 function saveTypeCache() { try { localStorage.setItem('pr_types', JSON.stringify(typeCache)); } catch {} }
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // STARTUP
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 async function init() {
   loadTypeCache();
   updateUserDisplay();
   if (!localStorage.getItem('pr_username')) openNameModal();
   await loadAllPokemon();
-  if (firebaseReady) await loadCommunityStats();
+  if (dbReady) await loadCommunityStats();
   applyFilters();
 }
 
 async function loadAllPokemon() {
   try {
-    const res = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=${TOTAL_POKEMON}&offset=0`);
+    const res = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=${TOTAL}&offset=0`);
     const data = await res.json();
     allPokemon = data.results.map(p => {
       const parts = p.url.split('/').filter(Boolean);
-      const id = parseInt(parts[parts.length-1]);
-      return { id, name: p.name };
-    }).filter(p => p.id <= TOTAL_POKEMON).sort((a,b) => a.id - b.id);
+      return { id: parseInt(parts[parts.length-1]), name: p.name };
+    }).filter(p => p.id <= TOTAL).sort((a,b) => a.id - b.id);
   } catch {
     document.getElementById('pokemon-grid').innerHTML = `<div class="global-loader"><p>Failed to load. Check connection and refresh.</p></div>`;
   }
 }
 
 async function loadCommunityStats() {
-  if (!firebaseReady) return;
+  if (!dbReady) return;
   try {
-    const snap = await db.collection('pokemon_stats').get();
-    snap.forEach(doc => { communityStats[doc.id] = doc.data(); });
-  } catch(e) { console.warn('Stats load error', e); }
+    const { data } = await supabase.rpc('get_pokemon_stats').select();
+    // fallback: compute from ratings table
+    const { data: rows } = await supabase.from('ratings').select('pokemon_id, stars');
+    if (!rows) return;
+    const map = {};
+    rows.forEach(r => {
+      if (!map[r.pokemon_id]) map[r.pokemon_id] = { total: 0, count: 0 };
+      map[r.pokemon_id].total += r.stars;
+      map[r.pokemon_id].count += 1;
+    });
+    Object.entries(map).forEach(([id, v]) => {
+      communityStats[id] = { avg: v.total / v.count, count: v.count };
+    });
+  } catch {
+    // silently fail — stats will load per-card
+  }
 }
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // FILTERS & SORT
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 function applyFilters() {
   let list = [...allPokemon];
   if (currentGen !== 'all') {
@@ -516,13 +506,13 @@ function setGen(gen) {
   document.querySelectorAll('.gen-btn').forEach(b => b.classList.toggle('active', b.dataset.gen == gen));
   applyFilters();
 }
-function setSort(val) { currentSort = val; applyFilters(); }
-let searchDebounce;
-function onSearch(val) { clearTimeout(searchDebounce); searchDebounce = setTimeout(() => { searchQuery = val.toLowerCase(); applyFilters(); }, 250); }
+function setSort(v) { currentSort = v; applyFilters(); }
+let searchTimer;
+function onSearch(v) { clearTimeout(searchTimer); searchTimer = setTimeout(() => { searchQuery = v.toLowerCase(); applyFilters(); }, 250); }
 
-// ═══════════════════════════════════════════════════════
-// GRID RENDER
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// GRID
+// ═══════════════════════════════════════════════
 function renderGrid() {
   const grid = document.getElementById('pokemon-grid');
   grid.innerHTML = '';
@@ -532,26 +522,26 @@ function renderGrid() {
 
 function loadMoreCards() {
   const grid = document.getElementById('pokemon-grid');
-  const myRatings = getLocalRatings();
   const batch = filteredPokemon.slice(displayedCount, displayedCount + PAGE_SIZE);
   batch.forEach(p => {
-    const card = createCard(p, myRatings[p.id] || 0);
+    const card = createCard(p);
     grid.appendChild(card);
     if (!typeCache[p.id]) typeObserver.observe(card);
   });
   displayedCount += batch.length;
   const wrap = document.getElementById('load-more-wrap');
   const btn = document.getElementById('load-more-btn');
-  if (displayedCount < filteredPokemon.length) {
+  const remaining = filteredPokemon.length - displayedCount;
+  if (remaining > 0) {
     wrap.style.display = 'flex';
     btn.disabled = false;
-    btn.textContent = `Load More (${filteredPokemon.length - displayedCount} remaining)`;
+    btn.textContent = `Load More (${remaining} remaining)`;
   } else {
     wrap.style.display = 'none';
   }
 }
 
-function createCard(p, myRating) {
+function createCard(p) {
   const div = document.createElement('div');
   div.className = 'poke-card';
   div.dataset.id = p.id;
@@ -560,12 +550,8 @@ function createCard(p, myRating) {
   const stats = communityStats[p.id];
   const avg = stats ? parseFloat(stats.avg.toFixed(1)) : 0;
   const votes = stats ? stats.count : 0;
-  const filledStars = Math.round(avg);
-
-  const stars = [1,2,3,4,5].map(i =>
-    `<span class="s ${i <= filledStars ? 'filled' : ''}">&#9733;</span>`
-  ).join('');
-
+  const filled = Math.round(avg);
+  const stars = [1,2,3,4,5].map(i => `<span class="s ${i<=filled?'filled':''}">&#9733;</span>`).join('');
   const types = typeCache[p.id]
     ? typeCache[p.id].map(t => `<span class="type-badge" style="background:${TYPE_COLORS[t]||'#666'}">${t}</span>`).join('')
     : `<span class="skel-line skeleton" style="width:54px;height:15px"></span>`;
@@ -577,25 +563,25 @@ function createCard(p, myRating) {
     <span class="poke-card-name">${p.name.replace(/-/g,' ')}</span>
     <div class="poke-card-types" data-types-id="${p.id}">${types}</div>
     <div class="poke-card-rating">
-      <div class="poke-card-stars">${stars}</div>
+      <div class="poke-card-stars" data-stars-id="${p.id}">${stars}</div>
       <span class="poke-card-votes" data-votes-id="${p.id}">${votes > 0 ? `${avg} (${votes} vote${votes>1?'s':''})` : 'No ratings yet'}</span>
     </div>`;
   return div;
 }
 
-// ═══════════════════════════════════════════════════════
-// LAZY TYPE LOAD
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// LAZY TYPES
+// ═══════════════════════════════════════════════
 const typeObserver = new IntersectionObserver(entries => {
-  entries.forEach(entry => {
-    if (!entry.isIntersecting) return;
-    const id = parseInt(entry.target.dataset.id);
-    typeObserver.unobserve(entry.target);
-    if (!typeCache[id]) fetchAndCacheTypes(id);
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const id = parseInt(e.target.dataset.id);
+    typeObserver.unobserve(e.target);
+    if (!typeCache[id]) fetchTypes(id);
   });
 }, { rootMargin: '300px' });
 
-async function fetchAndCacheTypes(id) {
+async function fetchTypes(id) {
   try {
     const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
     const data = await res.json();
@@ -608,36 +594,43 @@ async function fetchAndCacheTypes(id) {
   } catch {}
 }
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // MODAL
-// ═══════════════════════════════════════════════════════
-function getGenLabel(id) {
+// ═══════════════════════════════════════════════
+function genLabel(id) {
   for (const [g,[min,max]] of Object.entries(GENS)) {
-    if (id >= min && id <= max) return `Gen ${['I','II','III','IV','V','VI','VII','VIII','IX'][g-1]} · ${GEN_NAMES[g]}`;
+    if (id >= min && id <= max)
+      return `Gen ${['I','II','III','IV','V','VI','VII','VIII','IX'][g-1]} · ${GEN_NAMES[g]}`;
   }
   return '';
 }
 
 async function openModal(id, name) {
-  if (modalUnsub) { modalUnsub(); modalUnsub = null; }
-  currentModalId = id;
+  // Teardown previous realtime
+  if (realtimeChannel) { supabase && supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+
   document.getElementById('modal-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 
-  // Ensure types
-  if (!typeCache[id]) await fetchAndCacheTypes(id);
+  if (!typeCache[id]) await fetchTypes(id);
   const types = typeCache[id] || [];
   const typeBadges = types.map(t =>
     `<span class="modal-type-badge" style="background:${TYPE_COLORS[t]||'#666'}">${t}</span>`
   ).join('');
 
   // Community score
-  const stats = communityStats[id] || { avg: 0, count: 0 };
-  const avgDisplay = stats.count ? stats.avg.toFixed(1) : '—';
+  let stats = communityStats[id] || { avg: 0, count: 0 };
+  if (dbReady && !stats.count) {
+    const { data } = await supabase.from('ratings').select('stars').eq('pokemon_id', id);
+    if (data && data.length) {
+      const total = data.reduce((s,r) => s + r.stars, 0);
+      stats = { avg: total / data.length, count: data.length };
+      communityStats[id] = stats;
+    }
+  }
+  const avgDisp = stats.count ? stats.avg.toFixed(1) : '—';
   const filledC = Math.round(stats.avg);
-  const communityStars = [1,2,3,4,5].map(i =>
-    `<span class="s ${i <= filledC ? 'filled' : ''}">&#9733;</span>`
-  ).join('');
+  const cStars = [1,2,3,4,5].map(i => `<span class="s ${i<=filledC?'filled':''}">&#9733;</span>`).join('');
 
   document.getElementById('modal-hero').innerHTML = `
     <div class="modal-hero">
@@ -646,315 +639,313 @@ async function openModal(id, name) {
         <div class="modal-num">#${String(id).padStart(4,'0')}</div>
         <div class="modal-name">${name.replace(/-/g,' ')}</div>
         <div class="modal-types">${typeBadges}</div>
-        <div class="modal-gen">${getGenLabel(id)}</div>
+        <div class="modal-gen">${genLabel(id)}</div>
         <div class="modal-community-score">
-          <div class="community-avg" id="modal-avg">${avgDisplay}</div>
+          <div class="community-avg" id="modal-avg">${avgDisp}</div>
           <div class="community-detail">
-            <div class="community-stars" id="modal-community-stars">${communityStars}</div>
-            <div class="community-label" id="modal-votes-label">${stats.count ? `${stats.count} community vote${stats.count>1?'s':''}` : 'No ratings yet'}</div>
+            <div class="community-stars" id="modal-cstars">${cStars}</div>
+            <div class="community-label" id="modal-clabel">${stats.count ? `${stats.count} community vote${stats.count>1?'s':''}` : 'No ratings yet'}</div>
           </div>
         </div>
       </div>
     </div>`;
 
   // My rating
-  const myRating = firebaseReady ? await getMyRating(id) : (getLocalRatings()[id] || 0);
+  let myRating = 0;
+  if (dbReady) {
+    const { data } = await supabase.from('ratings').select('stars').eq('id', `${id}_${getUID()}`).maybeSingle();
+    if (data) myRating = data.stars;
+  } else {
+    myRating = localRatings()[id] || 0;
+  }
 
   document.getElementById('modal-body').innerHTML = `
     <div>
       <div class="section-label">Your Rating</div>
       <div class="stars-input" id="stars-input">
         ${[1,2,3,4,5].map(i =>
-          `<button class="star-btn ${i <= myRating ? 'selected' : ''}" data-val="${i}"
-            onmouseenter="hoverStars(${i})" onmouseleave="unhoverStars()"
-            onclick="submitRating(${id}, ${i})">&#9733;</button>`
+          `<button class="star-btn ${i<=myRating?'selected':''}" data-val="${i}"
+             onmouseenter="hoverStars(${i})" onmouseleave="unhoverStars()"
+             onclick="submitRating(${id}, ${i})">&#9733;</button>`
         ).join('')}
       </div>
-      <div class="my-rating-note" id="my-rating-note">${myRating > 0 ? `You rated <span>${myRating}/5 stars</span>` : "You haven't rated this yet"}</div>
+      <div class="my-rating-note" id="my-rating-note">${myRating ? `You rated <span>${myRating}/5 stars</span>` : "You haven't rated this yet"}</div>
       <div class="ratings-breakdown" id="ratings-breakdown"></div>
     </div>
     <div>
       <div class="section-label">Community Reviews</div>
       <div class="comment-input-wrap">
         <textarea class="comment-textarea" id="comment-input"
-          placeholder="Share your journey — battles, memories, what this Pokémon is great at..."></textarea>
-        <button class="comment-btn" id="comment-submit-btn" onclick="submitComment(${id})">Post Review</button>
+          placeholder="Share your journey — battles, memories, what this Pokémon excels at..."></textarea>
+        <button class="comment-btn" id="comment-btn" onclick="submitComment(${id})">Post Review</button>
       </div>
       <div class="comments-list" id="comments-list">
         <div class="comments-loading">Loading reviews...</div>
       </div>
     </div>`;
 
-  // Load ratings breakdown and comments
-  if (firebaseReady) {
-    loadRatingsBreakdown(id);
-    listenComments(id);
+  if (dbReady) {
+    loadBreakdown(id);
+    loadComments(id);
+    subscribeComments(id);
   } else {
-    loadLocalModal(id);
+    renderLocalComments(id);
   }
 }
 
-async function getMyRating(id) {
-  if (!firebaseReady) return getLocalRatings()[id] || 0;
-  try {
-    const uid = getUID();
-    const doc = await db.collection('ratings').doc(`${id}_${uid}`).get();
-    return doc.exists ? (doc.data().stars || 0) : 0;
-  } catch { return 0; }
+// ─── Ratings breakdown ───
+async function loadBreakdown(id) {
+  const { data } = await supabase.from('ratings').select('stars').eq('pokemon_id', id);
+  const el = document.getElementById('ratings-breakdown');
+  if (!el || !data || !data.length) return;
+  const counts = {1:0,2:0,3:0,4:0,5:0};
+  data.forEach(r => { if (r.stars) counts[r.stars]++; });
+  const total = data.length;
+  el.innerHTML = [5,4,3,2,1].map(s => {
+    const pct = total ? Math.round((counts[s]/total)*100) : 0;
+    return `<div class="rating-row">
+      <span class="rating-row-label">${s}&#9733;</span>
+      <div class="rating-bar-wrap"><div class="rating-bar-fill" style="width:${pct}%"></div></div>
+      <span class="rating-row-count">${counts[s]}</span>
+    </div>`;
+  }).join('');
 }
 
-async function loadRatingsBreakdown(id) {
-  if (!firebaseReady) return;
-  try {
-    const snap = await db.collection('ratings').where('pokemonId', '==', id).get();
-    const counts = {1:0, 2:0, 3:0, 4:0, 5:0};
-    let total = 0;
-    snap.forEach(doc => { const s = doc.data().stars; if (s) { counts[s] = (counts[s]||0)+1; total++; } });
-    const el = document.getElementById('ratings-breakdown');
-    if (!el || !total) return;
-    el.innerHTML = [5,4,3,2,1].map(s => {
-      const pct = total ? Math.round((counts[s]/total)*100) : 0;
-      return `<div class="rating-row">
-        <span class="rating-row-label">${s}&#9733;</span>
-        <div class="rating-bar-wrap"><div class="rating-bar-fill" style="width:${pct}%"></div></div>
-        <span class="rating-row-count">${counts[s]}</span>
-      </div>`;
-    }).join('');
-  } catch {}
+// ─── Comments ───
+async function loadComments(id) {
+  const { data, error } = await supabase
+    .from('comments').select('*')
+    .eq('pokemon_id', id).order('created_at', { ascending: false }).limit(50);
+  renderComments(data || [], id);
 }
 
-function listenComments(id) {
-  if (!firebaseReady) return;
-  if (modalUnsub) modalUnsub();
+function subscribeComments(id) {
+  if (!dbReady) return;
+  realtimeChannel = supabase.channel(`comments_${id}`)
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'comments',
+      filter: `pokemon_id=eq.${id}`
+    }, () => loadComments(id))
+    .subscribe();
+}
+
+function renderComments(rows, id) {
+  const el = document.getElementById('comments-list');
+  if (!el) return;
+  if (!rows.length) { el.innerHTML = `<div class="no-comments">No reviews yet — be the first!</div>`; return; }
   const uid = getUID();
-  modalUnsub = db.collection('comments')
-    .where('pokemonId', '==', id)
-    .orderBy('createdAt', 'desc')
-    .limit(50)
-    .onSnapshot(snap => {
-      const el = document.getElementById('comments-list');
-      if (!el) return;
-      if (snap.empty) { el.innerHTML = `<div class="no-comments">No reviews yet — be the first!</div>`; return; }
-      el.innerHTML = snap.docs.map(doc => {
-        const d = doc.data();
-        const isOwn = d.uid === uid;
-        const initials = (d.username||'A').charAt(0).toUpperCase();
-        const dateStr = d.createdAt ? new Date(d.createdAt.seconds*1000).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : 'Just now';
-        return `<div class="comment-item">
-          <div class="comment-header">
-            <div class="comment-avatar">${initials}</div>
-            <span class="comment-username">${escHtml(d.username||'Anonymous')}</span>
-            ${d.stars ? `<span class="comment-rating-badge">${'&#9733;'.repeat(d.stars)}</span>` : ''}
-            ${isOwn ? `<span class="comment-own-badge">You</span>` : ''}
-            <span class="comment-date" style="margin-left:auto">${dateStr}</span>
-          </div>
-          <div class="comment-text">${escHtml(d.text)}</div>
-          ${isOwn ? `<button class="comment-delete" onclick="deleteComment('${doc.id}')">&#x2715;</button>` : ''}
-        </div>`;
-      }).join('');
-    }, err => console.warn('Comments listen error', err));
+  el.innerHTML = rows.map(r => {
+    const isOwn = r.user_id === uid;
+    const initials = (r.username||'A').charAt(0).toUpperCase();
+    const dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '';
+    return `<div class="comment-item">
+      <div class="comment-header">
+        <div class="comment-avatar">${initials}</div>
+        <span class="comment-username">${esc(r.username||'Anonymous')}</span>
+        ${r.stars ? `<span class="comment-rating-badge">${'&#9733;'.repeat(r.stars)}</span>` : ''}
+        ${isOwn ? `<span class="comment-own-badge">You</span>` : ''}
+        <span class="comment-date">${dateStr}</span>
+      </div>
+      <div class="comment-text">${esc(r.text)}</div>
+      ${isOwn ? `<button class="comment-delete" onclick="deleteComment('${r.id}', ${id})">&#x2715;</button>` : ''}
+    </div>`;
+  }).join('');
 }
 
-function loadLocalModal(id) {
-  const comments = (getLocalComments()[id] || []);
+function renderLocalComments(id) {
+  const comments = (localComments()[id] || []);
   const el = document.getElementById('comments-list');
   if (!el) return;
   if (!comments.length) { el.innerHTML = `<div class="no-comments">No reviews yet — be the first!</div>`; return; }
   const uid = getUID();
-  el.innerHTML = comments.map((c, i) => `
+  el.innerHTML = comments.map((c,i) => `
     <div class="comment-item">
       <div class="comment-header">
         <div class="comment-avatar">${(c.username||'A').charAt(0).toUpperCase()}</div>
-        <span class="comment-username">${escHtml(c.username||'Anonymous')}</span>
+        <span class="comment-username">${esc(c.username||'Anonymous')}</span>
         ${c.uid === uid ? `<span class="comment-own-badge">You</span>` : ''}
-        <span class="comment-date" style="margin-left:auto">${c.date}</span>
+        <span class="comment-date">${c.date||''}</span>
       </div>
-      <div class="comment-text">${escHtml(c.text)}</div>
+      <div class="comment-text">${esc(c.text)}</div>
       ${c.uid === uid ? `<button class="comment-delete" onclick="deleteLocalComment(${id}, ${i})">&#x2715;</button>` : ''}
     </div>`).join('');
 }
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // SUBMIT RATING
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 async function submitRating(id, stars) {
-  const uid = getUID();
-
-  // Update star UI immediately
+  // Instant UI feedback
   document.querySelectorAll('.star-btn').forEach((b,i) => b.classList.toggle('selected', i < stars));
   document.getElementById('my-rating-note').innerHTML = `You rated <span>${stars}/5 stars</span>`;
 
-  if (!firebaseReady) {
-    saveLocalRating(id, stars);
-    updateCardRating(id, stars, 1);
+  if (!dbReady) {
+    const r = localRatings(); r[id] = stars; localStorage.setItem('pr_r', JSON.stringify(r));
+    updateCardStats(id, stars, 1);
     showToast(`Rated ${stars} star${stars>1?'s':''}!`);
     return;
   }
 
-  try {
-    const ratingRef = db.collection('ratings').doc(`${id}_${uid}`);
-    const statsRef = db.collection('pokemon_stats').doc(String(id));
+  const uid = getUID();
+  const { error } = await supabase.from('ratings').upsert({
+    id: `${id}_${uid}`, pokemon_id: id, user_id: uid,
+    username: getUsername(), stars, updated_at: new Date().toISOString()
+  });
 
-    // Check if already rated
-    const prevDoc = await ratingRef.get();
-    const prevStars = prevDoc.exists ? (prevDoc.data().stars || 0) : 0;
+  if (error) { showToast('Could not save — check Supabase setup'); return; }
 
-    // Write rating
-    await ratingRef.set({ pokemonId: id, uid, username: getUsername(), stars, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-
-    // Update aggregate stats
-    await db.runTransaction(async tx => {
-      const statsDoc = await tx.get(statsRef);
-      if (!statsDoc.exists) {
-        tx.set(statsRef, { count: 1, totalStars: stars, avg: stars });
-      } else {
-        const d = statsDoc.data();
-        let count = d.count || 0;
-        let total = d.totalStars || 0;
-        if (prevStars > 0) {
-          total = total - prevStars + stars;
-        } else {
-          count += 1;
-          total += stars;
-        }
-        const avg = total / count;
-        tx.update(statsRef, { count, totalStars: total, avg });
-        communityStats[id] = { count, avg };
-        updateCardRating(id, avg, count);
-        updateModalScore(id, avg, count);
-      }
-    });
-
-    await loadRatingsBreakdown(id);
-    showToast(`Rated ${stars} star${stars>1?'s':''}!`);
-  } catch(e) {
-    console.warn('Rating error', e);
-    showToast('Could not save — check Firebase setup');
+  // Recompute stats from DB
+  const { data } = await supabase.from('ratings').select('stars').eq('pokemon_id', id);
+  if (data && data.length) {
+    const total = data.reduce((s,r) => s + r.stars, 0);
+    const avg = total / data.length;
+    const count = data.length;
+    communityStats[id] = { avg, count };
+    updateCardStats(id, avg, count);
+    updateModalScore(id, avg, count);
+    loadBreakdown(id);
   }
+  showToast(`Rated ${stars} star${stars>1?'s':''}!`);
 }
 
-function updateCardRating(id, avg, count) {
-  const filledC = Math.round(avg);
-  const starsEl = document.querySelector(`.poke-card[data-id="${id}"] .poke-card-stars`);
+function updateCardStats(id, avg, count) {
+  const filled = Math.round(avg);
+  const starsEl = document.querySelector(`[data-stars-id="${id}"]`);
   const votesEl = document.querySelector(`[data-votes-id="${id}"]`);
-  if (starsEl) starsEl.innerHTML = [1,2,3,4,5].map(i => `<span class="s ${i<=filledC?'filled':''}">&#9733;</span>`).join('');
+  if (starsEl) starsEl.innerHTML = [1,2,3,4,5].map(i => `<span class="s ${i<=filled?'filled':''}">&#9733;</span>`).join('');
   if (votesEl) votesEl.textContent = count > 0 ? `${parseFloat(avg.toFixed(1))} (${count} vote${count>1?'s':''})` : 'No ratings yet';
 }
 
 function updateModalScore(id, avg, count) {
   const avgEl = document.getElementById('modal-avg');
-  const starsEl = document.getElementById('modal-community-stars');
-  const labelEl = document.getElementById('modal-votes-label');
+  const starsEl = document.getElementById('modal-cstars');
+  const labelEl = document.getElementById('modal-clabel');
   if (avgEl) avgEl.textContent = avg.toFixed(1);
   if (starsEl) starsEl.innerHTML = [1,2,3,4,5].map(i => `<span class="s ${i<=Math.round(avg)?'filled':''}">&#9733;</span>`).join('');
   if (labelEl) labelEl.textContent = `${count} community vote${count>1?'s':''}`;
 }
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // SUBMIT COMMENT
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 async function submitComment(id) {
   const input = document.getElementById('comment-input');
   const text = input.value.trim();
   if (!text) return;
-  const btn = document.getElementById('comment-submit-btn');
+  const btn = document.getElementById('comment-btn');
   btn.disabled = true;
 
-  if (!firebaseReady) {
-    const updated = saveLocalComment(id, text);
+  if (!dbReady) {
+    const all = localComments();
+    if (!all[id]) all[id] = [];
+    const uid = getUID();
+    all[id].unshift({ text, username: getUsername(), uid, date: new Date().toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) });
+    localStorage.setItem('pr_c', JSON.stringify(all));
     input.value = '';
-    loadLocalModal(id);
+    renderLocalComments(id);
     btn.disabled = false;
     showToast('Review posted!');
     return;
   }
 
-  try {
-    const myRating = await getMyRating(id);
-    await db.collection('comments').add({
-      pokemonId: id, uid: getUID(), username: getUsername(),
-      text, stars: myRating || null,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    input.value = '';
-    showToast('Review posted!');
-  } catch(e) {
-    showToast('Could not post — check Firebase setup');
-  }
+  const myRating = parseInt(document.querySelector('.star-btn.selected:last-of-type')?.dataset?.val || 0);
+  const { error } = await supabase.from('comments').insert({
+    pokemon_id: id, user_id: getUID(), username: getUsername(),
+    text, stars: myRating || null
+  });
+
   btn.disabled = false;
+  if (error) { showToast('Could not post — check Supabase setup'); return; }
+  input.value = '';
+  showToast('Review posted!');
+  // realtime will refresh the list automatically
 }
 
-async function deleteComment(docId) {
-  if (!firebaseReady) return;
-  try { await db.collection('comments').doc(docId).delete(); } catch {}
+async function deleteComment(commentId, pokemonId) {
+  if (!dbReady) return;
+  await supabase.from('comments').delete().eq('id', commentId);
+  // realtime will refresh the list
 }
 
 function deleteLocalComment(id, index) {
-  const all = getLocalComments();
+  const all = localComments();
   if (!all[id]) return;
   all[id].splice(index, 1);
-  localStorage.setItem('pr_comments', JSON.stringify(all));
-  loadLocalModal(id);
+  localStorage.setItem('pr_c', JSON.stringify(all));
+  renderLocalComments(id);
 }
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // STAR HOVER
-// ═══════════════════════════════════════════════════════
-function hoverStars(val) { document.querySelectorAll('.star-btn').forEach((b,i) => b.classList.toggle('hover', i<val)); }
+// ═══════════════════════════════════════════════
+function hoverStars(v) { document.querySelectorAll('.star-btn').forEach((b,i) => b.classList.toggle('hover', i<v)); }
 function unhoverStars() { document.querySelectorAll('.star-btn').forEach(b => b.classList.remove('hover')); }
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // RANKINGS
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 async function renderRankings() {
   const list = document.getElementById('rankings-list');
-  list.innerHTML = `<div class="rankings-loading">Loading...</div>`;
+  list.innerHTML = `<div class="empty-rankings"><p>Loading...</p></div>`;
 
-  let ranked = [];
-  if (firebaseReady) {
-    try {
-      const snap = await db.collection('pokemon_stats').orderBy('avg','desc').orderBy('count','desc').limit(100).get();
-      snap.forEach(doc => {
-        const id = parseInt(doc.id);
-        const p = allPokemon.find(x => x.id === id);
-        if (p) ranked.push({ ...p, ...doc.data() });
-      });
-    } catch(e) { console.warn('Rankings error', e); }
-  }
-
-  if (!ranked.length) {
-    list.innerHTML = `<div class="empty-rankings"><p>No community ratings yet.</p><small>Be the first to rate some Pokémon!</small></div>`;
+  if (!dbReady) {
+    list.innerHTML = `<div class="empty-rankings"><p>Connect Supabase to see community rankings.</p></div>`;
     return;
   }
 
-  list.innerHTML = ranked.map((p, i) => {
-    const avg = p.avg ? p.avg.toFixed(1) : '0.0';
-    const count = p.count || 0;
-    const filled = Math.round(p.avg || 0);
+  const { data, error } = await supabase.from('ratings').select('pokemon_id, stars');
+  if (error || !data || !data.length) {
+    list.innerHTML = `<div class="empty-rankings"><p>No ratings yet.</p><small>Be the first to rate some Pokémon!</small></div>`;
+    return;
+  }
+
+  // Aggregate
+  const map = {};
+  data.forEach(r => {
+    if (!map[r.pokemon_id]) map[r.pokemon_id] = { total: 0, count: 0 };
+    map[r.pokemon_id].total += r.stars;
+    map[r.pokemon_id].count++;
+  });
+
+  const ranked = Object.entries(map)
+    .map(([id, v]) => ({ id: parseInt(id), avg: v.total/v.count, count: v.count }))
+    .filter(x => x.count >= 1)
+    .sort((a,b) => b.avg - a.avg || b.count - a.count)
+    .slice(0, 100);
+
+  if (!ranked.length) {
+    list.innerHTML = `<div class="empty-rankings"><p>No ratings yet.</p></div>`;
+    return;
+  }
+
+  list.innerHTML = ranked.map((r, i) => {
+    const p = allPokemon.find(x => x.id === r.id);
+    if (!p) return '';
+    const filled = Math.round(r.avg);
     const stars = [1,2,3,4,5].map(s => `<span class="s ${s<=filled?'filled':''}">&#9733;</span>`).join('');
     const numClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
-    const types = typeCache[p.id] ? typeCache[p.id].map(t =>
-      `<span class="type-badge" style="background:${TYPE_COLORS[t]||'#666'};font-size:0.62rem;padding:1px 7px">${t}</span>`
-    ).join(' ') : '';
-    return `<div class="rank-item" onclick="openModal(${p.id},'${p.name}')">
+    const types = typeCache[r.id]
+      ? typeCache[r.id].map(t => `<span class="type-badge" style="background:${TYPE_COLORS[t]||'#666'};font-size:0.6rem;padding:1px 6px">${t}</span>`).join(' ')
+      : '';
+    return `<div class="rank-item" onclick="openModal(${r.id},'${p.name}')">
       <div class="rank-num ${numClass}">${i+1}</div>
-      <img class="rank-img" src="${SPRITE(p.id)}" alt="${p.name}"/>
+      <img class="rank-img" src="${SPRITE(r.id)}" alt="${p.name}"/>
       <div class="rank-info">
         <div class="rank-name">${p.name.replace(/-/g,' ')}</div>
-        <div class="rank-sub">#${String(p.id).padStart(4,'0')} &middot; ${getGenLabel(p.id)} ${types}</div>
+        <div class="rank-sub">#${String(r.id).padStart(4,'0')} &middot; ${genLabel(r.id)} ${types}</div>
         <div class="rank-stars">${stars}</div>
       </div>
       <div class="rank-right">
-        <div class="rank-score">${avg}</div>
-        <div class="rank-votes">${count} vote${count>1?'s':''}</div>
+        <div class="rank-score">${r.avg.toFixed(1)}</div>
+        <div class="rank-votes">${r.count} vote${r.count>1?'s':''}</div>
       </div>
     </div>`;
   }).join('');
 }
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // VIEW SWITCH
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 function switchView(view) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById(`view-${view}`).classList.add('active');
@@ -962,23 +953,21 @@ function switchView(view) {
   if (view === 'rankings') renderRankings();
 }
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // CLOSE MODAL
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 function closeModal() {
-  if (modalUnsub) { modalUnsub(); modalUnsub = null; }
+  if (realtimeChannel && supabase) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
   document.getElementById('modal-overlay').classList.remove('open');
   document.body.style.overflow = '';
-  currentModalId = null;
 }
 function closeModalOnBg(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // HELPERS
-// ═══════════════════════════════════════════════════════
-function escHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
+// ═══════════════════════════════════════════════
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 let toastTimer;
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -987,9 +976,6 @@ function showToast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
-// ═══════════════════════════════════════════════════════
-// START
-// ═══════════════════════════════════════════════════════
 init();
 </script>
 </body>
