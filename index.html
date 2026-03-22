@@ -722,7 +722,7 @@ async function loadBreakdown(id) {
 
 // ─── Comments ───
 async function loadComments(id) {
-  const { data, error } = await supabase
+  const { data, error } = await sb
     .from('comments').select('*')
     .eq('pokemon_id', id).order('created_at', { ascending: false }).limit(50);
   renderComments(data || [], id);
