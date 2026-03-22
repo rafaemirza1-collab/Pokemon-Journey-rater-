@@ -153,6 +153,21 @@
     .rank-votes { font-size: 0.72rem; color: var(--muted); }
     .empty-rankings { text-align: center; padding: 60px 0; color: var(--muted); }
 
+    /* ── SUGGESTIONS ── */
+    .suggestions-section { border-top: 1px solid var(--border); padding: 24px 32px 28px; }
+    .suggestions-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+    .suggestions-row::-webkit-scrollbar { display: none; }
+    .suggestion-card {
+      flex-shrink: 0; width: 110px; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 14px; padding: 12px 8px 10px; cursor: pointer; transition: all 0.2s;
+      display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center;
+    }
+    .suggestion-card:hover { border-color: #555; transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
+    .suggestion-img { width: 64px; height: 64px; object-fit: contain; image-rendering: pixelated; }
+    .suggestion-name { font-size: 0.72rem; font-weight: 700; text-transform: capitalize; color: var(--text); line-height: 1.2; }
+    .suggestion-rating { font-size: 0.65rem; color: var(--accent); font-weight: 600; }
+    .suggestion-rating.no-rating { color: var(--muted); }
+
     .name-modal-overlay { display: none; position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); align-items: center; justify-content: center; padding: 20px; }
     .name-modal-overlay.open { display: flex; }
     .name-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; padding: 40px; max-width: 400px; width: 100%; text-align: center; }
@@ -693,6 +708,11 @@ async function openModal(id, name) {
       </div>
     </div>`;
 
+  // Append suggestions section outside modal-body padding
+  document.getElementById('modal').insertAdjacentHTML('beforeend',
+    `<div class="suggestions-section" id="suggestions-section"></div>`);
+  renderSuggestions(id);
+
   if (dbReady) {
     loadBreakdown(id);
     loadComments(id);
@@ -969,6 +989,8 @@ function closeModal() {
   if (realtimeChannel && sb) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
   document.getElementById('modal-overlay').classList.remove('open');
   document.body.style.overflow = '';
+  const s = document.getElementById('suggestions-section');
+  if (s) s.remove();
 }
 function closeModalOnBg(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
@@ -976,6 +998,54 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
 // ═══════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// SUGGESTED POKEMON
+// ═══════════════════════════════════════════════
+function getSuggestedPokemon(currentId, count = 5) {
+  const currentTypes = typeCache[currentId] || [];
+
+  // 1. Same-type Pokemon (shuffled)
+  let sameType = allPokemon
+    .filter(p => {
+      if (p.id === currentId) return false;
+      const t = typeCache[p.id];
+      return t && t.some(x => currentTypes.includes(x));
+    })
+    .sort(() => Math.random() - 0.5);
+
+  // 2. Fill remainder with random Pokemon
+  const needed = count - Math.min(sameType.length, count);
+  const usedIds = new Set([currentId, ...sameType.slice(0, count).map(p => p.id)]);
+  const randoms = allPokemon
+    .filter(p => !usedIds.has(p.id))
+    .sort(() => Math.random() - 0.5)
+    .slice(0, needed);
+
+  return [...sameType.slice(0, count), ...randoms].slice(0, count);
+}
+
+function renderSuggestions(currentId) {
+  const suggestions = getSuggestedPokemon(currentId);
+  const cards = suggestions.map(p => {
+    const stats = communityStats[p.id];
+    const rating = stats && stats.count
+      ? `&#9733; ${stats.avg.toFixed(1)}`
+      : 'Not rated';
+    const ratingClass = stats && stats.count ? '' : 'no-rating';
+    return `<div class="suggestion-card" onclick="openModal(${p.id}, '${p.name}')">
+      <img class="suggestion-img" src="${SPRITE(p.id)}" alt="${p.name}"
+           onerror="this.removeAttribute('src')"/>
+      <span class="suggestion-name">${p.name.replace(/-/g, ' ')}</span>
+      <span class="suggestion-rating ${ratingClass}">${rating}</span>
+    </div>`;
+  }).join('');
+
+  const section = document.getElementById('suggestions-section');
+  if (section) section.innerHTML = `
+    <div class="section-label">You Might Also Like</div>
+    <div class="suggestions-row">${cards}</div>`;
+}
+
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 let toastTimer;
 function showToast(msg) {
