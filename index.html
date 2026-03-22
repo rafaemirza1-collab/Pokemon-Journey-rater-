@@ -438,16 +438,17 @@ function saveTypeCache() { try { localStorage.setItem('pr_types', JSON.stringify
 // STARTUP
 // ═══════════════════════════════════════════════
 async function init() {
-  try {
-    loadTypeCache();
-    updateUserDisplay();
-    if (!localStorage.getItem('pr_username')) openNameModal();
-    await loadAllPokemon();
-    if (dbReady) await loadCommunityStats();
-  } catch(e) {
-    console.error('Init error:', e);
-  } finally {
-    applyFilters();
+  loadTypeCache();
+  updateUserDisplay();
+  if (!localStorage.getItem('pr_username')) openNameModal();
+
+  // Load Pokemon first — always, no matter what
+  await loadAllPokemon();
+  applyFilters();
+
+  // Load community stats in background after Pokemon are visible
+  if (dbReady) {
+    loadCommunityStats().then(() => applyFilters()).catch(() => {});
   }
 }
 
