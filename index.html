@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pokemon Journey Rater</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0d0d0d; --surface: #161616; --surface2: #1e1e1e; --border: #2a2a2a;
+      --text: #f0f0f0; --muted: #777; --accent: #FFCB05; --accent2: #3B5BA7;
+      --red: #e63946;
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; overflow-x: hidden; }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 200;
+      background: rgba(13,13,13,0.92); backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; height: 64px; gap: 20px;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 900; font-size: 1.15rem; letter-spacing: -0.5px; cursor: pointer;
+      flex-shrink: 0;
+    }
+    .nav-brand img { width: 32px; height: 32px; }
+    .nav-brand span { background: linear-gradient(135deg, var(--accent), #FF9500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-tabs { display: flex; gap: 4px; }
+    .nav-tab {
+      padding: 8px 18px; border-radius: 8px; font-size: 0.88rem; font-weight: 600;
+      cursor: pointer; border: none; background: transparent; color: var(--muted);
+      transition: all 0.2s;
+    }
+    .nav-tab:hover { color: var(--text); background: var(--surface2); }
+    .nav-tab.active { background: var(--accent2); color: white; }
+    .nav-search {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 8px 14px; flex: 1; max-width: 300px;
+    }
+    .nav-search input {
+      background: none; border: none; outline: none; color: var(--text);
+      font-size: 0.88rem; width: 100%; font-family: 'Inter', sans-serif;
+    }
+    .nav-search input::placeholder { color: var(--muted); }
+
+    /* VIEWS */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* GEN TABS */
+    .gen-bar {
+      display: flex; gap: 8px; overflow-x: auto; padding: 20px 32px 0;
+      scrollbar-width: none;
+    }
+    .gen-bar::-webkit-scrollbar { display: none; }
+    .gen-btn {
+      flex-shrink: 0; padding: 7px 16px; border-radius: 999px;
+      font-size: 0.8rem; font-weight: 600; cursor: pointer;
+      border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+      transition: all 0.2s;
+    }
+    .gen-btn:hover { border-color: #555; color: var(--text); }
+    .gen-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+    /* SORT BAR */
+    .sort-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 32px; gap: 12px;
+    }
+    .sort-bar-left { display: flex; align-items: center; gap: 12px; }
+    .pokemon-count { font-size: 0.85rem; color: var(--muted); }
+    .sort-select {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); padding: 7px 12px; border-radius: 8px;
+      font-size: 0.85rem; font-family: 'Inter', sans-serif; cursor: pointer; outline: none;
+    }
+
+    /* POKEMON GRID */
+    .pokemon-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 16px; padding: 0 32px 40px;
+    }
+
+    /* POKEMON CARD */
+    .poke-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+      padding: 16px 12px 14px; cursor: pointer; transition: all 0.2s;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      position: relative; overflow: hidden;
+    }
+    .poke-card::before {
+      content: ''; position: absolute; inset: 0; border-radius: 16px;
+      background: radial-gradient(circle at 50% 0%, rgba(255,203,5,0.06), transparent 60%);
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .poke-card:hover { border-color: #444; transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+    .poke-card:hover::before { opacity: 1; }
+    .poke-card-num { font-size: 0.7rem; color: var(--muted); font-weight: 600; align-self: flex-start; }
+    .poke-card-img-wrap {
+      width: 80px; height: 80px; display: flex; align-items: center; justify-content: center;
+    }
+    .poke-card-img { width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; }
+    .poke-card-img.loading { opacity: 0; }
+    .poke-card-name { font-size: 0.82rem; font-weight: 700; text-transform: capitalize; text-align: center; }
+    .poke-card-types { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+    .type-badge {
+      font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+      text-transform: uppercase; letter-spacing: 0.5px; color: white;
+    }
+    .poke-card-stars { display: flex; gap: 2px; margin-top: 2px; }
+    .poke-card-stars .s { font-size: 0.75rem; color: #444; }
+    .poke-card-stars .s.filled { color: var(--accent); }
+
+    /* SKELETON */
+    .skeleton { background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .poke-card.skeleton-card { pointer-events: none; }
+    .poke-card.skeleton-card .poke-card-img-wrap { width: 80px; height: 80px; border-radius: 50%; }
+    .skel-line { height: 10px; border-radius: 5px; }
+
+    /* LOAD MORE */
+    .load-more-wrap { display: flex; justify-content: center; padding: 0 32px 60px; }
+    .load-more-btn {
+      padding: 12px 40px; border-radius: 999px; font-size: 0.9rem; font-weight: 600;
+      background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .load-more-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .load-more-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* MODAL OVERLAY */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+
+    /* MODAL */
+    .modal {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 24px;
+      width: 100%; max-width: 580px; max-height: 90vh; overflow-y: auto;
+      position: relative;
+    }
+    .modal-close {
+      position: absolute; top: 16px; right: 16px; width: 32px; height: 32px;
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      color: var(--muted); font-size: 1rem; transition: all 0.2s; z-index: 10;
+    }
+    .modal-close:hover { color: var(--text); border-color: #555; }
+
+    .modal-hero {
+      padding: 32px; display: flex; gap: 24px; align-items: flex-start;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-img-wrap { flex-shrink: 0; position: relative; }
+    .modal-img {
+      width: 140px; height: 140px; object-fit: contain;
+      filter: drop-shadow(0 8px 24px rgba(0,0,0,0.5));
+    }
+    .modal-info { flex: 1; padding-top: 4px; }
+    .modal-num { font-size: 0.8rem; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+    .modal-name { font-size: 2rem; font-weight: 900; text-transform: capitalize; letter-spacing: -1px; margin-bottom: 10px; }
+    .modal-types { display: flex; gap: 6px; margin-bottom: 14px; }
+    .modal-type-badge { font-size: 0.8rem; font-weight: 700; padding: 4px 14px; border-radius: 999px; text-transform: capitalize; color: white; }
+    .modal-gen { font-size: 0.8rem; color: var(--muted); }
+
+    .modal-body { padding: 28px 32px; display: flex; flex-direction: column; gap: 28px; }
+
+    /* STAR RATING */
+    .rating-section {}
+    .rating-label { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 12px; }
+    .stars-input { display: flex; gap: 8px; }
+    .star-btn {
+      font-size: 2rem; cursor: pointer; color: #333; transition: color 0.15s, transform 0.15s;
+      border: none; background: none; padding: 0; line-height: 1;
+    }
+    .star-btn:hover, .star-btn.hover, .star-btn.selected { color: var(--accent); }
+    .star-btn:hover { transform: scale(1.15); }
+    .rating-summary { margin-top: 10px; font-size: 0.85rem; color: var(--muted); }
+    .rating-summary span { color: var(--accent); font-weight: 700; }
+
+    /* COMMENT SECTION */
+    .comment-section {}
+    .comment-input-wrap { display: flex; flex-direction: column; gap: 10px; }
+    .comment-textarea {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.88rem;
+      resize: vertical; min-height: 90px; outline: none; transition: border-color 0.2s; width: 100%;
+    }
+    .comment-textarea:focus { border-color: var(--accent2); }
+    .comment-textarea::placeholder { color: var(--muted); }
+    .comment-btn {
+      align-self: flex-end; padding: 9px 22px; border-radius: 999px;
+      background: var(--accent2); color: white; font-weight: 600; font-size: 0.85rem;
+      border: none; cursor: pointer; transition: opacity 0.2s;
+    }
+    .comment-btn:hover { opacity: 0.85; }
+
+    .comments-list { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+    .comment-item {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px; position: relative;
+    }
+    .comment-meta { font-size: 0.75rem; color: var(--muted); margin-bottom: 6px; }
+    .comment-text { font-size: 0.88rem; line-height: 1.6; }
+    .comment-delete {
+      position: absolute; top: 10px; right: 10px; font-size: 0.75rem; color: var(--muted);
+      cursor: pointer; background: none; border: none; padding: 2px 6px; border-radius: 4px;
+    }
+    .comment-delete:hover { color: var(--red); background: rgba(230,57,70,0.1); }
+    .no-comments { font-size: 0.85rem; color: var(--muted); text-align: center; padding: 16px 0; }
+
+    /* RANKINGS VIEW */
+    #view-rankings { padding: 32px; }
+    .rankings-header { margin-bottom: 28px; }
+    .rankings-header h1 { font-size: 2rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 6px; }
+    .rankings-header p { color: var(--muted); font-size: 0.9rem; }
+    .rankings-list { display: flex; flex-direction: column; gap: 12px; max-width: 700px; }
+    .rank-item {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+      padding: 16px 20px; display: flex; align-items: center; gap: 16px; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .rank-item:hover { border-color: #444; transform: translateX(4px); }
+    .rank-num {
+      width: 36px; height: 36px; border-radius: 50%; background: var(--surface2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; font-weight: 800; color: var(--muted); flex-shrink: 0;
+    }
+    .rank-num.gold { background: rgba(255,203,5,0.15); color: var(--accent); }
+    .rank-num.silver { background: rgba(180,180,180,0.15); color: #aaa; }
+    .rank-num.bronze { background: rgba(205,127,50,0.15); color: #cd7f32; }
+    .rank-img { width: 56px; height: 56px; object-fit: contain; image-rendering: pixelated; flex-shrink: 0; }
+    .rank-info { flex: 1; }
+    .rank-name { font-size: 1rem; font-weight: 700; text-transform: capitalize; margin-bottom: 4px; }
+    .rank-sub { font-size: 0.78rem; color: var(--muted); }
+    .rank-stars { display: flex; gap: 3px; margin-top: 4px; }
+    .rank-stars .s { font-size: 0.9rem; color: #333; }
+    .rank-stars .s.filled { color: var(--accent); }
+    .rank-score { font-size: 1.5rem; font-weight: 900; color: var(--accent); flex-shrink: 0; }
+    .empty-rankings { text-align: center; padding: 60px 0; color: var(--muted); }
+    .empty-rankings p { margin-bottom: 8px; font-size: 1rem; }
+    .empty-rankings small { font-size: 0.85rem; }
+
+    /* TOAST */
+    .toast {
+      position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 999px;
+      padding: 12px 24px; font-size: 0.88rem; font-weight: 600;
+      z-index: 1000; transition: transform 0.3s; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* LOADING STATE */
+    .global-loader {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 80px 32px; gap: 16px; color: var(--muted);
+    }
+    .pokeball-spin {
+      width: 48px; height: 48px; animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* TYPE COLOR CLASSES - generated dynamically via JS */
+
+    /* RESPONSIVE */
+    @media (max-width: 640px) {
+      nav { padding: 0 16px; }
+      .pokemon-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; padding: 0 16px 40px; }
+      .gen-bar { padding: 16px 16px 0; }
+      .sort-bar { padding: 12px 16px; flex-wrap: wrap; }
+      #view-rankings { padding: 20px 16px; }
+      .modal-hero { flex-direction: column; align-items: center; text-align: center; }
+      .modal-types { justify-content: center; }
+      .modal-body { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand" onclick="switchView('browse')">
+    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="pokeball"/>
+    <span>PokéRater</span>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" data-view="browse" onclick="switchView('browse')">Pokédex</button>
+    <button class="nav-tab" data-view="rankings" onclick="switchView('rankings')">Rankings</button>
+  </div>
+  <div class="nav-search">
+    <svg width="14" height="14" fill="none" stroke="#777" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="search-input" placeholder="Search Pokémon..." oninput="onSearch(this.value)"/>
+  </div>
+</nav>
+
+<!-- BROWSE VIEW -->
+<div id="view-browse" class="view active">
+  <!-- Generation tabs -->
+  <div class="gen-bar" id="gen-bar">
+    <button class="gen-btn active" data-gen="all" onclick="setGen('all')">All</button>
+    <button class="gen-btn" data-gen="1" onclick="setGen(1)">Gen I · Kanto</button>
+    <button class="gen-btn" data-gen="2" onclick="setGen(2)">Gen II · Johto</button>
+    <button class="gen-btn" data-gen="3" onclick="setGen(3)">Gen III · Hoenn</button>
+    <button class="gen-btn" data-gen="4" onclick="setGen(4)">Gen IV · Sinnoh</button>
+    <button class="gen-btn" data-gen="5" onclick="setGen(5)">Gen V · Unova</button>
+    <button class="gen-btn" data-gen="6" onclick="setGen(6)">Gen VI · Kalos</button>
+    <button class="gen-btn" data-gen="7" onclick="setGen(7)">Gen VII · Alola</button>
+    <button class="gen-btn" data-gen="8" onclick="setGen(8)">Gen VIII · Galar</button>
+    <button class="gen-btn" data-gen="9" onclick="setGen(9)">Gen IX · Paldea</button>
+  </div>
+
+  <div class="sort-bar">
+    <div class="sort-bar-left">
+      <span class="pokemon-count" id="pokemon-count"></span>
+      <select class="sort-select" onchange="setSort(this.value)">
+        <option value="number">Sort: Number</option>
+        <option value="name">Sort: Name</option>
+        <option value="rating">Sort: Rating</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="pokemon-grid" id="pokemon-grid">
+    <div class="global-loader">
+      <svg class="pokeball-spin" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="48" fill="none" stroke="#333" stroke-width="4"/>
+        <path d="M2 50 A48 48 0 0 1 98 50" fill="#e63946" stroke="#333" stroke-width="2"/>
+        <path d="M2 50 A48 48 0 0 0 98 50" fill="#f0f0f0" stroke="#333" stroke-width="2"/>
+        <line x1="2" y1="50" x2="98" y2="50" stroke="#333" stroke-width="4"/>
+        <circle cx="50" cy="50" r="12" fill="#333"/>
+        <circle cx="50" cy="50" r="7" fill="#f0f0f0"/>
+      </svg>
+      <span>Loading Pokédex...</span>
+    </div>
+  </div>
+  <div class="load-more-wrap" id="load-more-wrap" style="display:none">
+    <button class="load-more-btn" id="load-more-btn" onclick="loadMoreCards()">Load More</button>
+  </div>
+</div>
+
+<!-- RANKINGS VIEW -->
+<div id="view-rankings" class="view">
+  <div class="rankings-header">
+    <h1>&#x1F3C6; Rankings</h1>
+    <p>Your top-rated Pokémon, sorted by star rating.</p>
+  </div>
+  <div class="rankings-list" id="rankings-list"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOnBg(event)">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+    <div class="modal-hero" id="modal-hero"></div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ───────────────────────────────────────────────
+// CONSTANTS
+// ───────────────────────────────────────────────
+const TOTAL_POKEMON = 1025;
+const PAGE_SIZE = 60;
+const SPRITE = id => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+const ART    = id => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+
+const GENS = {
+  1: [1, 151], 2: [152, 251], 3: [252, 386], 4: [387, 493],
+  5: [494, 649], 6: [650, 721], 7: [722, 809], 8: [810, 905], 9: [906, 1025]
+};
+const GEN_NAMES = {
+  1:'Kanto', 2:'Johto', 3:'Hoenn', 4:'Sinnoh',
+  5:'Unova', 6:'Kalos', 7:'Alola', 8:'Galar', 9:'Paldea'
+};
+
+const TYPE_COLORS = {
+  normal:'#9399A4', fire:'#FF7F00', water:'#3692DC', electric:'#FAC000',
+  grass:'#38BF4B', ice:'#4CD1C0', fighting:'#CE4069', poison:'#AB6AC8',
+  ground:'#D97845', flying:'#89AAE3', psychic:'#FA7179', bug:'#83C300',
+  rock:'#C5B78C', ghost:'#5269AC', dragon:'#0A6DC4', dark:'#595761',
+  steel:'#5A8EA2', fairy:'#EC8FE6'
+};
+
+// ───────────────────────────────────────────────
+// STATE
+// ───────────────────────────────────────────────
+let allPokemon = [];       // [{id, name}] - full list
+let filteredPokemon = [];  // current filtered+sorted list
+let displayedCount = 0;
+let typeCache = {};        // id -> [types]
+let currentGen = 'all';
+let currentSort = 'number';
+let searchQuery = '';
+let currentModalId = null;
+
+// ───────────────────────────────────────────────
+// STORAGE
+// ───────────────────────────────────────────────
+function getRatings() { try { return JSON.parse(localStorage.getItem('pr_ratings') || '{}'); } catch { return {}; } }
+function saveRatings(r) { localStorage.setItem('pr_ratings', JSON.stringify(r)); }
+function getComments() { try { return JSON.parse(localStorage.getItem('pr_comments') || '{}'); } catch { return {}; } }
+function saveComments(c) { localStorage.setItem('pr_comments', JSON.stringify(c)); }
+function getTypeCache() { try { return JSON.parse(localStorage.getItem('pr_types') || '{}'); } catch { return {}; } }
+function saveTypeCache(t) { try { localStorage.setItem('pr_types', JSON.stringify(t)); } catch {} }
+
+// ───────────────────────────────────────────────
+// INIT
+// ───────────────────────────────────────────────
+async function init() {
+  typeCache = getTypeCache();
+  await loadAllPokemon();
+  applyFilters();
+}
+
+async function loadAllPokemon() {
+  try {
+    const res = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=${TOTAL_POKEMON}&offset=0`);
+    const data = await res.json();
+    allPokemon = data.results.map((p, i) => {
+      const parts = p.url.split('/').filter(Boolean);
+      const id = parseInt(parts[parts.length - 1]);
+      return { id, name: p.name };
+    }).filter(p => p.id <= TOTAL_POKEMON);
+  } catch(e) {
+    document.getElementById('pokemon-grid').innerHTML = `<div class="global-loader"><p>Failed to load. Check your connection and refresh.</p></div>`;
+  }
+}
+
+// ───────────────────────────────────────────────
+// FILTERS & SORT
+// ───────────────────────────────────────────────
+function applyFilters() {
+  let list = [...allPokemon];
+
+  // Generation filter
+  if (currentGen !== 'all') {
+    const [min, max] = GENS[currentGen];
+    list = list.filter(p => p.id >= min && p.id <= max);
+  }
+
+  // Search
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    list = list.filter(p => p.name.includes(q) || String(p.id).includes(q));
+  }
+
+  // Sort
+  const ratings = getRatings();
+  if (currentSort === 'name') {
+    list.sort((a, b) => a.name.localeCompare(b.name));
+  } else if (currentSort === 'rating') {
+    list.sort((a, b) => (ratings[b.id] || 0) - (ratings[a.id] || 0));
+  } else {
+    list.sort((a, b) => a.id - b.id);
+  }
+
+  filteredPokemon = list;
+  displayedCount = 0;
+  document.getElementById('pokemon-count').textContent = `${list.length} Pokémon`;
+  renderGrid();
+}
+
+function setGen(gen) {
+  currentGen = gen;
+  document.querySelectorAll('.gen-btn').forEach(b => b.classList.toggle('active', b.dataset.gen == gen));
+  applyFilters();
+}
+
+function setSort(val) { currentSort = val; applyFilters(); }
+
+let searchDebounce;
+function onSearch(val) {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => { searchQuery = val.toLowerCase(); applyFilters(); }, 250);
+}
+
+// ───────────────────────────────────────────────
+// RENDER GRID
+// ───────────────────────────────────────────────
+function renderGrid() {
+  const grid = document.getElementById('pokemon-grid');
+  grid.innerHTML = '';
+  displayedCount = 0;
+  loadMoreCards();
+}
+
+function loadMoreCards() {
+  const grid = document.getElementById('pokemon-grid');
+  const ratings = getRatings();
+  const batch = filteredPokemon.slice(displayedCount, displayedCount + PAGE_SIZE);
+
+  batch.forEach(p => {
+    const card = createCard(p, ratings[p.id] || 0);
+    grid.appendChild(card);
+    // lazy-load types
+    observeCard(card, p.id);
+  });
+
+  displayedCount += batch.length;
+
+  const wrap = document.getElementById('load-more-wrap');
+  const btn = document.getElementById('load-more-btn');
+  if (displayedCount < filteredPokemon.length) {
+    wrap.style.display = 'flex';
+    btn.disabled = false;
+    btn.textContent = `Load More (${filteredPokemon.length - displayedCount} remaining)`;
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+function createCard(p, rating) {
+  const div = document.createElement('div');
+  div.className = 'poke-card';
+  div.dataset.id = p.id;
+  div.onclick = () => openModal(p.id, p.name);
+
+  const stars = [1,2,3,4,5].map(i =>
+    `<span class="s ${i <= rating ? 'filled' : ''}">&#9733;</span>`
+  ).join('');
+
+  const types = typeCache[p.id]
+    ? typeCache[p.id].map(t => `<span class="type-badge" style="background:${TYPE_COLORS[t] || '#666'}">${t}</span>`).join('')
+    : '<span class="skel-line skeleton" style="width:50px;height:16px"></span>';
+
+  div.innerHTML = `
+    <span class="poke-card-num">#${String(p.id).padStart(4,'0')}</span>
+    <div class="poke-card-img-wrap">
+      <img class="poke-card-img loading" src="${SPRITE(p.id)}" alt="${p.name}"
+           onload="this.classList.remove('loading')" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png'"/>
+    </div>
+    <span class="poke-card-name">${p.name.replace(/-/g,' ')}</span>
+    <div class="poke-card-types" data-types-id="${p.id}">${types}</div>
+    <div class="poke-card-stars">${stars}</div>
+  `;
+  return div;
+}
+
+// ───────────────────────────────────────────────
+// LAZY TYPE LOADING
+// ───────────────────────────────────────────────
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    const id = parseInt(entry.target.dataset.id);
+    observer.unobserve(entry.target);
+    if (!typeCache[id]) fetchTypes(id);
+  });
+}, { rootMargin: '200px' });
+
+function observeCard(card, id) {
+  if (typeCache[id]) return; // already cached
+  observer.observe(card);
+}
+
+async function fetchTypes(id) {
+  try {
+    const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+    const data = await res.json();
+    const types = data.types.map(t => t.type.name);
+    typeCache[id] = types;
+    saveTypeCache(typeCache);
+    updateCardTypes(id, types);
+  } catch {}
+}
+
+function updateCardTypes(id, types) {
+  const el = document.querySelector(`[data-types-id="${id}"]`);
+  if (!el) return;
+  el.innerHTML = types.map(t =>
+    `<span class="type-badge" style="background:${TYPE_COLORS[t] || '#666'}">${t}</span>`
+  ).join('');
+}
+
+// ───────────────────────────────────────────────
+// MODAL
+// ───────────────────────────────────────────────
+function getGen(id) {
+  for (const [g, [min, max]] of Object.entries(GENS)) {
+    if (id >= min && id <= max) return `Gen ${toRoman(parseInt(g))} · ${GEN_NAMES[g]}`;
+  }
+  return '';
+}
+
+function toRoman(n) {
+  return ['I','II','III','IV','V','VI','VII','VIII','IX'][n-1] || n;
+}
+
+async function openModal(id, name) {
+  currentModalId = id;
+  const overlay = document.getElementById('modal-overlay');
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  const ratings = getRatings();
+  const myRating = ratings[id] || 0;
+  const comments = getComments()[id] || [];
+
+  // Types
+  let types = typeCache[id];
+  if (!types) {
+    try {
+      const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+      const data = await res.json();
+      types = data.types.map(t => t.type.name);
+      typeCache[id] = types;
+      saveTypeCache(typeCache);
+      updateCardTypes(id, types);
+    } catch { types = []; }
+  }
+
+  const typeBadges = types.map(t =>
+    `<span class="modal-type-badge" style="background:${TYPE_COLORS[t] || '#666'}">${t}</span>`
+  ).join('');
+
+  document.getElementById('modal-hero').innerHTML = `
+    <div class="modal-img-wrap">
+      <img class="modal-img" src="${ART(id)}" alt="${name}"
+           onerror="this.src='${SPRITE(id)}'"/>
+    </div>
+    <div class="modal-info">
+      <div class="modal-num">#${String(id).padStart(4,'0')}</div>
+      <div class="modal-name">${name.replace(/-/g,' ')}</div>
+      <div class="modal-types">${typeBadges}</div>
+      <div class="modal-gen">${getGen(id)}</div>
+    </div>
+  `;
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="rating-section">
+      <div class="rating-label">Your Rating</div>
+      <div class="stars-input" id="stars-input">
+        ${[1,2,3,4,5].map(i => `<button class="star-btn ${i <= myRating ? 'selected' : ''}" data-val="${i}"
+          onmouseenter="hoverStars(${i})" onmouseleave="unhoverStars()"
+          onclick="setRating(${id}, ${i})">&#9733;</button>`).join('')}
+      </div>
+      <div class="rating-summary" id="rating-summary">${myRating > 0 ? `You rated this <span>${myRating}/5 stars</span>` : 'You haven\'t rated this Pokémon yet'}</div>
+    </div>
+    <div class="comment-section">
+      <div class="rating-label">Journey &amp; Notes</div>
+      <div class="comment-input-wrap">
+        <textarea class="comment-textarea" id="comment-input"
+          placeholder="Share your journey with this Pokémon — battles, memories, tips, what they're good at..."></textarea>
+        <button class="comment-btn" onclick="submitComment(${id})">Add Comment</button>
+      </div>
+      <div class="comments-list" id="comments-list">
+        ${renderComments(id, comments)}
+      </div>
+    </div>
+  `;
+}
+
+function renderComments(id, comments) {
+  if (!comments.length) return `<div class="no-comments">No comments yet. Share your journey!</div>`;
+  return comments.map((c, i) => `
+    <div class="comment-item">
+      <div class="comment-meta">${c.date}</div>
+      <div class="comment-text">${escapeHtml(c.text)}</div>
+      <button class="comment-delete" onclick="deleteComment(${id}, ${i})">&#x2715;</button>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function hoverStars(val) {
+  document.querySelectorAll('.star-btn').forEach((b, i) => {
+    b.classList.toggle('hover', i < val);
+  });
+}
+function unhoverStars() {
+  document.querySelectorAll('.star-btn').forEach(b => b.classList.remove('hover'));
+}
+
+function setRating(id, val) {
+  const ratings = getRatings();
+  ratings[id] = val;
+  saveRatings(ratings);
+
+  document.querySelectorAll('.star-btn').forEach((b, i) => {
+    b.classList.toggle('selected', i < val);
+  });
+  document.getElementById('rating-summary').innerHTML =
+    `You rated this <span>${val}/5 stars</span>`;
+
+  // Update card in grid
+  const card = document.querySelector(`.poke-card[data-id="${id}"] .poke-card-stars`);
+  if (card) {
+    card.innerHTML = [1,2,3,4,5].map(i =>
+      `<span class="s ${i <= val ? 'filled' : ''}">&#9733;</span>`
+    ).join('');
+  }
+  showToast(`Rated ${val} star${val !== 1 ? 's' : ''}!`);
+}
+
+function submitComment(id) {
+  const input = document.getElementById('comment-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const all = getComments();
+  if (!all[id]) all[id] = [];
+  all[id].unshift({
+    text,
+    date: new Date().toLocaleDateString('en-US', {year:'numeric', month:'short', day:'numeric'})
+  });
+  saveComments(all);
+  input.value = '';
+  document.getElementById('comments-list').innerHTML = renderComments(id, all[id]);
+  showToast('Comment added!');
+}
+
+function deleteComment(id, index) {
+  const all = getComments();
+  if (!all[id]) return;
+  all[id].splice(index, 1);
+  saveComments(all);
+  document.getElementById('comments-list').innerHTML = renderComments(id, all[id]);
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  currentModalId = null;
+}
+function closeModalOnBg(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ───────────────────────────────────────────────
+// RANKINGS
+// ───────────────────────────────────────────────
+function renderRankings() {
+  const ratings = getRatings();
+  const comments = getComments();
+  const list = document.getElementById('rankings-list');
+
+  const rated = allPokemon
+    .filter(p => ratings[p.id] > 0)
+    .sort((a, b) => ratings[b.id] - ratings[a.id]);
+
+  if (!rated.length) {
+    list.innerHTML = `
+      <div class="empty-rankings">
+        <p>No rated Pokémon yet.</p>
+        <small>Go to the Pokédex and start rating your favourites!</small>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = rated.map((p, i) => {
+    const r = ratings[p.id];
+    const numComments = (comments[p.id] || []).length;
+    const numClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const stars = [1,2,3,4,5].map(s => `<span class="s ${s <= r ? 'filled' : ''}">&#9733;</span>`).join('');
+    const types = typeCache[p.id]
+      ? typeCache[p.id].map(t => `<span class="type-badge" style="background:${TYPE_COLORS[t]||'#666'}">${t}</span>`).join(' ')
+      : '';
+    return `
+      <div class="rank-item" onclick="openModal(${p.id}, '${p.name}')">
+        <div class="rank-num ${numClass}">${i + 1}</div>
+        <img class="rank-img" src="${SPRITE(p.id)}" alt="${p.name}"/>
+        <div class="rank-info">
+          <div class="rank-name">${p.name.replace(/-/g,' ')}</div>
+          <div class="rank-sub">#${String(p.id).padStart(4,'0')} &middot; ${getGen(p.id)}${numComments ? ` &middot; ${numComments} comment${numComments>1?'s':''}` : ''}</div>
+          <div class="rank-stars">${stars}</div>
+        </div>
+        <div class="rank-score">${r}.0</div>
+      </div>`;
+  }).join('');
+}
+
+// ───────────────────────────────────────────────
+// VIEW SWITCHING
+// ───────────────────────────────────────────────
+function switchView(view) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(`view-${view}`).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
+  if (view === 'rankings') renderRankings();
+}
+
+// ───────────────────────────────────────────────
+// TOAST
+// ───────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ───────────────────────────────────────────────
+// START
+// ───────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
