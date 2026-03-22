@@ -66,6 +66,7 @@
     .poke-card-stars .s { font-size: 0.72rem; color: #333; }
     .poke-card-stars .s.filled { color: var(--accent); }
     .poke-card-votes { font-size: 0.65rem; color: var(--muted); }
+    .poke-card-comments { font-size: 0.65rem; color: #89aaff; font-weight: 600; }
 
     .skeleton { background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
@@ -484,16 +485,26 @@ async function loadAllPokemon() {
 async function loadCommunityStats() {
   if (!dbReady) return;
   try {
-    const { data: rows } = await sb.from('ratings').select('pokemon_id, stars');
-    if (!rows) return;
+    const [{ data: rows }, { data: commentRows }] = await Promise.all([
+      sb.from('ratings').select('pokemon_id, stars'),
+      sb.from('comments').select('pokemon_id')
+    ]);
     const map = {};
-    rows.forEach(r => {
-      if (!map[r.pokemon_id]) map[r.pokemon_id] = { total: 0, count: 0 };
-      map[r.pokemon_id].total += r.stars;
-      map[r.pokemon_id].count += 1;
-    });
+    if (rows) {
+      rows.forEach(r => {
+        if (!map[r.pokemon_id]) map[r.pokemon_id] = { total: 0, count: 0, comments: 0 };
+        map[r.pokemon_id].total += r.stars;
+        map[r.pokemon_id].count += 1;
+      });
+    }
+    if (commentRows) {
+      commentRows.forEach(r => {
+        if (!map[r.pokemon_id]) map[r.pokemon_id] = { total: 0, count: 0, comments: 0 };
+        map[r.pokemon_id].comments = (map[r.pokemon_id].comments || 0) + 1;
+      });
+    }
     Object.entries(map).forEach(([id, v]) => {
-      communityStats[id] = { avg: v.total / v.count, count: v.count };
+      communityStats[id] = { avg: v.count ? v.total / v.count : 0, count: v.count, comments: v.comments || 0 };
     });
   } catch {
     // silently fail — stats will load per-card
@@ -575,11 +586,16 @@ function createCard(p) {
   const stats = communityStats[p.id];
   const avg = stats ? parseFloat(stats.avg.toFixed(1)) : 0;
   const votes = stats ? stats.count : 0;
+  const commentCount = stats ? (stats.comments || 0) : 0;
   const filled = Math.round(avg);
   const stars = [1,2,3,4,5].map(i => `<span class="s ${i<=filled?'filled':''}">&#9733;</span>`).join('');
   const types = typeCache[p.id]
     ? typeCache[p.id].map(t => `<span class="type-badge" style="background:${TYPE_COLORS[t]||'#666'}">${t}</span>`).join('')
     : `<span class="skel-line skeleton" style="width:54px;height:15px"></span>`;
+
+  const reviewsNote = votes === 0 && commentCount > 0
+    ? `<span class="poke-card-comments" data-comments-id="${p.id}">&#x1F4AC; ${commentCount} review${commentCount>1?'s':''}</span>`
+    : `<span class="poke-card-votes" data-votes-id="${p.id}">${votes > 0 ? `${avg} (${votes} vote${votes>1?'s':''})` : 'No ratings yet'}</span>`;
 
   div.innerHTML = `
     <span class="poke-card-num">#${String(p.id).padStart(4,'0')}</span>
@@ -589,7 +605,7 @@ function createCard(p) {
     <div class="poke-card-types" data-types-id="${p.id}">${types}</div>
     <div class="poke-card-rating">
       <div class="poke-card-stars" data-stars-id="${p.id}">${stars}</div>
-      <span class="poke-card-votes" data-votes-id="${p.id}">${votes > 0 ? `${avg} (${votes} vote${votes>1?'s':''})` : 'No ratings yet'}</span>
+      ${reviewsNote}
     </div>`;
   return div;
 }
