@@ -455,7 +455,8 @@ function saveTypeCache() { try { localStorage.setItem('pr_types', JSON.stringify
 async function init() {
   loadTypeCache();
   updateUserDisplay();
-  if (!localStorage.getItem('pr_username')) openNameModal();
+  const savedName = localStorage.getItem('pr_username');
+  if (!savedName || savedName === 'Anonymous') openNameModal();
 
   // Load Pokemon first — always, no matter what
   await loadAllPokemon();
@@ -630,8 +631,10 @@ function genLabel(id) {
 }
 
 async function openModal(id, name) {
-  // Teardown previous realtime
-  if (realtimeChannel) { supabase && sb.removeChannel(realtimeChannel); realtimeChannel = null; }
+  // Teardown previous realtime and suggestions
+  if (realtimeChannel) { if (sb) sb.removeChannel(realtimeChannel); realtimeChannel = null; }
+  const existingSuggestions = document.getElementById('suggestions-section');
+  if (existingSuggestions) existingSuggestions.remove();
 
   document.getElementById('modal-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -711,7 +714,7 @@ async function openModal(id, name) {
   // Append suggestions section outside modal-body padding
   document.getElementById('modal').insertAdjacentHTML('beforeend',
     `<div class="suggestions-section" id="suggestions-section"></div>`);
-  renderSuggestions(id);
+  try { renderSuggestions(id); } catch(e) { console.warn('suggestions error:', e); }
 
   if (dbReady) {
     loadBreakdown(id);
