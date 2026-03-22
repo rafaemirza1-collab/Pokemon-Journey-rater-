@@ -343,12 +343,12 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 // ═══════════════════════════════════════════════
 // INIT CLIENT
 // ═══════════════════════════════════════════════
-let supabase = null;
+let sb = null;
 let dbReady = false;
 
 try {
   if (SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
     dbReady = true;
   } else {
     document.getElementById('setup-banner').classList.add('show');
@@ -468,7 +468,7 @@ async function loadAllPokemon() {
 async function loadCommunityStats() {
   if (!dbReady) return;
   try {
-    const { data: rows } = await supabase.from('ratings').select('pokemon_id, stars');
+    const { data: rows } = await sb.from('ratings').select('pokemon_id, stars');
     if (!rows) return;
     const map = {};
     rows.forEach(r => {
@@ -616,7 +616,7 @@ function genLabel(id) {
 
 async function openModal(id, name) {
   // Teardown previous realtime
-  if (realtimeChannel) { supabase && supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+  if (realtimeChannel) { supabase && sb.removeChannel(realtimeChannel); realtimeChannel = null; }
 
   document.getElementById('modal-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -630,7 +630,7 @@ async function openModal(id, name) {
   // Community score
   let stats = communityStats[id] || { avg: 0, count: 0 };
   if (dbReady && !stats.count) {
-    const { data } = await supabase.from('ratings').select('stars').eq('pokemon_id', id);
+    const { data } = await sb.from('ratings').select('stars').eq('pokemon_id', id);
     if (data && data.length) {
       const total = data.reduce((s,r) => s + r.stars, 0);
       stats = { avg: total / data.length, count: data.length };
@@ -662,7 +662,7 @@ async function openModal(id, name) {
   // My rating
   let myRating = 0;
   if (dbReady) {
-    const { data } = await supabase.from('ratings').select('stars').eq('id', `${id}_${getUID()}`).maybeSingle();
+    const { data } = await sb.from('ratings').select('stars').eq('id', `${id}_${getUID()}`).maybeSingle();
     if (data) myRating = data.stars;
   } else {
     myRating = localRatings()[id] || 0;
@@ -704,7 +704,7 @@ async function openModal(id, name) {
 
 // ─── Ratings breakdown ───
 async function loadBreakdown(id) {
-  const { data } = await supabase.from('ratings').select('stars').eq('pokemon_id', id);
+  const { data } = await sb.from('ratings').select('stars').eq('pokemon_id', id);
   const el = document.getElementById('ratings-breakdown');
   if (!el || !data || !data.length) return;
   const counts = {1:0,2:0,3:0,4:0,5:0};
@@ -730,7 +730,7 @@ async function loadComments(id) {
 
 function subscribeComments(id) {
   if (!dbReady) return;
-  realtimeChannel = supabase.channel(`comments_${id}`)
+  realtimeChannel = sb.channel(`comments_${id}`)
     .on('postgres_changes', {
       event: '*', schema: 'public', table: 'comments',
       filter: `pokemon_id=eq.${id}`
@@ -796,7 +796,7 @@ async function submitRating(id, stars) {
   }
 
   const uid = getUID();
-  const { error } = await supabase.from('ratings').upsert({
+  const { error } = await sb.from('ratings').upsert({
     id: `${id}_${uid}`, pokemon_id: id, user_id: uid,
     username: getUsername(), stars, updated_at: new Date().toISOString()
   });
@@ -804,7 +804,7 @@ async function submitRating(id, stars) {
   if (error) { showToast('Could not save — check Supabase setup'); return; }
 
   // Recompute stats from DB
-  const { data } = await supabase.from('ratings').select('stars').eq('pokemon_id', id);
+  const { data } = await sb.from('ratings').select('stars').eq('pokemon_id', id);
   if (data && data.length) {
     const total = data.reduce((s,r) => s + r.stars, 0);
     const avg = total / data.length;
@@ -858,7 +858,7 @@ async function submitComment(id) {
   }
 
   const myRating = parseInt(document.querySelector('.star-btn.selected:last-of-type')?.dataset?.val || 0);
-  const { error } = await supabase.from('comments').insert({
+  const { error } = await sb.from('comments').insert({
     pokemon_id: id, user_id: getUID(), username: getUsername(),
     text, stars: myRating || null
   });
@@ -872,7 +872,7 @@ async function submitComment(id) {
 
 async function deleteComment(commentId, pokemonId) {
   if (!dbReady) return;
-  await supabase.from('comments').delete().eq('id', commentId);
+  await sb.from('comments').delete().eq('id', commentId);
   // realtime will refresh the list
 }
 
@@ -902,7 +902,7 @@ async function renderRankings() {
     return;
   }
 
-  const { data, error } = await supabase.from('ratings').select('pokemon_id, stars');
+  const { data, error } = await sb.from('ratings').select('pokemon_id, stars');
   if (error || !data || !data.length) {
     list.innerHTML = `<div class="empty-rankings"><p>No ratings yet.</p><small>Be the first to rate some Pokémon!</small></div>`;
     return;
@@ -966,7 +966,7 @@ function switchView(view) {
 // CLOSE MODAL
 // ═══════════════════════════════════════════════
 function closeModal() {
-  if (realtimeChannel && supabase) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+  if (realtimeChannel && sb) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
   document.getElementById('modal-overlay').classList.remove('open');
   document.body.style.overflow = '';
 }
