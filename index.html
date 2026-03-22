@@ -457,8 +457,6 @@ async function loadAllPokemon() {
 async function loadCommunityStats() {
   if (!dbReady) return;
   try {
-    const { data } = await supabase.rpc('get_pokemon_stats').select();
-    // fallback: compute from ratings table
     const { data: rows } = await supabase.from('ratings').select('pokemon_id, stars');
     if (!rows) return;
     const map = {};
