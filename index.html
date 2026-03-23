@@ -3043,41 +3043,49 @@ function initDiscovery() {
   ['mousemove','scroll','keydown','click','touchstart'].forEach(ev =>
     document.addEventListener(ev, () => { discLastActivity = Date.now(); }, { passive: true })
   );
-  const last = parseInt(localStorage.getItem('pr_disc_last') || '0');
-  const sinceLastMs = Date.now() - last;
-  const firstDelay = last && sinceLastMs < 5 * 60 * 1000
-    ? Math.max(8000, 5 * 60 * 1000 - sinceLastMs)
-    : 17000;
-  scheduleDisc(firstDelay);
+  scheduleDisc(10000); // first popup after 10s
 }
 
 function scheduleDisc(delay) {
   clearTimeout(discTimer);
   discTimer = setTimeout(() => {
-    const isActive = Date.now() - discLastActivity < 90000;
+    const isActive = Date.now() - discLastActivity < 120000;
     if (isActive && !discShowing) showDiscovery();
-    else scheduleDisc(30000);
+    else scheduleDisc(15000); // user idle — check again in 15s
   }, delay);
 }
 
+function getContextExcludes() {
+  const activeView = document.querySelector('.view.active')?.id || '';
+  const excludes = [];
+  if (activeView === 'view-browse')    excludes.push('rate', 'review');
+  if (activeView === 'view-teams')     excludes.push('teams');
+  if (activeView === 'view-trainers')  excludes.push('trainers');
+  if (activeView === 'view-rankings')  excludes.push('rankings');
+  if (activeView === 'view-hottakes')  excludes.push('hottake', 'hottakes_feed');
+  return excludes;
+}
+
 function pickDiscPrompt() {
+  const exclude = getContextExcludes();
   let recent = [];
-  try { recent = JSON.parse(localStorage.getItem('pr_disc_recent') || '[]'); } catch {}
-  const available = DISC_PROMPTS.filter(p => !recent.includes(p.id));
-  const pool = available.length ? available : DISC_PROMPTS;
-  return pool[Math.floor(Math.random() * pool.length)];
+  try { recent = JSON.parse(sessionStorage.getItem('pr_disc_recent') || '[]'); } catch {}
+  const available = DISC_PROMPTS.filter(p => !recent.includes(p.id) && !exclude.includes(p.id));
+  const pool = available.length ? available : DISC_PROMPTS.filter(p => !exclude.includes(p.id));
+  const final = pool.length ? pool : DISC_PROMPTS;
+  return final[Math.floor(Math.random() * final.length)];
 }
 
 function showDiscovery() {
   if (discShowing) return;
   if (document.getElementById('hot-take-card').classList.contains('visible')) {
-    scheduleDisc(30000); return;
+    scheduleDisc(15000); return;
   }
   const prompt = pickDiscPrompt();
   let recent = [];
-  try { recent = JSON.parse(localStorage.getItem('pr_disc_recent') || '[]'); } catch {}
+  try { recent = JSON.parse(sessionStorage.getItem('pr_disc_recent') || '[]'); } catch {}
   recent.push(prompt.id);
-  localStorage.setItem('pr_disc_recent', JSON.stringify(recent.slice(-3)));
+  sessionStorage.setItem('pr_disc_recent', JSON.stringify(recent.slice(-4)));
 
   discCurrentAction = prompt.action;
   document.getElementById('disc-title').textContent = prompt.title;
@@ -3085,19 +3093,19 @@ function showDiscovery() {
   document.getElementById('disc-btn').textContent = prompt.btn;
   document.getElementById('disc-card').classList.add('visible');
   discShowing = true;
-  discTimer = setTimeout(() => { if (discShowing) dismissDiscovery(); }, 30000);
+  // Auto-dismiss after 20s if ignored, then show next one after 60s
+  discTimer = setTimeout(() => { if (discShowing) dismissDiscovery(60000); }, 20000);
 }
 
-function dismissDiscovery() {
+function dismissDiscovery(nextDelay = 90000) {
   document.getElementById('disc-card').classList.remove('visible');
   discShowing = false;
-  localStorage.setItem('pr_disc_last', Date.now().toString());
-  scheduleDisc(5 * 60 * 1000);
+  scheduleDisc(nextDelay);
 }
 
 function actOnDiscovery() {
   const action = discCurrentAction;
-  dismissDiscovery();
+  dismissDiscovery(3 * 60 * 1000); // gave them something to do — wait 3min before next
   if (action) action();
 }
 
