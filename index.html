@@ -935,7 +935,7 @@ async function openProfile() {
   const username = getUsername();
 
   const [{ data: myRatings }, { data: myComments }, { data: myCommentIds }] = await Promise.all([
-    sb.from('ratings').select('pokemon_id, stars, created_at').eq('user_id', uid).order('created_at', { ascending: false }).limit(100),
+    sb.from('ratings').select('pokemon_id, stars, updated_at').eq('user_id', uid).order('updated_at', { ascending: false }).limit(100),
     sb.from('comments').select('id, pokemon_id, text, stars, created_at').eq('user_id', uid).is('parent_id', null).order('created_at', { ascending: false }).limit(50),
     sb.from('comments').select('id').eq('user_id', uid)
   ]);
