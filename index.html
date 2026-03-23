@@ -198,6 +198,45 @@
     .name-modal-overlay { display: none; position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); align-items: center; justify-content: center; padding: 20px; }
     .name-modal-overlay.open { display: flex; }
     .name-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; padding: 40px; max-width: 400px; width: 100%; text-align: center; }
+
+    /* ── PROFILE ── */
+    .profile-overlay { display: none; position: fixed; inset: 0; z-index: 550; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); align-items: center; justify-content: center; padding: 20px; }
+    .profile-overlay.open { display: flex; }
+    .profile-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; position: relative; }
+    .profile-header { padding: 36px 32px 24px; text-align: center; border-bottom: 1px solid var(--border); }
+    .profile-avatar-large { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--accent2), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; color: white; margin: 0 auto 16px; }
+    .profile-username { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 6px; }
+    .profile-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 14px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; margin-bottom: 14px; }
+    .profile-edit-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); border-radius: 999px; padding: 7px 18px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .profile-edit-btn:hover { border-color: #555; color: var(--text); }
+    .profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); }
+    .profile-stat-box { background: var(--surface); padding: 20px 12px; text-align: center; }
+    .profile-stat-num { font-size: 1.8rem; font-weight: 900; color: var(--accent); line-height: 1; }
+    .profile-stat-label { font-size: 0.7rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .profile-body { padding: 24px 32px; display: flex; flex-direction: column; gap: 24px; }
+    .profile-section-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 12px; }
+    .profile-rated-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 10px; }
+    .profile-rated-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 8px 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; transition: all 0.2s; }
+    .profile-rated-card:hover { border-color: #444; transform: translateY(-2px); }
+    .profile-rated-card img { width: 52px; height: 52px; object-fit: contain; image-rendering: pixelated; }
+    .profile-rated-name { font-size: 0.58rem; font-weight: 600; text-transform: capitalize; color: var(--muted); text-align: center; }
+    .profile-rated-stars { font-size: 0.65rem; color: var(--accent); font-weight: 700; }
+    .profile-empty { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 20px 0; }
+    .profile-reviews-list { display: flex; flex-direction: column; gap: 10px; }
+    .profile-review-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; cursor: pointer; transition: border-color 0.2s; }
+    .profile-review-item:hover { border-color: #444; }
+    .profile-review-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .profile-review-poke { font-size: 0.8rem; font-weight: 700; text-transform: capitalize; }
+    .profile-review-stars { font-size: 0.72rem; color: var(--accent); font-weight: 700; }
+    .profile-review-date { font-size: 0.7rem; color: var(--muted); margin-left: auto; }
+    .profile-review-text { font-size: 0.82rem; color: #bbb; line-height: 1.5; }
+    .badge-pip { display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+    @media (max-width: 640px) {
+      .profile-overlay { padding: 0; align-items: flex-end; }
+      .profile-modal { border-radius: 24px 24px 0 0; max-height: 92vh; max-width: 100%; }
+      .profile-header { padding: 28px 20px 18px; }
+      .profile-body { padding: 18px 16px; }
+    }
     .name-modal h2 { font-size: 1.5rem; font-weight: 900; margin-bottom: 8px; }
     .name-modal p { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; line-height: 1.6; }
     .name-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 1rem; outline: none; text-align: center; transition: border-color 0.2s; margin-bottom: 16px; }
@@ -502,7 +541,7 @@
     <button class="mobile-search-btn" onclick="toggleMobileSearch()" aria-label="Search">
       <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
     </button>
-    <div class="user-btn" onclick="openNameModal()" title="Change trainer name">
+    <div class="user-btn" onclick="openProfile()" title="My Profile">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">Set Name</span>
     </div>
@@ -642,6 +681,13 @@
 <!-- TRAINER MODAL -->
 <div class="trainer-modal-overlay" id="trainer-modal-overlay" onclick="closeTrainerModalOnBg(event)">
   <div class="trainer-modal" id="trainer-modal"></div>
+</div>
+
+<!-- PROFILE MODAL -->
+<div class="profile-overlay" id="profile-overlay" onclick="closeProfileOnBg(event)">
+  <div class="profile-modal" id="profile-modal">
+    <div style="padding:60px;text-align:center;color:var(--muted)">Loading...</div>
+  </div>
 </div>
 
 <!-- POKEMON MODAL -->
@@ -845,7 +891,129 @@ function saveName(skip) {
   localStorage.setItem('pr_username', val || 'Anonymous');
   updateUserDisplay();
   document.getElementById('name-modal-overlay').classList.remove('open');
+  if (dbReady) upsertUserProfile();
   showToast('Name saved!');
+}
+
+// ── BADGE LOGIC ──
+function getBadge(reviewCount) {
+  if (reviewCount >= 100) return { label: 'Pokémon Champion', icon: '👑', color: '#FFD700', bg: 'rgba(255,215,0,0.15)' };
+  if (reviewCount >= 50)  return { label: 'Elite Reviewer',   icon: '💫', color: '#c77dff', bg: 'rgba(199,125,255,0.15)' };
+  if (reviewCount >= 20)  return { label: 'Top Reviewer',     icon: '🌟', color: '#FFCB05', bg: 'rgba(255,203,5,0.15)' };
+  if (reviewCount >= 5)   return { label: 'Reviewer',         icon: '⭐', color: '#89aaff', bg: 'rgba(137,170,255,0.15)' };
+  if (reviewCount >= 1)   return { label: 'Newcomer',         icon: '📖', color: '#aaa',    bg: 'rgba(170,170,170,0.1)' };
+  return null;
+}
+function badgeHTML(reviewCount) {
+  const b = getBadge(reviewCount);
+  if (!b) return '';
+  return `<span class="badge-pip" style="background:${b.bg};color:${b.color}">${b.icon} ${b.label}</span>`;
+}
+
+// ── USER PROFILE SUPABASE ──
+async function upsertUserProfile() {
+  if (!dbReady) return;
+  await sb.from('user_profiles').upsert({ user_id: getUID(), username: getUsername() }, { onConflict: 'user_id' });
+}
+
+// ── PROFILE MODAL ──
+async function openProfile() {
+  const overlay = document.getElementById('profile-overlay');
+  const modal = document.getElementById('profile-modal');
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  modal.innerHTML = `<button class="modal-close" onclick="closeProfile()">&#x2715;</button><div style="padding:60px;text-align:center;color:var(--muted)">Loading your profile...</div>`;
+
+  const uid = getUID();
+  const username = getUsername();
+
+  const [{ data: myRatings }, { data: myComments }, { data: myCommentIds }] = await Promise.all([
+    sb.from('ratings').select('pokemon_id, stars, created_at').eq('user_id', uid).order('created_at', { ascending: false }).limit(100),
+    sb.from('comments').select('id, pokemon_id, text, stars, created_at').eq('user_id', uid).is('parent_id', null).order('created_at', { ascending: false }).limit(50),
+    sb.from('comments').select('id').eq('user_id', uid)
+  ]);
+
+  const commentIds = myCommentIds ? myCommentIds.map(c => c.id) : [];
+  let likesReceived = 0;
+  if (commentIds.length) {
+    const { count } = await sb.from('comment_likes').select('*', { count: 'exact', head: true }).in('comment_id', commentIds);
+    likesReceived = count || 0;
+  }
+
+  const reviewCount = myComments ? myComments.length : 0;
+  const ratingCount = myRatings ? myRatings.length : 0;
+  const badge = getBadge(reviewCount);
+  const initial = username.charAt(0).toUpperCase();
+
+  const ratedGrid = myRatings && myRatings.length
+    ? myRatings.slice(0, 24).map(r => {
+        const p = allPokemon.find(x => x.id === r.pokemon_id);
+        const name = p ? p.name : `#${r.pokemon_id}`;
+        const starsStr = '★'.repeat(r.stars) + '☆'.repeat(5 - r.stars);
+        return `<div class="profile-rated-card" onclick="closeProfile();openModal(${r.pokemon_id},'${name}')">
+          <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${r.pokemon_id}.png" alt="${name}"/>
+          <div class="profile-rated-name">${name.replace(/-/g,' ')}</div>
+          <div class="profile-rated-stars">${starsStr}</div>
+        </div>`;
+      }).join('')
+    : `<div class="profile-empty">No Pokémon rated yet.</div>`;
+
+  const reviewsList = myComments && myComments.length
+    ? myComments.slice(0, 10).map(c => {
+        const p = allPokemon.find(x => x.id === c.pokemon_id);
+        const name = p ? p.name.replace(/-/g,' ') : `#${c.pokemon_id}`;
+        const dateStr = new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return `<div class="profile-review-item" onclick="closeProfile();openModal(${c.pokemon_id},'${p?p.name:c.pokemon_id}')">
+          <div class="profile-review-top">
+            <span class="profile-review-poke">${name}</span>
+            ${c.stars ? `<span class="profile-review-stars">${'★'.repeat(c.stars)}</span>` : ''}
+            <span class="profile-review-date">${dateStr}</span>
+          </div>
+          <div class="profile-review-text">${esc(c.text)}</div>
+        </div>`;
+      }).join('')
+    : `<div class="profile-empty">No reviews written yet.</div>`;
+
+  modal.innerHTML = `
+    <button class="modal-close" onclick="closeProfile()">&#x2715;</button>
+    <div class="profile-header">
+      <div class="profile-avatar-large">${initial}</div>
+      <div class="profile-username">${esc(username)}</div>
+      ${badge ? `<div><div class="profile-badge" style="background:${badge.bg};color:${badge.color}">${badge.icon} ${badge.label}</div></div>` : '<div style="height:8px"></div>'}
+      <button class="profile-edit-btn" onclick="closeProfile();openNameModal()">✏️ Edit Username</button>
+    </div>
+    <div class="profile-stats">
+      <div class="profile-stat-box">
+        <div class="profile-stat-num">${ratingCount}</div>
+        <div class="profile-stat-label">Pokémon Rated</div>
+      </div>
+      <div class="profile-stat-box">
+        <div class="profile-stat-num">${reviewCount}</div>
+        <div class="profile-stat-label">Reviews Written</div>
+      </div>
+      <div class="profile-stat-box">
+        <div class="profile-stat-num">${likesReceived}</div>
+        <div class="profile-stat-label">Likes Received</div>
+      </div>
+    </div>
+    <div class="profile-body">
+      <div>
+        <div class="profile-section-title">My Rated Pokémon</div>
+        <div class="profile-rated-grid">${ratedGrid}</div>
+      </div>
+      <div>
+        <div class="profile-section-title">My Reviews</div>
+        <div class="profile-reviews-list">${reviewsList}</div>
+      </div>
+    </div>`;
+}
+
+function closeProfile() {
+  document.getElementById('profile-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function closeProfileOnBg(e) {
+  if (e.target === document.getElementById('profile-overlay')) closeProfile();
 }
 function updateUserDisplay() {
   const n = getUsername();
@@ -1236,21 +1404,21 @@ async function loadComments(id) {
     .eq('pokemon_id', id).order('created_at', { ascending: false }).limit(50);
   const rows = data || [];
 
-  // Fetch likes for these comments
-  let likesMap = {};
+  let likesMap = {}, reviewerMap = {};
   if (rows.length) {
-    const { data: likes } = await sb
-      .from('comment_likes').select('comment_id, user_id')
-      .in('comment_id', rows.map(c => c.id));
-    if (likes) {
-      likes.forEach(l => {
-        if (!likesMap[l.comment_id]) likesMap[l.comment_id] = { count: 0, likedByMe: false };
-        likesMap[l.comment_id].count++;
-        if (l.user_id === getUID()) likesMap[l.comment_id].likedByMe = true;
-      });
-    }
+    const uniqueIds = [...new Set(rows.map(c => c.user_id))];
+    const [{ data: likes }, { data: profiles }] = await Promise.all([
+      sb.from('comment_likes').select('comment_id, user_id').in('comment_id', rows.map(c => c.id)),
+      sb.from('user_review_counts').select('user_id, review_count').in('user_id', uniqueIds)
+    ]);
+    if (likes) likes.forEach(l => {
+      if (!likesMap[l.comment_id]) likesMap[l.comment_id] = { count: 0, likedByMe: false };
+      likesMap[l.comment_id].count++;
+      if (l.user_id === getUID()) likesMap[l.comment_id].likedByMe = true;
+    });
+    if (profiles) profiles.forEach(p => { reviewerMap[p.user_id] = p.review_count; });
   }
-  renderComments(rows, id, likesMap);
+  renderComments(rows, id, likesMap, reviewerMap);
 }
 
 function subscribeComments(id) {
@@ -1263,7 +1431,7 @@ function subscribeComments(id) {
     .subscribe();
 }
 
-function renderComments(rows, id, likesMap = {}) {
+function renderComments(rows, id, likesMap = {}, reviewerMap = {}) {
   const el = document.getElementById('comments-list');
   if (!el) return;
   if (!rows.length) { el.innerHTML = `<div class="no-comments">No reviews yet — be the first!</div>`; return; }
@@ -1285,10 +1453,13 @@ function renderComments(rows, id, likesMap = {}) {
     const mentionTag = isReply && replyingToUsername
       ? `<span class="reply-mention">@${esc(replyingToUsername)}</span> `
       : '';
+    const reviewCount = reviewerMap[r.user_id] || 0;
+    const badge = !isReply ? badgeHTML(reviewCount) : '';
     return `<div class="${isReply ? 'reply-item' : 'comment-item'}" id="comment-${r.id}">
       <div class="comment-header">
         <div class="comment-avatar">${initials}</div>
         <span class="comment-username">${esc(r.username||'Anonymous')}</span>
+        ${badge}
         ${r.stars && !isReply ? `<span class="comment-rating-badge">${'&#9733;'.repeat(r.stars)}</span>` : ''}
         ${isOwn ? `<span class="comment-own-badge">You</span>` : ''}
         <span class="comment-date">${dateStr}</span>
