@@ -215,17 +215,101 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     @media (max-width: 640px) {
-      nav { padding: 0 14px; gap: 8px; }
-      .nav-tabs .nav-tab { padding: 7px 10px; font-size: 0.78rem; }
-      .nav-search { max-width: 120px; }
-      .pokemon-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; padding: 0 16px 40px; }
-      .gen-bar { padding: 14px 16px 0; }
-      .sort-bar { padding: 10px 16px; }
-      #view-rankings { padding: 20px 16px; }
-      .modal-hero { flex-direction: column; align-items: center; text-align: center; }
+      /* ── NAV ── */
+      nav { padding: 0 12px; height: 56px; gap: 8px; }
+      .nav-brand { font-size: 1rem; }
+      .nav-brand img { width: 26px; height: 26px; }
+      .nav-tabs { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; flex-shrink: 1; }
+      .nav-tabs::-webkit-scrollbar { display: none; }
+      .nav-tab { padding: 6px 12px; font-size: 0.78rem; white-space: nowrap; flex-shrink: 0; }
+      .nav-search { display: none; }
+      .user-btn span:not(.user-avatar) { display: none; }
+      .user-btn { padding: 8px 10px; }
+
+      /* ── POKÉDEX ── */
+      .gen-bar { padding: 12px 12px 0; gap: 6px; }
+      .gen-btn { padding: 6px 12px; font-size: 0.75rem; }
+      .sort-bar { padding: 10px 12px; gap: 8px; }
+      .pokemon-count { display: none; }
+      .pokemon-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 12px 32px; }
+      .poke-card { padding: 12px 8px 10px; }
+      .poke-card-img { width: 68px; height: 68px; }
+      .poke-card-name { font-size: 0.78rem; }
+      .load-more-wrap { padding: 0 12px 40px; }
+
+      /* ── MODAL ── */
+      .modal-overlay { padding: 0; align-items: flex-end; }
+      .modal { border-radius: 24px 24px 0 0; max-height: 92vh; max-width: 100%; }
+      .modal-hero { padding: 20px 16px; flex-direction: column; align-items: center; text-align: center; gap: 14px; }
+      .modal-img { width: 110px; height: 110px; }
+      .modal-name { font-size: 1.6rem; }
       .modal-types, .modal-community-score { justify-content: center; }
-      .modal-body { padding: 20px; }
-      .setup-banner { margin: 14px 16px 0; }
+      .modal-body { padding: 18px 16px; gap: 20px; }
+      .star-btn { font-size: 1.7rem; }
+      .comment-btn { align-self: stretch; text-align: center; }
+
+      /* ── RANKINGS ── */
+      #view-rankings { padding: 16px 12px; }
+      .rankings-header h1 { font-size: 1.5rem; }
+      .rank-tabs { overflow-x: auto; scrollbar-width: none; flex-wrap: nowrap; padding-bottom: 4px; }
+      .rank-tabs::-webkit-scrollbar { display: none; }
+      .rank-tab { white-space: nowrap; flex-shrink: 0; padding: 8px 14px; font-size: 0.78rem; }
+      .rank-item { padding: 12px; gap: 10px; }
+      .rank-img { width: 44px; height: 44px; }
+      .rank-num { width: 28px; height: 28px; font-size: 0.75rem; }
+      .rank-name { font-size: 0.88rem; }
+      .rank-score { font-size: 1.2rem; }
+      .rankings-list { max-width: 100%; }
+
+      /* ── TEAMS ── */
+      #view-teams { padding: 16px 12px; }
+      .teams-header h1 { font-size: 1.5rem; }
+      .teams-feed { grid-template-columns: 1fr; }
+      .team-card { margin: 0; }
+      .teams-sort-bar { gap: 6px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+      .teams-sort-bar::-webkit-scrollbar { display: none; }
+
+      /* ── TEAM DETAIL MODAL ── */
+      .team-detail-overlay { padding: 0; align-items: flex-end; }
+      .team-detail-modal { border-radius: 24px 24px 0 0; max-height: 92vh; max-width: 100%; }
+      .team-detail-head { padding: 20px 16px 14px; }
+      .team-detail-name { font-size: 1.3rem; }
+      .team-detail-body { padding: 16px; gap: 16px; }
+      .team-poke-slot img { width: 58px; height: 58px; }
+
+      /* ── BUILDER OVERLAY ── */
+      .builder-overlay { padding: 0; align-items: flex-end; }
+      .builder-modal { border-radius: 24px 24px 0 0; max-height: 94vh; max-width: 100%; }
+      .builder-inner { flex-direction: column; overflow-y: auto; max-height: 90vh; }
+      .builder-left, .builder-right { width: 100%; }
+      .builder-slots { grid-template-columns: repeat(3, 1fr); }
+      .builder-slot { height: 80px; }
+      .builder-pokemon-list { grid-template-columns: repeat(3, 1fr); max-height: 220px; }
+
+      /* ── TRAINERS ── */
+      #view-trainers { padding: 16px 12px; }
+      .trainers-header h1 { font-size: 1.5rem; }
+      .trainer-region-bar { gap: 6px; padding-bottom: 2px; }
+      .trainer-sort-bar { gap: 6px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+      .trainer-sort-bar::-webkit-scrollbar { display: none; }
+      .trainer-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .trainer-card-info { padding: 8px 10px; }
+      .trainer-card-name { font-size: 0.82rem; }
+
+      /* ── TRAINER MODAL ── */
+      .trainer-modal-overlay { padding: 0; align-items: flex-end; }
+      .trainer-modal { border-radius: 24px 24px 0 0; max-height: 92vh; max-width: 100%; }
+      .trainer-modal-hero { flex-direction: column; align-items: center; text-align: center; padding: 20px 16px; gap: 16px; }
+      .trainer-modal-img-wrap { width: 130px; }
+      .trainer-modal-name { font-size: 1.5rem; }
+      .trainer-modal-community { justify-content: center; }
+      .trainer-modal-avg-stars, .trainer-stars-row { justify-content: center; }
+      .trainer-modal-body { padding: 16px; gap: 16px; }
+      .trainer-star-btn { font-size: 1.6rem; }
+
+      /* ── MISC ── */
+      .setup-banner { margin: 12px 12px 0; }
+      .toast { font-size: 0.8rem; padding: 10px 18px; bottom: 20px; }
     }
 
     /* ── TEAMS ── */
