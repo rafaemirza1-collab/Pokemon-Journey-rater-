@@ -214,6 +214,13 @@
     .pokeball-spin { width: 48px; height: 48px; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    .mobile-search-btn { display: none; align-items: center; justify-content: center; width: 36px; height: 36px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; color: var(--muted); flex-shrink: 0; }
+    .mobile-search-btn:hover { color: var(--text); }
+    .mobile-search-bar { display: none; position: sticky; top: 56px; z-index: 190; background: rgba(13,13,13,0.96); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); padding: 10px 14px; align-items: center; gap: 10px; }
+    .mobile-search-bar.open { display: flex; }
+    .mobile-search-bar input { flex: 1; background: none; border: none; outline: none; color: var(--text); font-size: 1rem; font-family: 'Inter', sans-serif; }
+    .mobile-search-bar input::placeholder { color: var(--muted); }
+
     @media (max-width: 640px) {
       /* ── NAV ── */
       nav { padding: 0 12px; height: 56px; gap: 8px; }
@@ -223,6 +230,8 @@
       .nav-tabs::-webkit-scrollbar { display: none; }
       .nav-tab { padding: 6px 12px; font-size: 0.78rem; white-space: nowrap; flex-shrink: 0; }
       .nav-search { display: none; }
+      .mobile-search-btn { display: flex; }
+      .mobile-search-bar { display: flex; }
       .user-btn span:not(.user-avatar) { display: none; }
       .user-btn { padding: 8px 10px; }
 
@@ -485,12 +494,20 @@
       <svg width="14" height="14" fill="none" stroke="#777" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <input type="text" id="search-input" placeholder="Search..." oninput="onSearch(this.value)"/>
     </div>
+    <button class="mobile-search-btn" onclick="toggleMobileSearch()" aria-label="Search">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </button>
     <div class="user-btn" onclick="openNameModal()" title="Change trainer name">
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">Set Name</span>
     </div>
   </div>
 </nav>
+<div class="mobile-search-bar" id="mobile-search-bar">
+  <svg width="16" height="16" fill="none" stroke="#777" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+  <input type="text" id="mobile-search-input" placeholder="Search Pokémon..." oninput="onSearch(this.value); document.getElementById('search-input').value=this.value" autocomplete="off"/>
+  <button onclick="toggleMobileSearch()" style="background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:0 4px">&#x2715;</button>
+</div>
 
 <!-- SETUP BANNER -->
 <div class="setup-banner" id="setup-banner">
@@ -913,6 +930,12 @@ function setGen(gen) {
 function setSort(v) { currentSort = v; applyFilters(); }
 let searchTimer;
 function onSearch(v) { clearTimeout(searchTimer); searchTimer = setTimeout(() => { searchQuery = v.toLowerCase(); applyFilters(); }, 250); }
+function toggleMobileSearch() {
+  const bar = document.getElementById('mobile-search-bar');
+  const isOpen = bar.classList.toggle('open');
+  if (isOpen) { setTimeout(() => document.getElementById('mobile-search-input')?.focus(), 50); }
+  else { const inp = document.getElementById('mobile-search-input'); if (inp) { inp.value = ''; onSearch(''); } }
+}
 
 // ═══════════════════════════════════════════════
 // GRID
