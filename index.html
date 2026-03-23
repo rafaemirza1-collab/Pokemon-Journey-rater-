@@ -1533,7 +1533,7 @@ async function loadComments(id) {
     .eq('pokemon_id', id).order('created_at', { ascending: false }).limit(50);
   const rows = data || [];
 
-  let likesMap = {}, reviewerMap = {};
+  let likesMap = {}, reviewerMap = {}, dislikesMap = {};
   if (rows.length) {
     const uniqueIds = [...new Set(rows.map(c => c.user_id))];
     const [{ data: likes }, { data: dislikes }, { data: profiles }] = await Promise.all([
@@ -1546,7 +1546,6 @@ async function loadComments(id) {
       likesMap[l.comment_id].count++;
       if (l.user_id === getUID()) likesMap[l.comment_id].likedByMe = true;
     });
-    let dislikesMap = {};
     if (dislikes) dislikes.forEach(d => {
       if (!dislikesMap[d.comment_id]) dislikesMap[d.comment_id] = { count: 0, dislikedByMe: false };
       dislikesMap[d.comment_id].count++;
