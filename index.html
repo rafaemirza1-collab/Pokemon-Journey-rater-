@@ -254,6 +254,28 @@
     .setup-banner code { background: var(--surface2); padding: 1px 6px; border-radius: 4px; font-size: 0.82rem; color: #aaa; }
     .setup-banner.show { display: block; }
 
+    /* ── DISCOVERY CARD ── */
+    .disc-card {
+      position: fixed; bottom: 28px; left: 28px; z-index: 799;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 18px 20px 16px; width: 290px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+      transform: translateY(120%); opacity: 0;
+      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
+      pointer-events: none;
+    }
+    .disc-card.visible { transform: translateY(0); opacity: 1; pointer-events: all; }
+    .disc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .disc-title { font-size: 0.92rem; font-weight: 800; line-height: 1.3; flex: 1; }
+    .disc-close { background: none; border: none; color: var(--muted); font-size: 1rem; cursor: pointer; padding: 2px 4px; border-radius: 4px; transition: color 0.15s; flex-shrink: 0; }
+    .disc-close:hover { color: var(--text); }
+    .disc-text { font-size: 0.8rem; color: #aaa; line-height: 1.5; margin-bottom: 14px; }
+    .disc-btn { width: 100%; padding: 9px; border-radius: 999px; background: var(--accent2); color: white; font-size: 0.82rem; font-weight: 700; border: none; cursor: pointer; transition: opacity 0.2s; }
+    .disc-btn:hover { opacity: 0.85; }
+    @media (max-width: 640px) {
+      .disc-card { bottom: 0; left: 0; right: 0; width: 100%; border-radius: 20px 20px 0 0; }
+    }
+
     /* ── HOT TAKE ── */
     .hot-take-card {
       position: fixed; bottom: 28px; right: 28px; z-index: 800;
@@ -807,6 +829,16 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- DISCOVERY CARD -->
+<div class="disc-card" id="disc-card">
+  <div class="disc-header">
+    <span class="disc-title" id="disc-title"></span>
+    <button class="disc-close" onclick="dismissDiscovery()">&#x2715;</button>
+  </div>
+  <p class="disc-text" id="disc-text"></p>
+  <button class="disc-btn" id="disc-btn" onclick="actOnDiscovery()"></button>
+</div>
+
 <!-- HOT TAKE CARD -->
 <div class="hot-take-card" id="hot-take-card">
   <div class="hot-take-header">
@@ -1193,6 +1225,7 @@ async function init() {
     loadCommunityStats().then(() => applyFilters()).catch(() => {});
   }
   initHotTake();
+  initDiscovery();
 }
 
 async function loadAllPokemon() {
@@ -2937,6 +2970,135 @@ function closeTrainerModal() {
 }
 function closeTrainerModalOnBg(e) {
   if (e.target === document.getElementById('trainer-modal-overlay')) closeTrainerModal();
+}
+
+// ═══════════════════════════════════════════════
+// DISCOVERY PROMPTS
+// ═══════════════════════════════════════════════
+const DISC_PROMPTS = [
+  {
+    id: 'hottake',
+    title: '🔥 Got a hot take?',
+    texts: ['Drop a bold opinion about a Pokémon.', 'Say something controversial — the community is listening.'],
+    btn: 'Write one',
+    action: () => showHotTake()
+  },
+  {
+    id: 'teams',
+    title: '🧠 Build your dream team',
+    texts: ['Which 6 Pokémon would you actually pick?', 'Create a team and share it with the community.'],
+    btn: 'Start building',
+    action: () => switchView('teams')
+  },
+  {
+    id: 'rate',
+    title: '⭐ Rate a Pokémon',
+    texts: ['Have a strong opinion? Star-rate your favourites.', 'Your ratings shape the community leaderboard.'],
+    btn: 'Browse & rate',
+    action: () => switchView('browse')
+  },
+  {
+    id: 'trainers',
+    title: '🏆 Know your trainers?',
+    texts: ['Rate every Pokémon game protagonist.', 'Who is the GOAT trainer? Make your case.'],
+    btn: 'See trainers',
+    action: () => switchView('trainers')
+  },
+  {
+    id: 'rankings',
+    title: '📊 Check the leaderboard',
+    texts: ['See which Pokémon the community rates highest.', 'Is your favourite Pokémon climbing the charts?'],
+    btn: 'View rankings',
+    action: () => switchView('rankings')
+  },
+  {
+    id: 'hottakes_feed',
+    title: '💬 What\'s the community saying?',
+    texts: ['Read and react to hot takes from other fans.', 'Drop a reply — the debate is heating up.'],
+    btn: 'See hot takes',
+    action: () => switchView('hottakes')
+  },
+  {
+    id: 'profile',
+    title: '👤 How\'s your profile looking?',
+    texts: ['Track your ratings and earn reviewer badges.', 'How close are you to Pokémon Champion status?'],
+    btn: 'My profile',
+    action: () => openProfile()
+  },
+  {
+    id: 'review',
+    title: '✍️ Leave a review',
+    texts: ['The community wants to hear your thoughts.', 'Share your take on your favourite Pokémon.'],
+    btn: 'Start reviewing',
+    action: () => switchView('browse')
+  },
+];
+
+let discTimer = null;
+let discShowing = false;
+let discCurrentAction = null;
+let discLastActivity = Date.now();
+
+function initDiscovery() {
+  ['mousemove','scroll','keydown','click','touchstart'].forEach(ev =>
+    document.addEventListener(ev, () => { discLastActivity = Date.now(); }, { passive: true })
+  );
+  const last = parseInt(localStorage.getItem('pr_disc_last') || '0');
+  const sinceLastMs = Date.now() - last;
+  const firstDelay = last && sinceLastMs < 5 * 60 * 1000
+    ? Math.max(8000, 5 * 60 * 1000 - sinceLastMs)
+    : 17000;
+  scheduleDisc(firstDelay);
+}
+
+function scheduleDisc(delay) {
+  clearTimeout(discTimer);
+  discTimer = setTimeout(() => {
+    const isActive = Date.now() - discLastActivity < 90000;
+    if (isActive && !discShowing) showDiscovery();
+    else scheduleDisc(30000);
+  }, delay);
+}
+
+function pickDiscPrompt() {
+  let recent = [];
+  try { recent = JSON.parse(localStorage.getItem('pr_disc_recent') || '[]'); } catch {}
+  const available = DISC_PROMPTS.filter(p => !recent.includes(p.id));
+  const pool = available.length ? available : DISC_PROMPTS;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function showDiscovery() {
+  if (discShowing) return;
+  if (document.getElementById('hot-take-card').classList.contains('visible')) {
+    scheduleDisc(30000); return;
+  }
+  const prompt = pickDiscPrompt();
+  let recent = [];
+  try { recent = JSON.parse(localStorage.getItem('pr_disc_recent') || '[]'); } catch {}
+  recent.push(prompt.id);
+  localStorage.setItem('pr_disc_recent', JSON.stringify(recent.slice(-3)));
+
+  discCurrentAction = prompt.action;
+  document.getElementById('disc-title').textContent = prompt.title;
+  document.getElementById('disc-text').textContent = prompt.texts[Math.floor(Math.random() * prompt.texts.length)];
+  document.getElementById('disc-btn').textContent = prompt.btn;
+  document.getElementById('disc-card').classList.add('visible');
+  discShowing = true;
+  discTimer = setTimeout(() => { if (discShowing) dismissDiscovery(); }, 30000);
+}
+
+function dismissDiscovery() {
+  document.getElementById('disc-card').classList.remove('visible');
+  discShowing = false;
+  localStorage.setItem('pr_disc_last', Date.now().toString());
+  scheduleDisc(5 * 60 * 1000);
+}
+
+function actOnDiscovery() {
+  const action = discCurrentAction;
+  dismissDiscovery();
+  if (action) action();
 }
 
 // ═══════════════════════════════════════════════
