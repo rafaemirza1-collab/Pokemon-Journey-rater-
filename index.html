@@ -952,7 +952,7 @@ async function renderRankings() {
   }).sort((a, b) => {
     if (a.count > 0 && b.count === 0) return -1;
     if (a.count === 0 && b.count > 0) return 1;
-    if (a.count > 0 && b.count > 0) return b.avg - a.avg || b.count - a.count;
+    if (a.count > 0 && b.count > 0) return b.count - a.count || b.avg - a.avg;
     return a.id - b.id;
   });
 
