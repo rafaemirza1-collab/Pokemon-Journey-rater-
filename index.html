@@ -631,6 +631,59 @@
   .ht-thread-overlay { padding: 0; align-items: flex-end; }
   .ht-thread-modal { border-radius: 24px 24px 0 0; max-height: 92vh; max-width: 100%; }
 }
+/* ── DRIP BATTLE ── */
+#view-dripbattle { max-width: 800px; margin: 0 auto; padding: 28px 20px 60px; }
+.drip-header { text-align: center; margin-bottom: 8px; }
+.drip-title { font-size: 2rem; font-weight: 900; letter-spacing: -1px; }
+.drip-subtitle { font-size: 0.85rem; color: var(--muted); margin-top: 4px; letter-spacing: 1px; }
+.drip-timer { text-align: center; margin: 16px 0 28px; }
+.drip-timer-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.drip-timer-countdown { font-size: 1.5rem; font-weight: 800; color: var(--accent); letter-spacing: 2px; }
+.drip-arena { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; margin-bottom: 28px; }
+.drip-fighter { background: var(--surface); border: 2px solid var(--border); border-radius: 24px; padding: 24px 16px 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden; }
+.drip-fighter:hover { border-color: #555; transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.4); }
+.drip-fighter.voted-for { border-color: var(--accent); box-shadow: 0 0 32px rgba(255,203,5,0.2); }
+.drip-fighter.voted-against { opacity: 0.55; }
+.drip-fighter.leading { border-color: var(--accent); }
+.drip-fighter-img { width: 160px; height: 160px; object-fit: contain; filter: drop-shadow(0 8px 24px rgba(0,0,0,0.4)); transition: transform 0.3s; }
+.drip-fighter:hover .drip-fighter-img { transform: scale(1.05); }
+.drip-fighter-name { font-size: 1.2rem; font-weight: 900; text-transform: capitalize; letter-spacing: -0.5px; }
+.drip-fighter-num { font-size: 0.75rem; color: var(--muted); font-weight: 600; }
+.drip-vote-bar-wrap { width: 100%; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+.drip-vote-bar { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.6s ease; }
+.drip-vote-pct { font-size: 1rem; font-weight: 800; color: var(--accent); }
+.drip-vote-count { font-size: 0.72rem; color: var(--muted); }
+.drip-vote-hint { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+.drip-vs { font-size: 2rem; font-weight: 900; color: var(--muted); letter-spacing: -1px; flex-shrink: 0; }
+.drip-voted-badge { font-size: 0.68rem; font-weight: 700; background: rgba(255,203,5,0.15); color: var(--accent); border-radius: 999px; padding: 3px 10px; margin-top: 2px; }
+.drip-comments-section { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 24px; }
+.drip-comments-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 16px; }
+.drip-comment-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.drip-comment-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.88rem; resize: none; min-height: 64px; outline: none; transition: border-color 0.2s; width: 100%; }
+.drip-comment-input:focus { border-color: var(--accent2); }
+.drip-comment-submit { align-self: flex-end; padding: 8px 22px; border-radius: 999px; background: var(--accent2); color: white; font-size: 0.82rem; font-weight: 700; border: none; cursor: pointer; transition: opacity 0.2s; }
+.drip-comment-submit:hover { opacity: 0.85; }
+.drip-comment-list { display: flex; flex-direction: column; gap: 10px; }
+.drip-comment-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; position: relative; }
+.drip-comment-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+.drip-comment-avatar { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, var(--accent2), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 800; color: white; flex-shrink: 0; cursor: pointer; }
+.drip-comment-username { font-size: 0.82rem; font-weight: 700; cursor: pointer; }
+.drip-comment-voted { font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(255,203,5,0.12); color: var(--accent); }
+.drip-comment-date { font-size: 0.7rem; color: var(--muted); margin-left: auto; }
+.drip-comment-text { font-size: 0.88rem; line-height: 1.6; }
+.drip-comment-delete { position: absolute; top: 8px; right: 8px; font-size: 0.75rem; color: var(--muted); cursor: pointer; background: none; border: none; padding: 2px 6px; border-radius: 4px; }
+.drip-comment-delete:hover { color: var(--red); background: rgba(230,57,70,0.1); }
+.drip-no-comments { font-size: 0.85rem; color: var(--muted); text-align: center; padding: 20px 0; }
+.drip-loading { text-align: center; padding: 80px 20px; color: var(--muted); font-size: 0.9rem; }
+@media (max-width: 640px) {
+  #view-dripbattle { padding: 16px 12px 60px; }
+  .drip-arena { grid-template-columns: 1fr auto 1fr; gap: 8px; }
+  .drip-fighter { padding: 16px 8px 14px; border-radius: 16px; }
+  .drip-fighter-img { width: 100px; height: 100px; }
+  .drip-fighter-name { font-size: 0.9rem; }
+  .drip-vs { font-size: 1.4rem; }
+  .drip-title { font-size: 1.5rem; }
+}
   </style>
 </head>
 <body>
@@ -659,6 +712,7 @@
     <button class="nav-tab" data-view="teams" onclick="switchView('teams')">&#x1F6E1; Teams</button>
     <button class="nav-tab" data-view="trainers" onclick="switchView('trainers')">🏆 Trainers</button>
     <button class="nav-tab" data-view="hottakes" onclick="switchView('hottakes')">🔥 Hot Takes</button>
+      <button class="nav-tab" data-view="dripbattle" onclick="switchView('dripbattle')">⚡ Drip Battle</button>
   </div>
   <div class="nav-right">
     <div class="nav-search">
@@ -678,6 +732,29 @@
   <svg width="16" height="16" fill="none" stroke="#777" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
   <input type="text" id="mobile-search-input" placeholder="Search Pokémon..." oninput="onSearch(this.value); document.getElementById('search-input').value=this.value" autocomplete="off"/>
   <button onclick="toggleMobileSearch()" style="background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:0 4px">&#x2715;</button>
+</div>
+
+<!-- DRIP BATTLE VIEW -->
+<div id="view-dripbattle" class="view">
+  <div class="drip-header">
+    <div class="drip-title">⚡ DRIP BATTLE</div>
+    <div class="drip-subtitle">No stats. No advantages. Just aura.</div>
+  </div>
+  <div class="drip-timer">
+    <div class="drip-timer-label">Next battle in</div>
+    <div class="drip-timer-countdown" id="drip-countdown">—</div>
+  </div>
+  <div id="drip-battle-wrap">
+    <div class="drip-loading">Loading battle...</div>
+  </div>
+  <div id="drip-comments-wrap" style="display:none" class="drip-comments-section">
+    <div class="drip-comments-title">💬 The Verdict</div>
+    <div class="drip-comment-form">
+      <textarea class="drip-comment-input" id="drip-comment-input" placeholder="Which has better drip and why?" maxlength="300" rows="2"></textarea>
+      <button class="drip-comment-submit" onclick="submitDripComment()">Post take</button>
+    </div>
+    <div class="drip-comment-list" id="drip-comment-list"></div>
+  </div>
 </div>
 
 <!-- HOT TAKES VIEW -->
@@ -2179,6 +2256,7 @@ function switchView(view) {
   if (view === 'teams') loadTeams();
   if (view === 'trainers') initTrainersView();
   if (view === 'hottakes') loadHotTakes();
+  if (view === 'dripbattle') loadDripBattle();
 }
 
 // ═══════════════════════════════════════════════
@@ -3054,6 +3132,193 @@ function closeTrainerModal() {
   document.getElementById('trainer-modal-overlay').classList.remove('open');
   document.body.style.overflow = '';
 }
+// ═══════════════════════════════════════════════
+// DRIP BATTLE
+// ═══════════════════════════════════════════════
+let dripCurrentBattle = null;
+let dripCountdownInterval = null;
+let dripMyVote = null;
+
+async function loadDripBattle() {
+  if (!dbReady) {
+    document.getElementById('drip-battle-wrap').innerHTML = `<div class="drip-loading">Connect Supabase to play.</div>`;
+    return;
+  }
+  document.getElementById('drip-battle-wrap').innerHTML = `<div class="drip-loading">Loading battle...</div>`;
+  document.getElementById('drip-comments-wrap').style.display = 'none';
+
+  // Fetch latest battle
+  const { data: battles } = await sb.from('drip_battles').select('*').order('created_at', { ascending: false }).limit(1);
+  let battle = battles && battles[0];
+  const now = new Date();
+
+  // Create new battle if none exists or current one expired
+  if (!battle || new Date(battle.expires_at) <= now) {
+    if (!allPokemon.length) { document.getElementById('drip-battle-wrap').innerHTML = `<div class="drip-loading">Pokédex not loaded yet.</div>`; return; }
+    let a, b;
+    do {
+      a = allPokemon[Math.floor(Math.random() * allPokemon.length)];
+      b = allPokemon[Math.floor(Math.random() * allPokemon.length)];
+    } while (a.id === b.id);
+    const expires = new Date(now.getTime() + 6 * 60 * 60 * 1000).toISOString();
+    const { data: newBattle, error } = await sb.from('drip_battles').insert({ pokemon_a: a.id, pokemon_b: b.id, expires_at: expires }).select().single();
+    if (error) {
+      // Another client may have inserted — re-fetch
+      const { data: retry } = await sb.from('drip_battles').select('*').order('created_at', { ascending: false }).limit(1);
+      battle = retry && retry[0];
+    } else {
+      battle = newBattle;
+    }
+  }
+
+  if (!battle) { document.getElementById('drip-battle-wrap').innerHTML = `<div class="drip-loading">Could not load battle.</div>`; return; }
+  dripCurrentBattle = battle;
+
+  // Fetch votes + my vote
+  const [{ data: votes }, { data: myVoteRow }] = await Promise.all([
+    sb.from('drip_votes').select('choice').eq('battle_id', battle.id),
+    sb.from('drip_votes').select('choice').eq('battle_id', battle.id).eq('user_id', getUID()).maybeSingle()
+  ]);
+  dripMyVote = myVoteRow ? myVoteRow.choice : null;
+
+  renderDripBattle(battle, votes || [], dripMyVote);
+  startDripCountdown(battle.expires_at);
+  await loadDripComments(battle.id);
+  document.getElementById('drip-comments-wrap').style.display = 'block';
+}
+
+function renderDripBattle(battle, votes, myVote) {
+  const totalVotes = votes.length;
+  const votesA = votes.filter(v => v.choice === battle.pokemon_a).length;
+  const votesB = votes.filter(v => v.choice === battle.pokemon_b).length;
+  const pctA = totalVotes ? Math.round(votesA / totalVotes * 100) : 50;
+  const pctB = totalVotes ? Math.round(votesB / totalVotes * 100) : 50;
+  const pA = allPokemon.find(x => x.id === battle.pokemon_a);
+  const pB = allPokemon.find(x => x.id === battle.pokemon_b);
+  const nameA = pA ? pA.name.replace(/-/g,' ') : `#${battle.pokemon_a}`;
+  const nameB = pB ? pB.name.replace(/-/g,' ') : `#${battle.pokemon_b}`;
+  const hasVoted = myVote !== null;
+  const leadingA = votesA > votesB;
+  const leadingB = votesB > votesA;
+
+  function fighterHTML(id, name, pct, voteCount, isLeading, isMyVote, isOtherVote) {
+    const voted = hasVoted ? (isMyVote ? 'voted-for' : 'voted-against') : '';
+    const leading = isLeading && hasVoted ? 'leading' : '';
+    const action = hasVoted ? '' : `onclick="voteDrip('${battle.id}', ${id})"`;
+    return `<div class="drip-fighter ${voted} ${leading}" ${action}>
+      <img class="drip-fighter-img" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png"
+        onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png'" alt="${name}"/>
+      <div class="drip-fighter-name">${name}</div>
+      <div class="drip-fighter-num">#${String(id).padStart(4,'0')}</div>
+      ${hasVoted ? `
+        <div class="drip-vote-pct">${pct}%</div>
+        <div class="drip-vote-bar-wrap"><div class="drip-vote-bar" style="width:${pct}%"></div></div>
+        <div class="drip-vote-count">${voteCount} vote${voteCount!==1?'s':''}</div>
+        ${isMyVote ? `<div class="drip-voted-badge">✓ Your pick</div>` : ''}
+      ` : `<div class="drip-vote-hint">Tap to vote</div>`}
+    </div>`;
+  }
+
+  document.getElementById('drip-battle-wrap').innerHTML = `
+    <div class="drip-arena">
+      ${fighterHTML(battle.pokemon_a, nameA, pctA, votesA, leadingA, myVote === battle.pokemon_a, myVote === battle.pokemon_b)}
+      <div class="drip-vs">VS</div>
+      ${fighterHTML(battle.pokemon_b, nameB, pctB, votesB, leadingB, myVote === battle.pokemon_b, myVote === battle.pokemon_a)}
+    </div>`;
+}
+
+async function voteDrip(battleId, pokemonId) {
+  if (dripMyVote !== null) return;
+  dripMyVote = pokemonId;
+  // Optimistic render
+  const { data: votes } = await sb.from('drip_votes').select('choice').eq('battle_id', battleId);
+  const optimistic = [...(votes || []), { choice: pokemonId }];
+  renderDripBattle(dripCurrentBattle, optimistic, pokemonId);
+  // Persist
+  const { error } = await sb.from('drip_votes').insert({ battle_id: battleId, user_id: getUID(), choice: pokemonId });
+  if (error && error.code === '23505') {
+    // Already voted — refresh
+    dripMyVote = pokemonId;
+  }
+  showToast('Vote cast! 🔥');
+}
+
+function startDripCountdown(expiresAt) {
+  clearInterval(dripCountdownInterval);
+  function tick() {
+    const diff = new Date(expiresAt) - new Date();
+    if (diff <= 0) {
+      clearInterval(dripCountdownInterval);
+      document.getElementById('drip-countdown').textContent = 'NEW BATTLE!';
+      if (document.getElementById('view-dripbattle').classList.contains('active')) {
+        setTimeout(loadDripBattle, 1500);
+      }
+      return;
+    }
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    document.getElementById('drip-countdown').textContent =
+      `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+  tick();
+  dripCountdownInterval = setInterval(tick, 1000);
+}
+
+async function loadDripComments(battleId) {
+  const { data: comments } = await sb.from('drip_comments').select('*').eq('battle_id', battleId).order('created_at', { ascending: false }).limit(50);
+  renderDripComments(comments || [], battleId);
+}
+
+function renderDripComments(comments, battleId) {
+  const el = document.getElementById('drip-comment-list');
+  if (!el) return;
+  if (!comments.length) { el.innerHTML = `<div class="drip-no-comments">No takes yet — drop yours above!</div>`; return; }
+  const uid = getUID();
+  const pA = dripCurrentBattle ? allPokemon.find(x => x.id === dripCurrentBattle.pokemon_a) : null;
+  const pB = dripCurrentBattle ? allPokemon.find(x => x.id === dripCurrentBattle.pokemon_b) : null;
+  el.innerHTML = comments.map(c => {
+    const initial = (c.username||'A').charAt(0).toUpperCase();
+    const isOwn = c.user_id === uid;
+    const dateStr = new Date(c.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    let votedFor = '';
+    if (c.choice && dripCurrentBattle) {
+      const p = c.choice === dripCurrentBattle.pokemon_a ? pA : pB;
+      if (p) votedFor = `<span class="drip-comment-voted">voted ${p.name.replace(/-/g,' ')}</span>`;
+    }
+    return `<div class="drip-comment-item">
+      <div class="drip-comment-header">
+        <div class="drip-comment-avatar" onclick="openUserProfile('${c.user_id}','${esc(c.username||'Anonymous')}')">${initial}</div>
+        <span class="drip-comment-username" onclick="openUserProfile('${c.user_id}','${esc(c.username||'Anonymous')}')">${esc(c.username||'Anonymous')}</span>
+        ${votedFor}
+        <span class="drip-comment-date">${dateStr}</span>
+      </div>
+      <div class="drip-comment-text">${esc(c.text)}</div>
+      ${(isOwn || isAdmin()) ? `<button class="drip-comment-delete" onclick="deleteDripComment('${c.id}','${battleId}')">${isAdmin()&&!isOwn?'🗑':'&#x2715;'}</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function submitDripComment() {
+  const input = document.getElementById('drip-comment-input');
+  const text = input.value.trim();
+  if (!text || !dripCurrentBattle) return;
+  input.value = '';
+  await sb.from('drip_comments').insert({
+    battle_id: dripCurrentBattle.id,
+    user_id: getUID(),
+    username: getUsername(),
+    text,
+    choice: dripMyVote || null
+  });
+  await loadDripComments(dripCurrentBattle.id);
+}
+
+async function deleteDripComment(commentId, battleId) {
+  await sb.from('drip_comments').delete().eq('id', commentId);
+  await loadDripComments(battleId);
+}
+
 function closeTrainerModalOnBg(e) {
   if (e.target === document.getElementById('trainer-modal-overlay')) closeTrainerModal();
 }
