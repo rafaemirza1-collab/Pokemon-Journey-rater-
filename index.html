@@ -870,11 +870,14 @@ function renderComments(rows, id, likesMap = {}) {
     repliesMap[r.parent_id].push(r);
   });
 
-  function buildCommentHTML(r, isReply = false) {
+  function buildCommentHTML(r, isReply = false, replyingToUsername = '') {
     const isOwn = r.user_id === uid;
     const initials = (r.username||'A').charAt(0).toUpperCase();
     const dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '';
     const likes = likesMap[r.id] || { count: 0, likedByMe: false };
+    const mentionTag = isReply && replyingToUsername
+      ? `<span class="reply-mention">@${esc(replyingToUsername)}</span> `
+      : '';
     return `<div class="${isReply ? 'reply-item' : 'comment-item'}" id="comment-${r.id}">
       <div class="comment-header">
         <div class="comment-avatar">${initials}</div>
@@ -883,7 +886,7 @@ function renderComments(rows, id, likesMap = {}) {
         ${isOwn ? `<span class="comment-own-badge">You</span>` : ''}
         <span class="comment-date">${dateStr}</span>
       </div>
-      <div class="comment-text">${esc(r.text)}</div>
+      <div class="comment-text">${mentionTag}${esc(r.text)}</div>
       <div class="comment-actions">
         <button class="comment-like ${likes.likedByMe ? 'liked' : ''}" onclick="toggleLike('${r.id}', ${id}, this)">
           <span class="like-heart">&#x2665;</span> ${likes.count > 0 ? `${likes.count} ` : ''}${likes.likedByMe ? 'Liked' : 'Like'}
@@ -898,7 +901,7 @@ function renderComments(rows, id, likesMap = {}) {
   el.innerHTML = topLevel.map(r => {
     const replies = repliesMap[r.id] || [];
     const repliesHTML = replies.length
-      ? `<div class="replies-list">${replies.map(rep => buildCommentHTML(rep, true)).join('')}</div>`
+      ? `<div class="replies-list">${replies.map(rep => buildCommentHTML(rep, true, r.username || 'Anonymous')).join('')}</div>`
       : '';
     return buildCommentHTML(r, false) + repliesHTML;
   }).join('');
