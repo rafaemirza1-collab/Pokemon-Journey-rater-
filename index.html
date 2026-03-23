@@ -43,6 +43,10 @@
 
     .gen-bar { display: flex; gap: 8px; overflow-x: auto; padding: 20px 32px 0; scrollbar-width: none; }
     .gen-bar::-webkit-scrollbar { display: none; }
+    .type-filter-bar { display: flex; gap: 6px; overflow-x: auto; padding: 10px 32px 0; scrollbar-width: none; }
+    .type-filter-bar::-webkit-scrollbar { display: none; }
+    .type-filter-btn { flex-shrink: 0; padding: 5px 14px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; cursor: pointer; border: 2px solid transparent; background: var(--surface2); color: var(--muted); transition: all 0.2s; text-transform: capitalize; }
+    .type-filter-btn.active-type { color: #fff; border-color: transparent; }
     .gen-btn { flex-shrink: 0; padding: 7px 16px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--muted); transition: all 0.2s; }
     .gen-btn:hover { border-color: #555; color: var(--text); }
     .gen-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
@@ -237,6 +241,7 @@
 
       /* ── POKÉDEX ── */
       .gen-bar { padding: 12px 12px 0; gap: 6px; }
+      .type-filter-bar { padding: 8px 12px 0; gap: 5px; }
       .gen-btn { padding: 6px 12px; font-size: 0.75rem; }
       .sort-bar { padding: 10px 12px; gap: 8px; }
       .pokemon-count { display: none; }
@@ -530,6 +535,7 @@
     <button class="gen-btn" data-gen="8" onclick="setGen(8)">Gen VIII · Galar</button>
     <button class="gen-btn" data-gen="9" onclick="setGen(9)">Gen IX · Paldea</button>
   </div>
+  <div class="type-filter-bar" id="type-filter-bar"></div>
   <div class="sort-bar">
     <span class="pokemon-count" id="pokemon-count"></span>
     <select class="sort-select" onchange="setSort(this.value)">
@@ -776,6 +782,42 @@ const GEN_NAMES = {
   1:'Kanto', 2:'Johto', 3:'Hoenn', 4:'Sinnoh',
   5:'Unova', 6:'Kalos', 7:'Alola', 8:'Galar', 9:'Paldea'
 };
+const TYPE_LIST = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
+const typePokemonCache = {}; // type → Set of pokemon ids
+let currentTypeFilter = 'all';
+
+function initTypeFilterBar() {
+  const bar = document.getElementById('type-filter-bar');
+  if (!bar) return;
+  bar.innerHTML = `<button class="type-filter-btn active-type" data-type="all" style="background:var(--surface2);color:var(--text);border-color:var(--accent2)" onclick="setTypeFilter('all')">All Types</button>` +
+    TYPE_LIST.map(t => `<button class="type-filter-btn" data-type="${t}" style="background:${TYPE_COLORS[t]||'#666'}22;color:${TYPE_COLORS[t]||'#aaa'};border-color:${TYPE_COLORS[t]||'#666'}44" onclick="setTypeFilter('${t}')">${t}</button>`).join('');
+}
+
+async function setTypeFilter(type) {
+  currentTypeFilter = type;
+  // Update button styles
+  document.querySelectorAll('.type-filter-btn').forEach(b => {
+    const bt = b.dataset.type;
+    if (bt === 'all') {
+      b.style.background = type === 'all' ? 'var(--surface2)' : 'var(--surface2)';
+      b.style.color = type === 'all' ? 'var(--text)' : 'var(--muted)';
+      b.style.borderColor = type === 'all' ? 'var(--accent2)' : 'transparent';
+    } else {
+      const c = TYPE_COLORS[bt] || '#666';
+      b.style.background = bt === type ? c : `${c}22`;
+      b.style.color = bt === type ? '#fff' : c;
+      b.style.borderColor = bt === type ? c : `${c}44`;
+    }
+  });
+  // Fetch type data if not cached
+  if (type !== 'all' && !typePokemonCache[type]) {
+    const res = await fetch(`https://pokeapi.co/api/v2/type/${type}`);
+    const data = await res.json();
+    typePokemonCache[type] = new Set(data.pokemon.map(p => p.pokemon.url.split('/').filter(Boolean).pop()).map(Number).filter(n => n <= 1025));
+  }
+  applyFilters();
+}
+
 const TYPE_COLORS = {
   normal:'#9399A4', fire:'#FF7F00', water:'#3692DC', electric:'#FAC000',
   grass:'#38BF4B', ice:'#4CD1C0', fighting:'#CE4069', poison:'#AB6AC8',
@@ -841,6 +883,7 @@ function saveTypeCache() { try { localStorage.setItem('pr_types', JSON.stringify
 // ═══════════════════════════════════════════════
 async function init() {
   loadTypeCache();
+  initTypeFilterBar();
   updateUserDisplay();
   const savedName = localStorage.getItem('pr_username');
   if (!savedName || savedName === 'Anonymous') openNameModal();
@@ -905,6 +948,9 @@ function applyFilters() {
   if (currentGen !== 'all') {
     const [min, max] = GENS[currentGen];
     list = list.filter(p => p.id >= min && p.id <= max);
+  }
+  if (currentTypeFilter !== 'all' && typePokemonCache[currentTypeFilter]) {
+    list = list.filter(p => typePokemonCache[currentTypeFilter].has(p.id));
   }
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
