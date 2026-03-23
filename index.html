@@ -137,6 +137,9 @@
     .comment-like.liked { border-color: #e05c7a; color: #e05c7a; background: rgba(224,92,122,0.1); }
     .comment-like .like-heart { font-size: 0.8rem; transition: transform 0.15s; }
     .comment-like:hover .like-heart, .comment-like.liked .like-heart { transform: scale(1.25); }
+    .comment-dislike { display: inline-flex; align-items: center; gap: 5px; margin-top: 10px; background: none; border: 1px solid var(--border); border-radius: 999px; padding: 4px 14px; font-size: 0.75rem; font-weight: 600; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+    .comment-dislike:hover { border-color: #818cf8; color: #818cf8; }
+    .comment-dislike.disliked { border-color: #818cf8; color: #818cf8; background: rgba(129,140,248,0.1); }
     .comment-reply-btn { background: none; border: none; font-size: 0.75rem; font-weight: 600; color: var(--muted); cursor: pointer; padding: 4px 0; margin-top: 6px; margin-left: 2px; transition: color 0.15s; }
     .comment-reply-btn:hover { color: var(--accent2); }
     .comment-actions { display: flex; align-items: center; gap: 10px; }
@@ -1533,8 +1536,9 @@ async function loadComments(id) {
   let likesMap = {}, reviewerMap = {};
   if (rows.length) {
     const uniqueIds = [...new Set(rows.map(c => c.user_id))];
-    const [{ data: likes }, { data: profiles }] = await Promise.all([
+    const [{ data: likes }, { data: dislikes }, { data: profiles }] = await Promise.all([
       sb.from('comment_likes').select('comment_id, user_id').in('comment_id', rows.map(c => c.id)),
+      sb.from('comment_dislikes').select('comment_id, user_id').in('comment_id', rows.map(c => c.id)),
       sb.from('user_review_counts').select('user_id, review_count').in('user_id', uniqueIds)
     ]);
     if (likes) likes.forEach(l => {
@@ -1542,9 +1546,15 @@ async function loadComments(id) {
       likesMap[l.comment_id].count++;
       if (l.user_id === getUID()) likesMap[l.comment_id].likedByMe = true;
     });
+    let dislikesMap = {};
+    if (dislikes) dislikes.forEach(d => {
+      if (!dislikesMap[d.comment_id]) dislikesMap[d.comment_id] = { count: 0, dislikedByMe: false };
+      dislikesMap[d.comment_id].count++;
+      if (d.user_id === getUID()) dislikesMap[d.comment_id].dislikedByMe = true;
+    });
     if (profiles) profiles.forEach(p => { reviewerMap[p.user_id] = p.review_count; });
   }
-  renderComments(rows, id, likesMap, reviewerMap);
+  renderComments(rows, id, likesMap, reviewerMap, dislikesMap);
 }
 
 function subscribeComments(id) {
@@ -1557,7 +1567,7 @@ function subscribeComments(id) {
     .subscribe();
 }
 
-function renderComments(rows, id, likesMap = {}, reviewerMap = {}) {
+function renderComments(rows, id, likesMap = {}, reviewerMap = {}, dislikesMap = {}) {
   const el = document.getElementById('comments-list');
   if (!el) return;
   if (!rows.length) { el.innerHTML = `<div class="no-comments">No reviews yet — be the first!</div>`; return; }
@@ -1576,6 +1586,7 @@ function renderComments(rows, id, likesMap = {}, reviewerMap = {}) {
     const initials = (r.username||'A').charAt(0).toUpperCase();
     const dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '';
     const likes = likesMap[r.id] || { count: 0, likedByMe: false };
+    const dlikes = dislikesMap[r.id] || { count: 0, dislikedByMe: false };
     const mentionTag = isReply && replyingToUsername
       ? `<span class="reply-mention">@${esc(replyingToUsername)}</span> `
       : '';
@@ -1594,6 +1605,9 @@ function renderComments(rows, id, likesMap = {}, reviewerMap = {}) {
       <div class="comment-actions">
         <button class="comment-like ${likes.likedByMe ? 'liked' : ''}" onclick="toggleLike('${r.id}', ${id}, this)">
           <span class="like-heart">&#x2665;</span> ${likes.count > 0 ? `${likes.count} ` : ''}${likes.likedByMe ? 'Liked' : 'Like'}
+        </button>
+        <button class="comment-dislike ${dlikes.dislikedByMe ? 'disliked' : ''}" onclick="toggleDislike('${r.id}', ${id}, this)">
+          &#x1F44E; ${dlikes.count > 0 ? `${dlikes.count} ` : ''}${dlikes.dislikedByMe ? 'Disliked' : 'Dislike'}
         </button>
         <button class="comment-reply-btn" onclick="openReplyBox('${r.id}', ${id}, '${esc(r.username||'Anonymous')}')">Reply</button>
       </div>
@@ -1795,6 +1809,20 @@ async function toggleLike(commentId, pokemonId, btn) {
   }
   // Refresh to get accurate count
   loadComments(pokemonId);
+}
+
+async function toggleDislike(commentId, pokemonId, btn) {
+  const isDisliked = btn.classList.contains('disliked');
+  btn.classList.toggle('disliked', !isDisliked);
+  const countMatch = btn.textContent.match(/\d+/);
+  const current = countMatch ? parseInt(countMatch[0]) : 0;
+  const newCount = isDisliked ? Math.max(0, current - 1) : current + 1;
+  btn.innerHTML = `&#x1F44E; ${newCount > 0 ? `${newCount} ` : ''}${!isDisliked ? 'Disliked' : 'Dislike'}`;
+  if (isDisliked) {
+    await sb.from('comment_dislikes').delete().eq('comment_id', commentId).eq('user_id', getUID());
+  } else {
+    await sb.from('comment_dislikes').insert({ comment_id: commentId, user_id: getUID() });
+  }
 }
 
 function deleteLocalComment(id, index) {
@@ -2647,11 +2675,12 @@ async function openTrainerModal(trainerId) {
   document.body.style.overflow = 'hidden';
 
   const uid = getUID();
-  const [{ data: allRatings }, { data: myRow }, { data: comments }, { data: likesData }] = await Promise.all([
+  const [{ data: allRatings }, { data: myRow }, { data: comments }, { data: likesData }, { data: dislikesData }] = await Promise.all([
     sb.from('trainer_ratings').select('stars').eq('trainer_id', trainerId),
     sb.from('trainer_ratings').select('stars').eq('trainer_id', trainerId).eq('user_id', uid).maybeSingle(),
     sb.from('trainer_comments').select('*').eq('trainer_id', trainerId).order('created_at', { ascending: false }).limit(50),
-    sb.from('trainer_comment_likes').select('comment_id, user_id')
+    sb.from('trainer_comment_likes').select('comment_id, user_id'),
+    sb.from('trainer_comment_dislikes').select('comment_id, user_id')
   ]);
 
   const ratingCount = allRatings ? allRatings.length : 0;
@@ -2712,7 +2741,13 @@ async function openTrainerModal(trainerId) {
     likesMap[l.comment_id].count++;
     if (l.user_id === uid) likesMap[l.comment_id].likedByMe = true;
   });
-  renderTrainerComments(comments || [], trainerId, likesMap);
+  const dislikesMap = {};
+  if (dislikesData) dislikesData.forEach(d => {
+    if (!dislikesMap[d.comment_id]) dislikesMap[d.comment_id] = { count: 0, dislikedByMe: false };
+    dislikesMap[d.comment_id].count++;
+    if (d.user_id === uid) dislikesMap[d.comment_id].dislikedByMe = true;
+  });
+  renderTrainerComments(comments || [], trainerId, likesMap, dislikesMap);
 }
 
 function renderTrainerBreakdown(ratings) {
@@ -2776,7 +2811,7 @@ async function submitTrainerComment(trainerId) {
   renderTrainerGrid();
 }
 
-function renderTrainerComments(rows, trainerId, likesMap = {}) {
+function renderTrainerComments(rows, trainerId, likesMap = {}, dislikesMap = {}) {
   const el = document.getElementById('trainer-comments-list');
   if (!el) return;
   if (!rows.length) { el.innerHTML = `<div class="no-comments">No reviews yet — be the first!</div>`; return; }
@@ -2793,6 +2828,7 @@ function renderTrainerComments(rows, trainerId, likesMap = {}) {
     const dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '';
     const mention = isReply && replyingTo ? `<span class="reply-mention">@${esc(replyingTo)}</span> ` : '';
     const likes = likesMap[r.id] || { count: 0, likedByMe: false };
+    const tdlikes = dislikesMap[r.id] || { count: 0, dislikedByMe: false };
     return `<div class="${isReply ? 'reply-item' : 'comment-item'}">
       <div class="comment-header">
         <div class="comment-avatar" style="cursor:pointer" onclick="openUserProfile('${r.user_id}','${esc(r.username||'Anonymous')}')">${initials}</div>
@@ -2804,6 +2840,9 @@ function renderTrainerComments(rows, trainerId, likesMap = {}) {
       <div class="comment-actions">
         <button class="comment-like ${likes.likedByMe ? 'liked' : ''}" onclick="toggleTrainerLike('${r.id}','${trainerId}',this)">
           <span class="like-heart">&#x2665;</span> ${likes.count > 0 ? `${likes.count} ` : ''}${likes.likedByMe ? 'Liked' : 'Like'}
+        </button>
+        <button class="comment-dislike ${tdlikes.dislikedByMe ? 'disliked' : ''}" onclick="toggleTrainerDislike('${r.id}','${trainerId}',this)">
+          &#x1F44E; ${tdlikes.count > 0 ? `${tdlikes.count} ` : ''}${tdlikes.dislikedByMe ? 'Disliked' : 'Dislike'}
         </button>
         <button class="comment-reply-btn" onclick="openTrainerReplyBox('${r.id}','${trainerId}','${esc(r.username||'Anonymous')}')">Reply</button>
         ${(isOwn || isAdmin()) ? `<button class="comment-delete" onclick="deleteTrainerComment('${r.id}','${trainerId}')">${isAdmin() && !isOwn ? '🗑' : '&#x2715;'}</button>` : ''}
@@ -2845,9 +2884,10 @@ async function deleteTrainerComment(commentId, trainerId) {
 }
 
 async function reloadTrainerComments(trainerId) {
-  const [{ data: comments }, { data: likesData }] = await Promise.all([
+  const [{ data: comments }, { data: likesData }, { data: dislikesData }] = await Promise.all([
     sb.from('trainer_comments').select('*').eq('trainer_id', trainerId).order('created_at', { ascending: false }).limit(50),
-    sb.from('trainer_comment_likes').select('comment_id, user_id')
+    sb.from('trainer_comment_likes').select('comment_id, user_id'),
+    sb.from('trainer_comment_dislikes').select('comment_id, user_id')
   ]);
   const likesMap = {};
   if (likesData) likesData.forEach(l => {
@@ -2855,7 +2895,13 @@ async function reloadTrainerComments(trainerId) {
     likesMap[l.comment_id].count++;
     if (l.user_id === getUID()) likesMap[l.comment_id].likedByMe = true;
   });
-  renderTrainerComments(comments || [], trainerId, likesMap);
+  const dislikesMap = {};
+  if (dislikesData) dislikesData.forEach(d => {
+    if (!dislikesMap[d.comment_id]) dislikesMap[d.comment_id] = { count: 0, dislikedByMe: false };
+    dislikesMap[d.comment_id].count++;
+    if (d.user_id === getUID()) dislikesMap[d.comment_id].dislikedByMe = true;
+  });
+  renderTrainerComments(comments || [], trainerId, likesMap, dislikesMap);
 }
 
 async function toggleTrainerLike(commentId, trainerId, btn) {
@@ -2869,6 +2915,20 @@ async function toggleTrainerLike(commentId, trainerId, btn) {
     await sb.from('trainer_comment_likes').delete().eq('comment_id', commentId).eq('user_id', getUID());
   } else {
     await sb.from('trainer_comment_likes').insert({ comment_id: commentId, user_id: getUID() });
+  }
+}
+
+async function toggleTrainerDislike(commentId, trainerId, btn) {
+  const isDisliked = btn.classList.contains('disliked');
+  btn.classList.toggle('disliked', !isDisliked);
+  const countMatch = btn.textContent.match(/\d+/);
+  const current = countMatch ? parseInt(countMatch[0]) : 0;
+  const newCount = isDisliked ? Math.max(0, current - 1) : current + 1;
+  btn.innerHTML = `&#x1F44E; ${newCount > 0 ? `${newCount} ` : ''}${!isDisliked ? 'Disliked' : 'Dislike'}`;
+  if (isDisliked) {
+    await sb.from('trainer_comment_dislikes').delete().eq('comment_id', commentId).eq('user_id', getUID());
+  } else {
+    await sb.from('trainer_comment_dislikes').insert({ comment_id: commentId, user_id: getUID() });
   }
 }
 
@@ -2981,8 +3041,9 @@ async function renderHtFeed(reset) {
 
   // Fetch likes + comment counts for this slice
   const ids = slice.map(t => t.id);
-  const [{ data: likes }, { data: commentCounts }] = await Promise.all([
+  const [{ data: likes }, { data: dislikes }, { data: commentCounts }] = await Promise.all([
     sb.from('hot_take_likes').select('hot_take_id, user_id').in('hot_take_id', ids),
+    sb.from('hot_take_dislikes').select('hot_take_id, user_id').in('hot_take_id', ids),
     sb.from('hot_take_comments').select('hot_take_id').in('hot_take_id', ids)
   ]);
   const likesMap = {};
@@ -2990,6 +3051,12 @@ async function renderHtFeed(reset) {
     if (!likesMap[l.hot_take_id]) likesMap[l.hot_take_id] = { count: 0, likedByMe: false };
     likesMap[l.hot_take_id].count++;
     if (l.user_id === getUID()) likesMap[l.hot_take_id].likedByMe = true;
+  });
+  const dislikesMap2 = {};
+  if (dislikes) dislikes.forEach(d => {
+    if (!dislikesMap2[d.hot_take_id]) dislikesMap2[d.hot_take_id] = { count: 0, dislikedByMe: false };
+    dislikesMap2[d.hot_take_id].count++;
+    if (d.user_id === getUID()) dislikesMap2[d.hot_take_id].dislikedByMe = true;
   });
   const commentMap = {};
   if (commentCounts) commentCounts.forEach(c => {
@@ -2999,6 +3066,7 @@ async function renderHtFeed(reset) {
   feed.innerHTML = slice.map(t => {
     const initial = (t.username||'A').charAt(0).toUpperCase();
     const lm = likesMap[t.id] || { count: 0, likedByMe: false };
+    const dm = dislikesMap2[t.id] || { count: 0, dislikedByMe: false };
     const replies = commentMap[t.id] || 0;
     const timeStr = timeAgo(t.created_at);
     return `<div class="ht-card">
@@ -3011,6 +3079,9 @@ async function renderHtFeed(reset) {
       <div class="ht-actions">
         <button class="ht-like-btn ${lm.likedByMe?'liked':''}" onclick="toggleHtLike('${t.id}',this)">
           <span>&#x2665;</span> ${lm.count > 0 ? lm.count : ''} ${lm.likedByMe?'Liked':'Like'}
+        </button>
+        <button class="ht-like-btn ${dm.dislikedByMe?'disliked':''}" style="${dm.dislikedByMe?'border-color:#818cf8;color:#818cf8;background:rgba(129,140,248,0.1)':''}" onclick="toggleHtDislike('${t.id}',this)">
+          &#x1F44E; ${dm.count > 0 ? dm.count + ' ' : ''}${dm.dislikedByMe?'Disliked':'Dislike'}
         </button>
         <button class="ht-reply-btn" onclick="openHtThread('${t.id}')">
           &#x1F4AC; ${replies > 0 ? `${replies} repl${replies===1?'y':'ies'}` : 'Reply'}
@@ -3054,6 +3125,21 @@ async function toggleHtLike(takeId, btn) {
   }
 }
 
+async function toggleHtDislike(takeId, btn) {
+  const isDisliked = btn.classList.contains('disliked');
+  btn.classList.toggle('disliked', !isDisliked);
+  const countMatch = btn.textContent.match(/\d+/);
+  const current = countMatch ? parseInt(countMatch[0]) : 0;
+  const newCount = isDisliked ? Math.max(0, current - 1) : current + 1;
+  btn.innerHTML = `&#x1F44E; ${newCount > 0 ? newCount + ' ' : ''}${!isDisliked ? 'Disliked' : 'Dislike'}`;
+  btn.style.cssText = !isDisliked ? 'border-color:#818cf8;color:#818cf8;background:rgba(129,140,248,0.1)' : '';
+  if (isDisliked) {
+    await sb.from('hot_take_dislikes').delete().eq('hot_take_id', takeId).eq('user_id', getUID());
+  } else {
+    await sb.from('hot_take_dislikes').insert({ hot_take_id: takeId, user_id: getUID() });
+  }
+}
+
 async function deleteHotTake(takeId) {
   await sb.from('hot_takes').delete().eq('id', takeId);
   await loadHotTakes();
@@ -3073,16 +3159,19 @@ async function loadHtThread(takeId) {
   const body = document.getElementById('ht-thread-body');
   body.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted)">Loading...</div>`;
 
-  const [{ data: take }, { data: comments }, { data: likes }] = await Promise.all([
+  const [{ data: take }, { data: comments }, { data: likes }, { data: htDislikes }] = await Promise.all([
     sb.from('hot_takes').select('*').eq('id', takeId).maybeSingle(),
     sb.from('hot_take_comments').select('*').eq('hot_take_id', takeId).order('created_at', { ascending: true }),
-    sb.from('hot_take_likes').select('hot_take_id, user_id').eq('hot_take_id', takeId)
+    sb.from('hot_take_likes').select('hot_take_id, user_id').eq('hot_take_id', takeId),
+    sb.from('hot_take_dislikes').select('hot_take_id, user_id').eq('hot_take_id', takeId)
   ]);
 
   if (!take) { head.innerHTML = '<p style="color:var(--muted)">Take not found.</p>'; body.innerHTML=''; return; }
 
   const likeCount = likes ? likes.length : 0;
   const likedByMe = likes ? likes.some(l => l.user_id === getUID()) : false;
+  const dislikeCount = htDislikes ? htDislikes.length : 0;
+  const dislikedByMe = htDislikes ? htDislikes.some(d => d.user_id === getUID()) : false;
   const timeStr = timeAgo(take.created_at);
   const initial = (take.username||'A').charAt(0).toUpperCase();
 
@@ -3096,6 +3185,9 @@ async function loadHtThread(takeId) {
     <div class="ht-actions">
       <button class="ht-like-btn ${likedByMe?'liked':''}" id="ht-thread-like-btn" onclick="toggleHtLike('${take.id}',this)">
         <span>&#x2665;</span> ${likeCount > 0 ? likeCount + ' ' : ''}${likedByMe?'Liked':'Like'}
+      </button>
+      <button class="ht-like-btn ${dislikedByMe?'disliked':''}" style="${dislikedByMe?'border-color:#818cf8;color:#818cf8;background:rgba(129,140,248,0.1)':''}" onclick="toggleHtDislike('${take.id}',this)">
+        &#x1F44E; ${dislikeCount > 0 ? dislikeCount + ' ' : ''}${dislikedByMe?'Disliked':'Dislike'}
       </button>
       <span class="ht-thread-meta">${(comments||[]).length} repl${(comments||[]).length===1?'y':'ies'}</span>
     </div>`;
