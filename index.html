@@ -881,6 +881,13 @@ function getUID() {
   return u;
 }
 function getUsername() { return localStorage.getItem('pr_username') || 'Anonymous'; }
+const ADMIN_SECRET = 'rafaepkm2026';
+function isAdmin() { return localStorage.getItem('pr_admin') === ADMIN_SECRET; }
+function unlockAdmin(key) {
+  if (key === ADMIN_SECRET) { localStorage.setItem('pr_admin', ADMIN_SECRET); showToast('👑 Admin mode activated!'); setTimeout(() => location.reload(), 800); }
+  else { console.warn('Wrong key.'); }
+}
+function revokeAdmin() { localStorage.removeItem('pr_admin'); showToast('Admin mode off'); setTimeout(() => location.reload(), 800); }
 function openNameModal() {
   const cur = getUsername();
   document.getElementById('name-input').value = cur === 'Anonymous' ? '' : cur;
@@ -1472,7 +1479,7 @@ function renderComments(rows, id, likesMap = {}, reviewerMap = {}) {
         <button class="comment-reply-btn" onclick="openReplyBox('${r.id}', ${id}, '${esc(r.username||'Anonymous')}')">Reply</button>
       </div>
       <div id="reply-box-${r.id}"></div>
-      ${isOwn ? `<button class="comment-delete" onclick="deleteComment('${r.id}', ${id})">&#x2715;</button>` : ''}
+      ${(isOwn || isAdmin()) ? `<button class="comment-delete" onclick="deleteComment('${r.id}', ${id})">${isAdmin() && !isOwn ? '🗑' : '&#x2715;'}</button>` : ''}
     </div>`;
   }
 
@@ -2288,7 +2295,7 @@ function renderTeamComments(rows, teamId) {
       <div class="comment-text">${mention}${esc(r.text)}</div>
       <div class="comment-actions">
         <button class="comment-reply-btn" onclick="openTeamReplyBox('${r.id}','${teamId}','${esc(r.username||'Anonymous')}')">Reply</button>
-        ${isOwn ? `<button class="comment-delete" onclick="deleteTeamComment('${r.id}','${teamId}')">&#x2715;</button>` : ''}
+        ${(isOwn || isAdmin()) ? `<button class="comment-delete" onclick="deleteTeamComment('${r.id}','${teamId}')">${isAdmin() && !isOwn ? '🗑' : '&#x2715;'}</button>` : ''}
       </div>
       <div id="treply-box-${r.id}"></div>
     </div>`;
@@ -2646,7 +2653,7 @@ function renderTrainerComments(rows, trainerId, likesMap = {}) {
           <span class="like-heart">&#x2665;</span> ${likes.count > 0 ? `${likes.count} ` : ''}${likes.likedByMe ? 'Liked' : 'Like'}
         </button>
         <button class="comment-reply-btn" onclick="openTrainerReplyBox('${r.id}','${trainerId}','${esc(r.username||'Anonymous')}')">Reply</button>
-        ${isOwn ? `<button class="comment-delete" onclick="deleteTrainerComment('${r.id}','${trainerId}')">&#x2715;</button>` : ''}
+        ${(isOwn || isAdmin()) ? `<button class="comment-delete" onclick="deleteTrainerComment('${r.id}','${trainerId}')">${isAdmin() && !isOwn ? '🗑' : '&#x2715;'}</button>` : ''}
       </div>
       <div id="trainer-reply-box-${r.id}"></div>
     </div>`;
