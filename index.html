@@ -132,9 +132,12 @@
     .comments-loading { font-size: 0.85rem; color: var(--muted); text-align: center; padding: 16px 0; }
 
     #view-rankings { padding: 32px; }
-    .rankings-header { margin-bottom: 28px; }
-    .rankings-header h1 { font-size: 2rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 6px; }
-    .rankings-header p { color: var(--muted); font-size: 0.9rem; }
+    .rankings-header { margin-bottom: 20px; }
+    .rankings-header h1 { font-size: 2rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 16px; }
+    .rank-tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+    .rank-tab { padding: 9px 22px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--muted); transition: all 0.2s; }
+    .rank-tab:hover { color: var(--text); border-color: #555; }
+    .rank-tab.active { background: var(--accent2); color: white; border-color: var(--accent2); }
     .rankings-list { display: flex; flex-direction: column; gap: 12px; max-width: 720px; }
     .rank-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s; }
     .rank-item:hover { border-color: #444; transform: translateX(4px); }
@@ -293,7 +296,10 @@
 <div id="view-rankings" class="view">
   <div class="rankings-header">
     <h1>&#x1F3C6; Community Rankings</h1>
-    <p>Top Pokémon ranked by average community rating.</p>
+    <div class="rank-tabs">
+      <button class="rank-tab active" id="rank-tab-rated" onclick="setRankTab('rated')">&#x2B50; Top Rated</button>
+      <button class="rank-tab" id="rank-tab-popular" onclick="setRankTab('popular')">&#x1F525; Most Popular</button>
+    </div>
   </div>
   <div class="rankings-list" id="rankings-list">
     <div class="empty-rankings"><p>Loading...</p></div>
@@ -932,6 +938,15 @@ function unhoverStars() { document.querySelectorAll('.star-btn').forEach(b => b.
 // ═══════════════════════════════════════════════
 // RANKINGS
 // ═══════════════════════════════════════════════
+let currentRankTab = 'rated';
+
+function setRankTab(tab) {
+  currentRankTab = tab;
+  document.getElementById('rank-tab-rated').classList.toggle('active', tab === 'rated');
+  document.getElementById('rank-tab-popular').classList.toggle('active', tab === 'popular');
+  renderRankings();
+}
+
 async function renderRankings() {
   const list = document.getElementById('rankings-list');
   list.innerHTML = `<div class="empty-rankings"><p>Loading...</p></div>`;
@@ -944,15 +959,17 @@ async function renderRankings() {
   // Refresh stats every time rankings are opened so they're always current
   await loadCommunityStats();
 
-  // All 1025 Pokemon — rated ones first (sorted by avg desc, then vote count),
-  // unrated ones at the bottom sorted by Pokédex number
+  // All 1025 Pokemon — rated ones first, unrated at the bottom by Pokédex number
   const ranked = allPokemon.map(p => {
     const stats = communityStats[p.id];
     return { id: p.id, name: p.name, avg: stats && stats.count ? stats.avg : 0, count: stats ? stats.count : 0 };
   }).sort((a, b) => {
     if (a.count > 0 && b.count === 0) return -1;
     if (a.count === 0 && b.count > 0) return 1;
-    if (a.count > 0 && b.count > 0) return b.count - a.count || b.avg - a.avg;
+    if (a.count > 0 && b.count > 0) {
+      if (currentRankTab === 'popular') return b.count - a.count || b.avg - a.avg;
+      return b.avg - a.avg || b.count - a.count; // Top Rated: avg first
+    }
     return a.id - b.id;
   });
 
@@ -966,7 +983,9 @@ async function renderRankings() {
       ? typeCache[r.id].map(t => `<span class="type-badge" style="background:${TYPE_COLORS[t]||'#666'};font-size:0.6rem;padding:1px 6px">${t}</span>`).join(' ')
       : '';
     const scoreDisplay = r.count > 0
-      ? `<div class="rank-score">${r.avg.toFixed(1)}</div><div class="rank-votes">${r.count} vote${r.count>1?'s':''}</div>`
+      ? currentRankTab === 'popular'
+        ? `<div class="rank-score">${r.count}</div><div class="rank-votes">vote${r.count>1?'s':''} · ${r.avg.toFixed(1)} avg</div>`
+        : `<div class="rank-score">${r.avg.toFixed(1)}</div><div class="rank-votes">${r.count} vote${r.count>1?'s':''}</div>`
       : `<div class="rank-score" style="color:var(--muted);font-size:1rem">—</div><div class="rank-votes">No ratings</div>`;
     return `<div class="rank-item" onclick="openModal(${r.id},'${p.name}')">
       <div class="rank-num ${numClass}">${i+1}</div>
