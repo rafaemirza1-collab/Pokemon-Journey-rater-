@@ -299,6 +299,14 @@
     .team-like-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 20px; border-radius: 999px; border: 1px solid var(--border); background: none; color: var(--muted); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
     .team-like-btn:hover { border-color: #e05c7a; color: #e05c7a; }
     .team-like-btn.liked { border-color: #e05c7a; color: #e05c7a; background: rgba(224,92,122,0.1); }
+    .team-rating-section { background: var(--surface2); border: 1px solid var(--border); border-radius: 16px; padding: 20px 24px; }
+    .team-rating-title { font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+    .team-stars-row { display: flex; align-items: center; gap: 4px; margin-bottom: 10px; }
+    .team-star-btn { font-size: 1.8rem; cursor: pointer; color: #333; transition: color 0.15s, transform 0.15s; border: none; background: none; padding: 0; line-height: 1; }
+    .team-star-btn:hover, .team-star-btn.hover, .team-star-btn.selected { color: var(--accent); }
+    .team-star-btn:hover { transform: scale(1.15); }
+    .team-rating-meta { font-size: 0.8rem; color: var(--muted); }
+    .team-rating-meta span { color: var(--accent); font-weight: 700; }
     .team-comments-section { display: flex; flex-direction: column; gap: 10px; }
     .team-comment-input-wrap { display: flex; flex-direction: column; gap: 8px; }
   </style>
@@ -1644,6 +1652,7 @@ async function openTeamDetail(teamId) {
     </div>
     <div class="team-detail-body">
       <div class="team-pokemon-row">${pokemonSlots}</div>
+      <div class="team-rating-section" id="team-rating-section"></div>
       <div>
         <button class="team-like-btn ${likedByMe ? 'liked' : ''}" id="team-like-btn" onclick="toggleTeamLike('${teamId}', this)">
           &#x2665; ${likeCount} Like${likeCount !== 1 ? 's' : ''}
@@ -1660,6 +1669,7 @@ async function openTeamDetail(teamId) {
     </div>`;
 
   renderTeamComments(comments || [], teamId);
+  loadTeamRating(teamId);
 }
 
 function closeTeamDetail() {
@@ -1669,6 +1679,53 @@ function closeTeamDetail() {
 
 function closeTeamDetailOnBg(e) {
   if (e.target === document.getElementById('team-detail-overlay')) closeTeamDetail();
+}
+
+async function loadTeamRating(teamId) {
+  const sec = document.getElementById('team-rating-section');
+  if (!sec) return;
+  const uid = getUID();
+  const [{ data: allRatings }, { data: myRow }] = await Promise.all([
+    sb.from('team_ratings').select('stars').eq('team_id', teamId),
+    sb.from('team_ratings').select('stars').eq('team_id', teamId).eq('user_id', uid).maybeSingle()
+  ]);
+  const count = allRatings ? allRatings.length : 0;
+  const avg = count ? (allRatings.reduce((s, r) => s + r.stars, 0) / count).toFixed(1) : null;
+  const mine = myRow ? myRow.stars : 0;
+  renderTeamRatingUI(sec, teamId, avg, count, mine);
+}
+
+function renderTeamRatingUI(sec, teamId, avg, count, mine) {
+  const stars = [1,2,3,4,5].map(i =>
+    `<button class="team-star-btn ${i <= mine ? 'selected' : ''}" data-val="${i}"
+      onmouseenter="hoverTeamStars(${i})" onmouseleave="unhoverTeamStars()"
+      onclick="submitTeamRating('${teamId}', ${i})">&#9733;</button>`
+  ).join('');
+  sec.innerHTML = `
+    <div class="team-rating-title">Rate This Team</div>
+    <div class="team-stars-row">${stars}</div>
+    <div class="team-rating-meta" id="team-rating-meta">
+      ${avg ? `Community average: <span>${avg}/5</span> (${count} rating${count !== 1 ? 's' : ''})` : 'No ratings yet — be the first!'}
+      ${mine ? ` &middot; You rated <span>${mine}/5</span>` : ''}
+    </div>`;
+}
+
+function hoverTeamStars(v) {
+  document.querySelectorAll('.team-star-btn').forEach((b, i) => b.classList.toggle('hover', i < v));
+}
+function unhoverTeamStars() {
+  document.querySelectorAll('.team-star-btn').forEach(b => b.classList.remove('hover'));
+}
+
+async function submitTeamRating(teamId, stars) {
+  document.querySelectorAll('.team-star-btn').forEach((b, i) => b.classList.toggle('selected', i < stars));
+  const uid = getUID();
+  await sb.from('team_ratings').upsert({ team_id: teamId, user_id: uid, stars }, { onConflict: 'team_id,user_id' });
+  const { data: allRatings } = await sb.from('team_ratings').select('stars').eq('team_id', teamId);
+  const count = allRatings ? allRatings.length : 0;
+  const avg = count ? (allRatings.reduce((s, r) => s + r.stars, 0) / count).toFixed(1) : null;
+  const sec = document.getElementById('team-rating-section');
+  if (sec) renderTeamRatingUI(sec, teamId, avg, count, stars);
 }
 
 async function toggleTeamLike(teamId, btn) {
