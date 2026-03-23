@@ -486,8 +486,8 @@ async function loadCommunityStats() {
   if (!dbReady) return;
   try {
     const [{ data: rows }, { data: commentRows }] = await Promise.all([
-      sb.from('ratings').select('pokemon_id, stars'),
-      sb.from('comments').select('pokemon_id')
+      sb.from('ratings').select('pokemon_id, stars').limit(100000),
+      sb.from('comments').select('pokemon_id').limit(100000)
     ]);
     const map = {};
     if (rows) {
@@ -941,30 +941,20 @@ async function renderRankings() {
     return;
   }
 
-  const { data, error } = await sb.from('ratings').select('pokemon_id, stars');
-  if (error || !data || !data.length) {
-    list.innerHTML = `<div class="empty-rankings"><p>No ratings yet.</p><small>Be the first to rate some Pokémon!</small></div>`;
-    return;
-  }
+  // Refresh stats every time rankings are opened so they're always current
+  await loadCommunityStats();
 
-  // Aggregate
-  const map = {};
-  data.forEach(r => {
-    if (!map[r.pokemon_id]) map[r.pokemon_id] = { total: 0, count: 0 };
-    map[r.pokemon_id].total += r.stars;
-    map[r.pokemon_id].count++;
+  // All 1025 Pokemon — rated ones first (sorted by avg desc, then vote count),
+  // unrated ones at the bottom sorted by Pokédex number
+  const ranked = allPokemon.map(p => {
+    const stats = communityStats[p.id];
+    return { id: p.id, name: p.name, avg: stats && stats.count ? stats.avg : 0, count: stats ? stats.count : 0 };
+  }).sort((a, b) => {
+    if (a.count > 0 && b.count === 0) return -1;
+    if (a.count === 0 && b.count > 0) return 1;
+    if (a.count > 0 && b.count > 0) return b.avg - a.avg || b.count - a.count;
+    return a.id - b.id;
   });
-
-  const ranked = Object.entries(map)
-    .map(([id, v]) => ({ id: parseInt(id), avg: v.total/v.count, count: v.count }))
-    .filter(x => x.count >= 1)
-    .sort((a,b) => b.avg - a.avg || b.count - a.count)
-    .slice(0, 100);
-
-  if (!ranked.length) {
-    list.innerHTML = `<div class="empty-rankings"><p>No ratings yet.</p></div>`;
-    return;
-  }
 
   list.innerHTML = ranked.map((r, i) => {
     const p = allPokemon.find(x => x.id === r.id);
@@ -975,6 +965,9 @@ async function renderRankings() {
     const types = typeCache[r.id]
       ? typeCache[r.id].map(t => `<span class="type-badge" style="background:${TYPE_COLORS[t]||'#666'};font-size:0.6rem;padding:1px 6px">${t}</span>`).join(' ')
       : '';
+    const scoreDisplay = r.count > 0
+      ? `<div class="rank-score">${r.avg.toFixed(1)}</div><div class="rank-votes">${r.count} vote${r.count>1?'s':''}</div>`
+      : `<div class="rank-score" style="color:var(--muted);font-size:1rem">—</div><div class="rank-votes">No ratings</div>`;
     return `<div class="rank-item" onclick="openModal(${r.id},'${p.name}')">
       <div class="rank-num ${numClass}">${i+1}</div>
       <img class="rank-img" src="${SPRITE(r.id)}" alt="${p.name}"/>
@@ -983,10 +976,7 @@ async function renderRankings() {
         <div class="rank-sub">#${String(r.id).padStart(4,'0')} &middot; ${genLabel(r.id)} ${types}</div>
         <div class="rank-stars">${stars}</div>
       </div>
-      <div class="rank-right">
-        <div class="rank-score">${r.avg.toFixed(1)}</div>
-        <div class="rank-votes">${r.count} vote${r.count>1?'s':''}</div>
-      </div>
+      <div class="rank-right">${scoreDisplay}</div>
     </div>`;
   }).join('');
 }
