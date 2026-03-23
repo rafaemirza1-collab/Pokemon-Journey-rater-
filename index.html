@@ -3756,7 +3756,10 @@ function initDiscovery() {
   ['mousemove','scroll','keydown','click','touchstart'].forEach(ev =>
     document.addEventListener(ev, () => { discLastActivity = Date.now(); }, { passive: true })
   );
-  scheduleDisc(5000); // first popup after 5s
+  // Check if user recently dismissed — if so, respect the cooldown
+  const lastDismiss = parseInt(localStorage.getItem('pr_disc_dismissed') || '0');
+  const cooldownLeft = Math.max(0, (lastDismiss + 8 * 60 * 1000) - Date.now());
+  scheduleDisc(Math.max(60000, cooldownLeft)); // first popup no sooner than 60s
 }
 
 function scheduleDisc(delay) {
@@ -3764,7 +3767,7 @@ function scheduleDisc(delay) {
   discTimer = setTimeout(() => {
     const isActive = Date.now() - discLastActivity < 120000;
     if (isActive && !discShowing) showDiscovery();
-    else scheduleDisc(8000); // user idle — check again in 8s
+    else scheduleDisc(30000); // user idle — check again in 30s
   }, delay);
 }
 
@@ -3793,7 +3796,7 @@ function pickDiscPrompt() {
 function showDiscovery() {
   if (discShowing) return;
   if (document.getElementById('hot-take-card').classList.contains('visible')) {
-    scheduleDisc(15000); return;
+    scheduleDisc(60000); return;
   }
   const prompt = pickDiscPrompt();
   let recent = [];
@@ -3807,19 +3810,29 @@ function showDiscovery() {
   document.getElementById('disc-btn').textContent = prompt.btn;
   document.getElementById('disc-card').classList.add('visible');
   discShowing = true;
-  // Auto-dismiss after 12s if ignored, then show next one after 30s
-  discTimer = setTimeout(() => { if (discShowing) dismissDiscovery(30000); }, 12000);
+  // Auto-dismiss after 10s if ignored, then wait 4 minutes before next
+  discTimer = setTimeout(() => { if (discShowing) dismissDiscovery(false); }, 10000);
 }
 
-function dismissDiscovery(nextDelay = 45000) {
+function dismissDiscovery(userClosed = true) {
   document.getElementById('disc-card').classList.remove('visible');
   discShowing = false;
-  scheduleDisc(nextDelay);
+  if (userClosed) {
+    // User hit X — don't bother them for 8 minutes
+    localStorage.setItem('pr_disc_dismissed', Date.now().toString());
+    scheduleDisc(8 * 60 * 1000);
+  } else {
+    // Auto-dismissed — 4 minutes before next
+    scheduleDisc(4 * 60 * 1000);
+  }
 }
 
 function actOnDiscovery() {
   const action = discCurrentAction;
-  dismissDiscovery(90000); // gave them something to do — wait 90s before next
+  // They clicked through — wait 6 minutes before suggesting something else
+  document.getElementById('disc-card').classList.remove('visible');
+  discShowing = false;
+  scheduleDisc(6 * 60 * 1000);
   if (action) action();
 }
 
