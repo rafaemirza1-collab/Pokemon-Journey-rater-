@@ -157,20 +157,6 @@
     .rank-votes { font-size: 0.72rem; color: var(--muted); }
     .empty-rankings { text-align: center; padding: 60px 0; color: var(--muted); }
 
-    /* ── MODAL NEXT BAR ── */
-    .modal-next-bar { border-top: 1px solid var(--border); padding: 16px 32px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; transition: background 0.2s; border-radius: 0 0 24px 24px; }
-    .modal-next-bar:hover { background: var(--surface2); }
-    .modal-next-bar.pulse { animation: nextPulse 0.6s ease; }
-    @keyframes nextPulse { 0%,100% { border-top-color: var(--border); } 50% { border-top-color: var(--accent); box-shadow: 0 -4px 20px rgba(255,203,5,0.2); } }
-    .modal-next-left { display: flex; align-items: center; gap: 12px; }
-    .modal-next-img { width: 52px; height: 52px; object-fit: contain; image-rendering: pixelated; }
-    .modal-next-text { display: flex; flex-direction: column; gap: 2px; }
-    .modal-next-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
-    .modal-next-name { font-size: 1rem; font-weight: 800; text-transform: capitalize; }
-    .modal-next-hint { font-size: 0.72rem; color: var(--muted); }
-    .modal-next-arrow { font-size: 1.4rem; color: var(--muted); transition: transform 0.2s, color 0.2s; }
-    .modal-next-bar:hover .modal-next-arrow { transform: translateX(4px); color: var(--accent); }
-
     /* ── SUGGESTIONS ── */
     .suggestions-section { border-top: 1px solid var(--border); padding: 24px 32px 28px; }
     .suggestions-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
@@ -668,9 +654,10 @@ function genLabel(id) {
 }
 
 async function openModal(id, name) {
-  // Teardown previous realtime and dynamic sections
+  clearAutoAdvance();
   if (realtimeChannel) { if (sb) sb.removeChannel(realtimeChannel); realtimeChannel = null; }
-  ['suggestions-section','modal-next-bar'].forEach(elId => { const el = document.getElementById(elId); if (el) el.remove(); });
+  const existingSugg = document.getElementById('suggestions-section');
+  if (existingSugg) existingSugg.remove();
 
   document.getElementById('modal-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -739,7 +726,8 @@ async function openModal(id, name) {
       <div class="section-label">Community Reviews</div>
       <div class="comment-input-wrap">
         <textarea class="comment-textarea" id="comment-input"
-          placeholder="Share your journey — battles, memories, what this Pokémon excels at..."></textarea>
+          placeholder="Share your journey — battles, memories, what this Pokémon excels at..."
+          onfocus="clearAutoAdvance()"></textarea>
         <button class="comment-btn" id="comment-btn" onclick="submitComment(${id})">Post Review</button>
       </div>
       <div class="comments-list" id="comments-list">
@@ -752,25 +740,6 @@ async function openModal(id, name) {
     `<div class="suggestions-section" id="suggestions-section"></div>`);
   try { renderSuggestions(id); } catch(e) { console.warn('suggestions error:', e); }
 
-  // Append "Up Next" bar so users can keep rating without going back to the grid
-  const nextPoke = getNextPokemon(id);
-  if (nextPoke) {
-    const nextStats = communityStats[nextPoke.id];
-    const nextHint = nextStats && nextStats.count ? `&#9733; ${nextStats.avg.toFixed(1)} avg` : 'Not rated yet';
-    document.getElementById('modal').insertAdjacentHTML('beforeend', `
-      <div class="modal-next-bar" id="modal-next-bar" onclick="openModal(${nextPoke.id},'${nextPoke.name}')">
-        <div class="modal-next-left">
-          <img class="modal-next-img" src="${SPRITE(nextPoke.id)}" alt="${nextPoke.name}"/>
-          <div class="modal-next-text">
-            <span class="modal-next-label">Up Next</span>
-            <span class="modal-next-name">${nextPoke.name.replace(/-/g,' ')}</span>
-            <span class="modal-next-hint">#${String(nextPoke.id).padStart(4,'0')} &middot; ${nextHint}</span>
-          </div>
-        </div>
-        <span class="modal-next-arrow">&#x2192;</span>
-      </div>`);
-  }
-
   if (dbReady) {
     loadBreakdown(id);
     loadComments(id);
@@ -781,12 +750,28 @@ async function openModal(id, name) {
 }
 
 function getNextPokemon(currentId) {
-  // Prefer unrated Pokemon after current ID, then wrap around, then any next by number
   const unratedAfter = allPokemon.filter(p => p.id > currentId && (!communityStats[p.id] || !communityStats[p.id].count));
   if (unratedAfter.length) return unratedAfter[0];
   const unratedAny = allPokemon.filter(p => p.id !== currentId && (!communityStats[p.id] || !communityStats[p.id].count));
   if (unratedAny.length) return unratedAny[0];
   return allPokemon.find(p => p.id > currentId) || allPokemon.find(p => p.id !== currentId);
+}
+
+let autoAdvanceTimer = null;
+
+function scheduleAutoAdvance(currentId) {
+  clearAutoAdvance();
+  const next = getNextPokemon(currentId);
+  if (!next) return;
+  showToast(`Up next: ${next.name.replace(/-/g,' ')} →`);
+  autoAdvanceTimer = setTimeout(() => {
+    autoAdvanceTimer = null;
+    openModal(next.id, next.name);
+  }, 2500);
+}
+
+function clearAutoAdvance() {
+  if (autoAdvanceTimer) { clearTimeout(autoAdvanceTimer); autoAdvanceTimer = null; }
 }
 
 // ─── Ratings breakdown ───
@@ -902,9 +887,7 @@ async function submitRating(id, stars) {
     loadBreakdown(id);
   }
   showToast(`Rated ${stars} star${stars>1?'s':''}!`);
-  // Pulse the "Up Next" bar to invite the user to keep going
-  const nextBar = document.getElementById('modal-next-bar');
-  if (nextBar) { nextBar.classList.remove('pulse'); void nextBar.offsetWidth; nextBar.classList.add('pulse'); }
+  scheduleAutoAdvance(id);
 }
 
 function updateCardStats(id, avg, count) {
@@ -957,6 +940,7 @@ async function submitComment(id) {
   if (error) { showToast('Could not post — check Supabase setup'); return; }
   input.value = '';
   showToast('Review posted!');
+  scheduleAutoAdvance(id);
   // realtime will refresh the list automatically
 }
 
@@ -1086,10 +1070,12 @@ function switchView(view) {
 // CLOSE MODAL
 // ═══════════════════════════════════════════════
 function closeModal() {
+  clearAutoAdvance();
   if (realtimeChannel && sb) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
   document.getElementById('modal-overlay').classList.remove('open');
   document.body.style.overflow = '';
-  ['suggestions-section','modal-next-bar'].forEach(elId => { const el = document.getElementById(elId); if (el) el.remove(); });
+  const s = document.getElementById('suggestions-section');
+  if (s) s.remove();
 }
 function closeModalOnBg(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
