@@ -402,6 +402,7 @@
       <button class="rank-tab active" id="rank-tab-rated" onclick="setRankTab('rated')">&#x2B50; Top Rated</button>
       <button class="rank-tab" id="rank-tab-popular" onclick="setRankTab('popular')">&#x1F525; Most Popular</button>
       <button class="rank-tab" id="rank-tab-reviewed" onclick="setRankTab('reviewed')">&#x1F4AC; Most Reviewed</button>
+      <button class="rank-tab" id="rank-tab-teams" onclick="setRankTab('teams')">&#x1F6E1; Top Teams</button>
     </div>
   </div>
   <div class="rankings-list" id="rankings-list">
@@ -1279,6 +1280,7 @@ function setRankTab(tab) {
   document.getElementById('rank-tab-rated').classList.toggle('active', tab === 'rated');
   document.getElementById('rank-tab-popular').classList.toggle('active', tab === 'popular');
   document.getElementById('rank-tab-reviewed').classList.toggle('active', tab === 'reviewed');
+  document.getElementById('rank-tab-teams').classList.toggle('active', tab === 'teams');
   renderRankings();
 }
 
@@ -1288,6 +1290,56 @@ async function renderRankings() {
 
   if (!dbReady) {
     list.innerHTML = `<div class="empty-rankings"><p>Connect Supabase to see community rankings.</p></div>`;
+    return;
+  }
+
+  // Top Teams tab — fetch and render team leaderboard
+  if (currentRankTab === 'teams') {
+    const [{ data: teams }, { data: ratings }, { data: likes }] = await Promise.all([
+      sb.from('teams').select('*').limit(500),
+      sb.from('team_ratings').select('team_id, stars'),
+      sb.from('team_likes').select('team_id')
+    ]);
+    if (!teams || !teams.length) {
+      list.innerHTML = `<div class="empty-rankings"><p>No teams yet.</p><small>Create one in the Teams tab!</small></div>`;
+      return;
+    }
+    const rMap = {};
+    if (ratings) ratings.forEach(r => {
+      if (!rMap[r.team_id]) rMap[r.team_id] = { total: 0, count: 0 };
+      rMap[r.team_id].total += r.stars; rMap[r.team_id].count += 1;
+    });
+    const lMap = {};
+    if (likes) likes.forEach(l => { lMap[l.team_id] = (lMap[l.team_id] || 0) + 1; });
+    const ranked = teams.map(t => {
+      const rm = rMap[t.id];
+      return { ...t, avg: rm ? rm.total / rm.count : 0, ratingCount: rm ? rm.count : 0, likeCount: lMap[t.id] || 0 };
+    }).sort((a, b) => {
+      if (a.ratingCount > 0 && b.ratingCount === 0) return -1;
+      if (a.ratingCount === 0 && b.ratingCount > 0) return 1;
+      return b.avg - a.avg || b.ratingCount - a.ratingCount || b.likeCount - a.likeCount;
+    });
+    list.innerHTML = ranked.map((t, i) => {
+      const numClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+      const filled = Math.round(t.avg);
+      const stars = [1,2,3,4,5].map(s => `<span class="s ${s<=filled?'filled':''}">&#9733;</span>`).join('');
+      const sprites = t.pokemon_ids.slice(0,3).map(id =>
+        `<img style="width:36px;height:36px;object-fit:contain;image-rendering:pixelated" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png"/>`
+      ).join('');
+      const scoreDisplay = t.ratingCount > 0
+        ? `<div class="rank-score">${t.avg.toFixed(1)}</div><div class="rank-votes">${t.ratingCount} rating${t.ratingCount!==1?'s':''}</div>`
+        : `<div class="rank-score" style="color:var(--muted);font-size:1rem">—</div><div class="rank-votes">No ratings</div>`;
+      return `<div class="rank-item" onclick="openTeamDetail('${t.id}')">
+        <div class="rank-num ${numClass}">${i+1}</div>
+        <div style="display:flex;gap:2px;flex-shrink:0">${sprites}</div>
+        <div class="rank-info">
+          <div class="rank-name">${esc(t.name)}</div>
+          <div class="rank-sub">by ${esc(t.username || 'Anonymous')} &middot; &#x2665; ${t.likeCount}</div>
+          <div class="rank-stars">${stars}</div>
+        </div>
+        <div class="rank-right">${scoreDisplay}</div>
+      </div>`;
+    }).join('');
     return;
   }
 
@@ -1460,8 +1512,11 @@ async function loadTeams() {
   if (!dbReady) return;
   const { data: teams } = await sb.from('teams').select('*').order('created_at', { ascending: false }).limit(200);
   if (!teams) return;
-  const { data: likes } = await sb.from('team_likes').select('team_id, user_id');
-  const { data: comments } = await sb.from('team_comments').select('team_id').is('parent_id', null);
+  const [{ data: likes }, { data: comments }, { data: ratings }] = await Promise.all([
+    sb.from('team_likes').select('team_id, user_id'),
+    sb.from('team_comments').select('team_id').is('parent_id', null),
+    sb.from('team_ratings').select('team_id, stars')
+  ]);
   const likesMap = {};
   const myLikes = new Set();
   if (likes) likes.forEach(l => {
@@ -1470,7 +1525,16 @@ async function loadTeams() {
   });
   const commentsMap = {};
   if (comments) comments.forEach(c => { commentsMap[c.team_id] = (commentsMap[c.team_id] || 0) + 1; });
-  teamsData = teams.map(t => ({ ...t, likeCount: likesMap[t.id] || 0, commentCount: commentsMap[t.id] || 0, likedByMe: myLikes.has(t.id) }));
+  const ratingsMap = {};
+  if (ratings) ratings.forEach(r => {
+    if (!ratingsMap[r.team_id]) ratingsMap[r.team_id] = { total: 0, count: 0 };
+    ratingsMap[r.team_id].total += r.stars;
+    ratingsMap[r.team_id].count += 1;
+  });
+  teamsData = teams.map(t => {
+    const rm = ratingsMap[t.id];
+    return { ...t, likeCount: likesMap[t.id] || 0, commentCount: commentsMap[t.id] || 0, likedByMe: myLikes.has(t.id), avgRating: rm ? rm.total / rm.count : 0, ratingCount: rm ? rm.count : 0 };
+  });
   renderTeamsFeed();
 }
 
@@ -1510,6 +1574,7 @@ function renderTeamsFeed() {
       <div class="team-card-footer">
         <span class="team-card-stat">&#x2665; ${t.likeCount} like${t.likeCount !== 1 ? 's' : ''}</span>
         <span class="team-card-stat">&#x1F4AC; ${t.commentCount} comment${t.commentCount !== 1 ? 's' : ''}</span>
+        ${t.ratingCount > 0 ? `<span class="team-card-stat" style="color:var(--accent)">&#9733; ${t.avgRating.toFixed(1)} (${t.ratingCount})</span>` : ''}
       </div>
     </div>`;
   }).join('');
