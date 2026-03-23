@@ -1087,10 +1087,11 @@ async function openUserProfile(uid, username) {
 
   const isOwn = uid === getUID();
 
-  const [{ data: myRatings }, { data: myComments }, { data: myCommentIds }] = await Promise.all([
+  const [{ data: myRatings }, { data: myComments }, { data: myCommentIds }, { data: myTeams }] = await Promise.all([
     sb.from('ratings').select('pokemon_id, stars, updated_at').eq('user_id', uid).order('updated_at', { ascending: false }).limit(100),
     sb.from('comments').select('id, pokemon_id, text, stars, created_at').eq('user_id', uid).is('parent_id', null).order('created_at', { ascending: false }).limit(50),
-    sb.from('comments').select('id').eq('user_id', uid)
+    sb.from('comments').select('id').eq('user_id', uid),
+    sb.from('teams').select('id, name, slots, description, created_at').eq('user_id', uid).order('created_at', { ascending: false }).limit(10)
   ]);
 
   const commentIds = myCommentIds ? myCommentIds.map(c => c.id) : [];
@@ -1134,6 +1135,25 @@ async function openUserProfile(uid, username) {
       }).join('')
     : `<div class="profile-empty">No reviews written yet.</div>`;
 
+  const teamsHTML = myTeams && myTeams.length
+    ? myTeams.map(t => {
+        const slots = Array.isArray(t.slots) ? t.slots : [];
+        const sprites = slots.filter(Boolean).map(id =>
+          `<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png"
+            style="width:40px;height:40px;object-fit:contain;image-rendering:pixelated" title="#${id}"/>`
+        ).join('');
+        const empty = Array.from({length: 6 - slots.filter(Boolean).length}, () =>
+          `<div style="width:40px;height:40px;border-radius:8px;background:var(--surface2);border:1px dashed var(--border)"></div>`
+        ).join('');
+        return `<div class="profile-review-item" onclick="closeProfile();switchView('teams')" style="cursor:pointer">
+          <div class="profile-review-top">
+            <span class="profile-review-poke" style="font-size:0.9rem">${esc(t.name||'Unnamed Team')}</span>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap">${sprites}${empty}</div>
+        </div>`;
+      }).join('')
+    : `<div class="profile-empty">No teams built yet.</div>`;
+
   modal.innerHTML = `
     <button class="modal-close" onclick="closeProfile()">&#x2715;</button>
     <div class="profile-header">
@@ -1157,6 +1177,10 @@ async function openUserProfile(uid, username) {
       </div>
     </div>
     <div class="profile-body">
+      <div>
+        <div class="profile-section-title">${isOwn ? 'My' : `${esc(username||'Their')}'s`} Teams</div>
+        <div class="profile-reviews-list">${teamsHTML}</div>
+      </div>
       <div>
         <div class="profile-section-title">${isOwn ? 'My' : `${esc(username||'Their')}'s`} Rated Pokémon</div>
         <div class="profile-rated-grid">${ratedGrid}</div>
@@ -2976,7 +3000,6 @@ function closeTrainerModalOnBg(e) {
 // DISCOVERY PROMPTS
 // ═══════════════════════════════════════════════
 const DISC_PROMPTS = [
-  // Team builder — 4 entries for higher frequency
   {
     id: 'teams_a',
     title: '🧠 What\'s your dream team?',
@@ -2987,25 +3010,10 @@ const DISC_PROMPTS = [
   {
     id: 'teams_b',
     title: '🛡️ Think you can build the perfect team?',
-    texts: ['Create your lineup and see how it stacks up.', 'Share your team with the community and get rated.'],
+    texts: ['Create your lineup and let the community rate it.', 'Share your squad and see how it stacks up.'],
     btn: 'Start building',
     action: () => switchView('teams')
   },
-  {
-    id: 'teams_c',
-    title: '⚔️ Your team is waiting',
-    texts: ['No team yet? Build one in under a minute.', 'Pick your 6 and show the community what you\'ve got.'],
-    btn: 'Go to Team Builder',
-    action: () => switchView('teams')
-  },
-  {
-    id: 'teams_d',
-    title: '🏅 Build a team worth rating',
-    texts: ['The community rates teams — make yours stand out.', 'Got a competitive lineup? Show it off.'],
-    btn: 'Create a team',
-    action: () => switchView('teams')
-  },
-  // Other features
   {
     id: 'hottake',
     title: '🔥 Got a hot take?',
@@ -3022,7 +3030,7 @@ const DISC_PROMPTS = [
   },
   {
     id: 'trainers',
-    title: '🏆 Know your trainers?',
+    title: '🏆 Who\'s the best trainer ever?',
     texts: ['Rate every Pokémon game protagonist.', 'Who is the GOAT trainer? Make your case.'],
     btn: 'See trainers',
     action: () => switchView('trainers')
@@ -3030,7 +3038,7 @@ const DISC_PROMPTS = [
   {
     id: 'rankings',
     title: '📊 Check the leaderboard',
-    texts: ['See which Pokémon the community rates highest.', 'Is your favourite Pokémon climbing the charts?'],
+    texts: ['See which Pokémon the community rates highest.', 'Is your favourite Pokémon in the top 10?'],
     btn: 'View rankings',
     action: () => switchView('rankings')
   },
@@ -3054,6 +3062,13 @@ const DISC_PROMPTS = [
     texts: ['The community wants to hear your thoughts.', 'Share your take on your favourite Pokémon.'],
     btn: 'Start reviewing',
     action: () => switchView('browse')
+  },
+  {
+    id: 'top_reviewers',
+    title: '✍️ Who\'s the top reviewer?',
+    texts: ['Check out the most active community members.', 'Could you make it onto the reviewers leaderboard?'],
+    btn: 'See leaderboard',
+    action: () => { switchView('rankings'); setRankTab('reviewers'); }
   },
 ];
 
