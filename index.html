@@ -133,6 +133,20 @@
     .comment-like.liked { border-color: #e05c7a; color: #e05c7a; background: rgba(224,92,122,0.1); }
     .comment-like .like-heart { font-size: 0.8rem; transition: transform 0.15s; }
     .comment-like:hover .like-heart, .comment-like.liked .like-heart { transform: scale(1.25); }
+    .comment-reply-btn { background: none; border: none; font-size: 0.75rem; font-weight: 600; color: var(--muted); cursor: pointer; padding: 4px 0; margin-top: 6px; margin-left: 2px; transition: color 0.15s; }
+    .comment-reply-btn:hover { color: var(--accent2); }
+    .comment-actions { display: flex; align-items: center; gap: 10px; }
+    .replies-list { margin-top: 10px; padding-left: 16px; border-left: 2px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+    .reply-item { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; position: relative; font-size: 0.85rem; }
+    .reply-mention { font-weight: 700; color: var(--accent2); margin-right: 4px; }
+    .inline-reply-wrap { margin-top: 10px; padding-left: 16px; border-left: 2px solid var(--accent2); display: flex; flex-direction: column; gap: 6px; }
+    .inline-reply-textarea { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.85rem; resize: none; outline: none; width: 100%; min-height: 60px; transition: border-color 0.2s; }
+    .inline-reply-textarea:focus { border-color: var(--accent2); }
+    .inline-reply-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .inline-reply-submit { padding: 6px 16px; border-radius: 999px; background: var(--accent2); color: white; font-size: 0.8rem; font-weight: 600; border: none; cursor: pointer; transition: opacity 0.2s; }
+    .inline-reply-submit:hover { opacity: 0.85; }
+    .inline-reply-cancel { padding: 6px 16px; border-radius: 999px; background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .inline-reply-cancel:hover { border-color: #555; color: var(--text); }
     .no-comments { font-size: 0.85rem; color: var(--muted); text-align: center; padding: 20px 0; }
     .comments-loading { font-size: 0.85rem; color: var(--muted); text-align: center; padding: 16px 0; }
 
@@ -847,25 +861,46 @@ function renderComments(rows, id, likesMap = {}) {
   if (!el) return;
   if (!rows.length) { el.innerHTML = `<div class="no-comments">No reviews yet — be the first!</div>`; return; }
   const uid = getUID();
-  el.innerHTML = rows.map(r => {
+
+  // Separate top-level comments from replies
+  const topLevel = rows.filter(r => !r.parent_id);
+  const repliesMap = {};
+  rows.filter(r => r.parent_id).forEach(r => {
+    if (!repliesMap[r.parent_id]) repliesMap[r.parent_id] = [];
+    repliesMap[r.parent_id].push(r);
+  });
+
+  function buildCommentHTML(r, isReply = false) {
     const isOwn = r.user_id === uid;
     const initials = (r.username||'A').charAt(0).toUpperCase();
     const dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '';
     const likes = likesMap[r.id] || { count: 0, likedByMe: false };
-    return `<div class="comment-item">
+    return `<div class="${isReply ? 'reply-item' : 'comment-item'}" id="comment-${r.id}">
       <div class="comment-header">
         <div class="comment-avatar">${initials}</div>
         <span class="comment-username">${esc(r.username||'Anonymous')}</span>
-        ${r.stars ? `<span class="comment-rating-badge">${'&#9733;'.repeat(r.stars)}</span>` : ''}
+        ${r.stars && !isReply ? `<span class="comment-rating-badge">${'&#9733;'.repeat(r.stars)}</span>` : ''}
         ${isOwn ? `<span class="comment-own-badge">You</span>` : ''}
         <span class="comment-date">${dateStr}</span>
       </div>
       <div class="comment-text">${esc(r.text)}</div>
-      <button class="comment-like ${likes.likedByMe ? 'liked' : ''}" onclick="toggleLike('${r.id}', ${id}, this)">
-        <span class="like-heart">&#x2665;</span> ${likes.count > 0 ? `${likes.count} ` : ''}${likes.likedByMe ? 'Liked' : 'Like'}
-      </button>
+      <div class="comment-actions">
+        <button class="comment-like ${likes.likedByMe ? 'liked' : ''}" onclick="toggleLike('${r.id}', ${id}, this)">
+          <span class="like-heart">&#x2665;</span> ${likes.count > 0 ? `${likes.count} ` : ''}${likes.likedByMe ? 'Liked' : 'Like'}
+        </button>
+        <button class="comment-reply-btn" onclick="openReplyBox('${r.id}', ${id}, '${esc(r.username||'Anonymous')}')">Reply</button>
+      </div>
+      <div id="reply-box-${r.id}"></div>
       ${isOwn ? `<button class="comment-delete" onclick="deleteComment('${r.id}', ${id})">&#x2715;</button>` : ''}
     </div>`;
+  }
+
+  el.innerHTML = topLevel.map(r => {
+    const replies = repliesMap[r.id] || [];
+    const repliesHTML = replies.length
+      ? `<div class="replies-list">${replies.map(rep => buildCommentHTML(rep, true)).join('')}</div>`
+      : '';
+    return buildCommentHTML(r, false) + repliesHTML;
   }).join('');
 }
 
@@ -984,6 +1019,55 @@ async function deleteComment(commentId, pokemonId) {
   if (!dbReady) return;
   await sb.from('comments').delete().eq('id', commentId);
   // realtime will refresh the list
+}
+
+function openReplyBox(parentId, pokemonId, replyingToUsername) {
+  // Close any other open reply boxes first
+  document.querySelectorAll('.inline-reply-wrap').forEach(el => el.remove());
+
+  const box = document.getElementById(`reply-box-${parentId}`);
+  if (!box) return;
+
+  // If already open, close it
+  if (box.innerHTML.trim()) { box.innerHTML = ''; return; }
+
+  box.innerHTML = `
+    <div class="inline-reply-wrap">
+      <textarea class="inline-reply-textarea" id="reply-input-${parentId}"
+        placeholder="Replying to ${esc(replyingToUsername)}..." onfocus="clearAutoAdvance()"></textarea>
+      <div class="inline-reply-actions">
+        <button class="inline-reply-cancel" onclick="document.getElementById('reply-box-${parentId}').innerHTML=''">Cancel</button>
+        <button class="inline-reply-submit" onclick="submitReply('${parentId}', ${pokemonId}, '${esc(replyingToUsername)}')">Post Reply</button>
+      </div>
+    </div>`;
+
+  document.getElementById(`reply-input-${parentId}`).focus();
+}
+
+async function submitReply(parentId, pokemonId, replyingToUsername) {
+  const input = document.getElementById(`reply-input-${parentId}`);
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+
+  const btn = input.closest('.inline-reply-wrap').querySelector('.inline-reply-submit');
+  btn.disabled = true;
+
+  const { error } = await sb.from('comments').insert({
+    pokemon_id: pokemonId,
+    user_id: getUID(),
+    username: getUsername(),
+    text,
+    parent_id: parentId
+  });
+
+  btn.disabled = false;
+  if (error) { showToast('Could not post reply'); return; }
+
+  const box = document.getElementById(`reply-box-${parentId}`);
+  if (box) box.innerHTML = '';
+  showToast('Reply posted!');
+  loadComments(pokemonId);
 }
 
 async function toggleLike(commentId, pokemonId, btn) {
