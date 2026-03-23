@@ -2976,19 +2976,42 @@ function closeTrainerModalOnBg(e) {
 // DISCOVERY PROMPTS
 // ═══════════════════════════════════════════════
 const DISC_PROMPTS = [
+  // Team builder — 4 entries for higher frequency
+  {
+    id: 'teams_a',
+    title: '🧠 What\'s your dream team?',
+    texts: ['6 slots. Infinite choices. Build yours now.', 'Every trainer has a dream team — what\'s yours?'],
+    btn: 'Build my team',
+    action: () => switchView('teams')
+  },
+  {
+    id: 'teams_b',
+    title: '🛡️ Think you can build the perfect team?',
+    texts: ['Create your lineup and see how it stacks up.', 'Share your team with the community and get rated.'],
+    btn: 'Start building',
+    action: () => switchView('teams')
+  },
+  {
+    id: 'teams_c',
+    title: '⚔️ Your team is waiting',
+    texts: ['No team yet? Build one in under a minute.', 'Pick your 6 and show the community what you\'ve got.'],
+    btn: 'Go to Team Builder',
+    action: () => switchView('teams')
+  },
+  {
+    id: 'teams_d',
+    title: '🏅 Build a team worth rating',
+    texts: ['The community rates teams — make yours stand out.', 'Got a competitive lineup? Show it off.'],
+    btn: 'Create a team',
+    action: () => switchView('teams')
+  },
+  // Other features
   {
     id: 'hottake',
     title: '🔥 Got a hot take?',
     texts: ['Drop a bold opinion about a Pokémon.', 'Say something controversial — the community is listening.'],
     btn: 'Write one',
     action: () => showHotTake()
-  },
-  {
-    id: 'teams',
-    title: '🧠 Build your dream team',
-    texts: ['Which 6 Pokémon would you actually pick?', 'Create a team and share it with the community.'],
-    btn: 'Start building',
-    action: () => switchView('teams')
   },
   {
     id: 'rate',
@@ -3043,7 +3066,7 @@ function initDiscovery() {
   ['mousemove','scroll','keydown','click','touchstart'].forEach(ev =>
     document.addEventListener(ev, () => { discLastActivity = Date.now(); }, { passive: true })
   );
-  scheduleDisc(10000); // first popup after 10s
+  scheduleDisc(5000); // first popup after 5s
 }
 
 function scheduleDisc(delay) {
@@ -3051,7 +3074,7 @@ function scheduleDisc(delay) {
   discTimer = setTimeout(() => {
     const isActive = Date.now() - discLastActivity < 120000;
     if (isActive && !discShowing) showDiscovery();
-    else scheduleDisc(15000); // user idle — check again in 15s
+    else scheduleDisc(8000); // user idle — check again in 8s
   }, delay);
 }
 
@@ -3093,11 +3116,11 @@ function showDiscovery() {
   document.getElementById('disc-btn').textContent = prompt.btn;
   document.getElementById('disc-card').classList.add('visible');
   discShowing = true;
-  // Auto-dismiss after 20s if ignored, then show next one after 60s
-  discTimer = setTimeout(() => { if (discShowing) dismissDiscovery(60000); }, 20000);
+  // Auto-dismiss after 12s if ignored, then show next one after 30s
+  discTimer = setTimeout(() => { if (discShowing) dismissDiscovery(30000); }, 12000);
 }
 
-function dismissDiscovery(nextDelay = 90000) {
+function dismissDiscovery(nextDelay = 45000) {
   document.getElementById('disc-card').classList.remove('visible');
   discShowing = false;
   scheduleDisc(nextDelay);
@@ -3105,7 +3128,7 @@ function dismissDiscovery(nextDelay = 90000) {
 
 function actOnDiscovery() {
   const action = discCurrentAction;
-  dismissDiscovery(3 * 60 * 1000); // gave them something to do — wait 3min before next
+  dismissDiscovery(90000); // gave them something to do — wait 90s before next
   if (action) action();
 }
 
