@@ -128,9 +128,11 @@
     .comment-text { font-size: 0.88rem; line-height: 1.6; }
     .comment-delete { position: absolute; top: 10px; right: 10px; font-size: 0.75rem; color: var(--muted); cursor: pointer; background: none; border: none; padding: 2px 6px; border-radius: 4px; }
     .comment-delete:hover { color: var(--red); background: rgba(230,57,70,0.1); }
-    .comment-like { display: inline-flex; align-items: center; gap: 5px; margin-top: 10px; background: none; border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-size: 0.75rem; font-weight: 600; color: var(--muted); cursor: pointer; transition: all 0.15s; }
-    .comment-like:hover { border-color: #4a9eff; color: #4a9eff; }
-    .comment-like.liked { border-color: #4a9eff; color: #4a9eff; background: rgba(74,158,255,0.1); }
+    .comment-like { display: inline-flex; align-items: center; gap: 5px; margin-top: 10px; background: none; border: 1px solid var(--border); border-radius: 999px; padding: 4px 14px; font-size: 0.75rem; font-weight: 600; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+    .comment-like:hover { border-color: #e05c7a; color: #e05c7a; }
+    .comment-like.liked { border-color: #e05c7a; color: #e05c7a; background: rgba(224,92,122,0.1); }
+    .comment-like .like-heart { font-size: 0.8rem; transition: transform 0.15s; }
+    .comment-like:hover .like-heart, .comment-like.liked .like-heart { transform: scale(1.25); }
     .no-comments { font-size: 0.85rem; color: var(--muted); text-align: center; padding: 20px 0; }
     .comments-loading { font-size: 0.85rem; color: var(--muted); text-align: center; padding: 16px 0; }
 
@@ -860,7 +862,7 @@ function renderComments(rows, id, likesMap = {}) {
       </div>
       <div class="comment-text">${esc(r.text)}</div>
       <button class="comment-like ${likes.likedByMe ? 'liked' : ''}" onclick="toggleLike('${r.id}', ${id}, this)">
-        &#x1F44D; ${likes.count > 0 ? likes.count : ''}
+        <span class="like-heart">&#x2665;</span> ${likes.count > 0 ? `${likes.count} ` : ''}${likes.likedByMe ? 'Liked' : 'Like'}
       </button>
       ${isOwn ? `<button class="comment-delete" onclick="deleteComment('${r.id}', ${id})">&#x2715;</button>` : ''}
     </div>`;
@@ -991,8 +993,9 @@ async function toggleLike(commentId, pokemonId, btn) {
 
   // Optimistic UI update
   btn.classList.toggle('liked', !isLiked);
-  const current = parseInt(btn.textContent.trim().replace('👍','').trim()) || 0;
-  btn.innerHTML = `&#x1F44D; ${isLiked ? (current - 1 || '') : (current + 1)}`;
+  const current = parseInt(btn.textContent.trim()) || 0;
+  const newCount = isLiked ? Math.max(0, current - 1) : current + 1;
+  btn.innerHTML = `<span class="like-heart">&#x2665;</span> ${newCount > 0 ? `${newCount} ` : ''}${isLiked ? 'Like' : 'Liked'}`;
 
   if (isLiked) {
     await sb.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', uid);
