@@ -536,6 +536,7 @@
       <option value="number">Sort: Number</option>
       <option value="name">Sort: Name</option>
       <option value="rating">Sort: Community Rating</option>
+      <option value="type">Sort: Type</option>
     </select>
   </div>
   <div class="pokemon-grid" id="pokemon-grid">
@@ -913,6 +914,12 @@ function applyFilters() {
     list.sort((a,b) => a.name.localeCompare(b.name));
   } else if (currentSort === 'rating') {
     list.sort((a,b) => ((communityStats[b.id]||{avg:0}).avg) - ((communityStats[a.id]||{avg:0}).avg));
+  } else if (currentSort === 'type') {
+    list.sort((a,b) => {
+      const ta = (typeCache[a.id] && typeCache[a.id][0]) || 'zzz';
+      const tb = (typeCache[b.id] && typeCache[b.id][0]) || 'zzz';
+      return ta.localeCompare(tb) || a.id - b.id;
+    });
   } else {
     list.sort((a,b) => a.id - b.id);
   }
