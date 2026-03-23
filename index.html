@@ -226,6 +226,33 @@
     .profile-rated-stars { font-size: 0.65rem; color: var(--accent); font-weight: 700; }
     .profile-empty { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 20px 0; }
     .profile-reviews-list { display: flex; flex-direction: column; gap: 10px; }
+    /* Squad */
+    .squad-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+    .squad-slot { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; transition: border-color 0.2s; }
+    .squad-slot.filled { cursor: default; }
+    .squad-slot.empty { cursor: pointer; border-style: dashed; }
+    .squad-slot.empty:hover { border-color: var(--accent2); }
+    .squad-slot img { width: 52px; height: 52px; object-fit: contain; image-rendering: pixelated; }
+    .squad-slot-name { font-size: 0.55rem; font-weight: 600; color: var(--muted); text-transform: capitalize; text-align: center; margin-top: 2px; }
+    .squad-slot-plus { font-size: 1.4rem; color: var(--muted); line-height: 1; }
+    .squad-slot-remove { position: absolute; top: 3px; right: 3px; width: 16px; height: 16px; background: rgba(230,57,70,0.15); border: none; border-radius: 50%; color: var(--red); font-size: 0.6rem; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.15s; }
+    .squad-slot:hover .squad-slot-remove { opacity: 1; }
+    /* Squad picker */
+    .squad-picker-overlay { display: none; position: fixed; inset: 0; z-index: 700; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); align-items: center; justify-content: center; padding: 20px; }
+    .squad-picker-overlay.open { display: flex; }
+    .squad-picker-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; width: 100%; max-width: 480px; padding: 20px; }
+    .squad-picker-search { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.9rem; outline: none; margin-bottom: 14px; transition: border-color 0.2s; }
+    .squad-picker-search:focus { border-color: var(--accent2); }
+    .squad-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; max-height: 280px; overflow-y: auto; }
+    .squad-picker-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 4px 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; transition: all 0.15s; }
+    .squad-picker-card:hover { border-color: var(--accent2); transform: translateY(-2px); }
+    .squad-picker-card img { width: 52px; height: 52px; object-fit: contain; image-rendering: pixelated; }
+    .squad-picker-card-name { font-size: 0.62rem; font-weight: 600; text-transform: capitalize; color: var(--muted); text-align: center; }
+    @media (max-width: 640px) {
+      .squad-grid { grid-template-columns: repeat(3, 1fr); }
+      .squad-picker-overlay { padding: 0; align-items: flex-end; }
+      .squad-picker-modal { border-radius: 20px 20px 0 0; max-width: 100%; }
+    }
     .profile-review-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; cursor: pointer; transition: border-color 0.2s; }
     .profile-review-item:hover { border-color: #444; }
     .profile-review-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
@@ -829,6 +856,18 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- SQUAD PICKER -->
+<div class="squad-picker-overlay" id="squad-picker-overlay" onclick="closeSquadPickerOnBg(event)">
+  <div class="squad-picker-modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <span style="font-weight:800;font-size:1rem">Pick a Pokémon</span>
+      <button onclick="closeSquadPicker()" style="background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer">&#x2715;</button>
+    </div>
+    <input class="squad-picker-search" id="squad-picker-search" placeholder="Search by name or number..." oninput="filterSquadPicker(this.value)" autocomplete="off"/>
+    <div class="squad-picker-grid" id="squad-picker-grid"></div>
+  </div>
+</div>
+
 <!-- DISCOVERY CARD -->
 <div class="disc-card" id="disc-card">
   <div class="disc-header">
@@ -1087,11 +1126,12 @@ async function openUserProfile(uid, username) {
 
   const isOwn = uid === getUID();
 
-  const [{ data: myRatings }, { data: myComments }, { data: myCommentIds }, { data: myTeams }] = await Promise.all([
+  const [{ data: myRatings }, { data: myComments }, { data: myCommentIds }, { data: myTeams }, { data: squadRow }] = await Promise.all([
     sb.from('ratings').select('pokemon_id, stars, updated_at').eq('user_id', uid).order('updated_at', { ascending: false }).limit(100),
     sb.from('comments').select('id, pokemon_id, text, stars, created_at').eq('user_id', uid).is('parent_id', null).order('created_at', { ascending: false }).limit(50),
     sb.from('comments').select('id').eq('user_id', uid),
-    sb.from('teams').select('id, name, slots, description, created_at').eq('user_id', uid).order('created_at', { ascending: false }).limit(10)
+    sb.from('teams').select('id, name, slots, description, created_at').eq('user_id', uid).order('created_at', { ascending: false }).limit(10),
+    sb.from('user_squads').select('slots').eq('user_id', uid).maybeSingle()
   ]);
 
   const commentIds = myCommentIds ? myCommentIds.map(c => c.id) : [];
@@ -1134,6 +1174,24 @@ async function openUserProfile(uid, username) {
         </div>`;
       }).join('')
     : `<div class="profile-empty">No reviews written yet.</div>`;
+
+  // Build squad display
+  const squadSlots = (squadRow && Array.isArray(squadRow.slots) ? squadRow.slots : [null,null,null,null,null,null]).slice(0,6);
+  while (squadSlots.length < 6) squadSlots.push(null);
+  const squadHTML = `<div class="squad-grid">${squadSlots.map((id, i) => {
+    if (id) {
+      const p = allPokemon.find(x => x.id === id);
+      const name = p ? p.name.replace(/-/g,' ') : `#${id}`;
+      return `<div class="squad-slot filled">
+        ${isOwn ? `<button class="squad-slot-remove" onclick="removeFromSquad(${i})">&#x2715;</button>` : ''}
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png" alt="${name}"/>
+        <div class="squad-slot-name">${name}</div>
+      </div>`;
+    }
+    return isOwn
+      ? `<div class="squad-slot empty" onclick="openSquadPicker(${i})"><span class="squad-slot-plus">+</span></div>`
+      : `<div class="squad-slot empty" style="cursor:default"></div>`;
+  }).join('')}</div>${isOwn ? `<p style="font-size:0.72rem;color:var(--muted);margin-top:8px;text-align:center">Tap an empty slot to add a Pokémon</p>` : ''}`;
 
   const teamsHTML = myTeams && myTeams.length
     ? myTeams.map(t => {
@@ -1178,7 +1236,11 @@ async function openUserProfile(uid, username) {
     </div>
     <div class="profile-body">
       <div>
-        <div class="profile-section-title">${isOwn ? 'My' : `${esc(username||'Their')}'s`} Teams</div>
+        <div class="profile-section-title">${isOwn ? 'MY SQUAD' : `${esc(username||'Their').toUpperCase()}'S SQUAD`}</div>
+        ${squadHTML}
+      </div>
+      <div>
+        <div class="profile-section-title">${isOwn ? 'My Teams' : `${esc(username||'Their')}'s Teams`}</div>
         <div class="profile-reviews-list">${teamsHTML}</div>
       </div>
       <div>
@@ -3145,6 +3207,65 @@ function actOnDiscovery() {
   const action = discCurrentAction;
   dismissDiscovery(90000); // gave them something to do — wait 90s before next
   if (action) action();
+}
+
+// ═══════════════════════════════════════════════
+// SQUAD
+// ═══════════════════════════════════════════════
+let squadPickerSlot = null;
+let squadPickerResults = [];
+
+function openSquadPicker(slotIndex) {
+  squadPickerSlot = slotIndex;
+  document.getElementById('squad-picker-search').value = '';
+  filterSquadPicker('');
+  document.getElementById('squad-picker-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('squad-picker-search').focus(), 50);
+}
+
+function closeSquadPicker() {
+  document.getElementById('squad-picker-overlay').classList.remove('open');
+  squadPickerSlot = null;
+}
+
+function closeSquadPickerOnBg(e) {
+  if (e.target === document.getElementById('squad-picker-overlay')) closeSquadPicker();
+}
+
+function filterSquadPicker(query) {
+  const q = query.trim().toLowerCase();
+  const grid = document.getElementById('squad-picker-grid');
+  const results = allPokemon.filter(p =>
+    !q || p.name.includes(q) || String(p.id).startsWith(q)
+  ).slice(0, 40);
+  grid.innerHTML = results.map(p =>
+    `<div class="squad-picker-card" onclick="selectSquadPokemon(${p.id})">
+      <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png" alt="${p.name}"/>
+      <div class="squad-picker-card-name">${p.name.replace(/-/g,' ')}</div>
+    </div>`
+  ).join('') || `<div style="color:var(--muted);font-size:0.85rem;padding:20px;text-align:center">No results</div>`;
+}
+
+async function selectSquadPokemon(pokemonId) {
+  closeSquadPicker();
+  // Read current squad from profile slots
+  const uid = getUID();
+  const { data: row } = await sb.from('user_squads').select('slots').eq('user_id', uid).maybeSingle();
+  const slots = (row && Array.isArray(row.slots) ? row.slots : [null,null,null,null,null,null]).slice(0,6);
+  while (slots.length < 6) slots.push(null);
+  slots[squadPickerSlot !== null ? squadPickerSlot : slots.indexOf(null)] = pokemonId;
+  await sb.from('user_squads').upsert({ user_id: uid, slots, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+  openUserProfile(uid, getUsername());
+}
+
+async function removeFromSquad(slotIndex) {
+  const uid = getUID();
+  const { data: row } = await sb.from('user_squads').select('slots').eq('user_id', uid).maybeSingle();
+  const slots = (row && Array.isArray(row.slots) ? row.slots : [null,null,null,null,null,null]).slice(0,6);
+  while (slots.length < 6) slots.push(null);
+  slots[slotIndex] = null;
+  await sb.from('user_squads').upsert({ user_id: uid, slots, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+  openUserProfile(uid, getUsername());
 }
 
 // ═══════════════════════════════════════════════
