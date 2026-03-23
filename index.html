@@ -2156,10 +2156,11 @@ async function openTrainerModal(trainerId) {
   document.body.style.overflow = 'hidden';
 
   const uid = getUID();
-  const [{ data: allRatings }, { data: myRow }, { data: comments }] = await Promise.all([
+  const [{ data: allRatings }, { data: myRow }, { data: comments }, { data: likesData }] = await Promise.all([
     sb.from('trainer_ratings').select('stars').eq('trainer_id', trainerId),
     sb.from('trainer_ratings').select('stars').eq('trainer_id', trainerId).eq('user_id', uid).maybeSingle(),
-    sb.from('trainer_comments').select('*').eq('trainer_id', trainerId).order('created_at', { ascending: false }).limit(50)
+    sb.from('trainer_comments').select('*').eq('trainer_id', trainerId).order('created_at', { ascending: false }).limit(50),
+    sb.from('trainer_comment_likes').select('comment_id, user_id')
   ]);
 
   const ratingCount = allRatings ? allRatings.length : 0;
@@ -2214,7 +2215,13 @@ async function openTrainerModal(trainerId) {
     </div>`;
 
   if (allRatings && allRatings.length) renderTrainerBreakdown(allRatings);
-  renderTrainerComments(comments || [], trainerId);
+  const likesMap = {};
+  if (likesData) likesData.forEach(l => {
+    if (!likesMap[l.comment_id]) likesMap[l.comment_id] = { count: 0, likedByMe: false };
+    likesMap[l.comment_id].count++;
+    if (l.user_id === uid) likesMap[l.comment_id].likedByMe = true;
+  });
+  renderTrainerComments(comments || [], trainerId, likesMap);
 }
 
 function renderTrainerBreakdown(ratings) {
@@ -2272,14 +2279,13 @@ async function submitTrainerComment(trainerId) {
   input.value = '';
   if (!dbReady) return;
   await sb.from('trainer_comments').insert({ trainer_id: trainerId, user_id: getUID(), username: getUsername(), text });
-  const { data } = await sb.from('trainer_comments').select('*').eq('trainer_id', trainerId).order('created_at', { ascending: false }).limit(50);
-  renderTrainerComments(data || [], trainerId);
+  await reloadTrainerComments(trainerId);
   if (!trainerStats[trainerId]) trainerStats[trainerId] = { avg: 0, count: 0, comments: 0 };
   trainerStats[trainerId].comments = (trainerStats[trainerId].comments || 0) + 1;
   renderTrainerGrid();
 }
 
-function renderTrainerComments(rows, trainerId) {
+function renderTrainerComments(rows, trainerId, likesMap = {}) {
   const el = document.getElementById('trainer-comments-list');
   if (!el) return;
   if (!rows.length) { el.innerHTML = `<div class="no-comments">No reviews yet — be the first!</div>`; return; }
@@ -2295,6 +2301,7 @@ function renderTrainerComments(rows, trainerId) {
     const initials = (r.username||'A').charAt(0).toUpperCase();
     const dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '';
     const mention = isReply && replyingTo ? `<span class="reply-mention">@${esc(replyingTo)}</span> ` : '';
+    const likes = likesMap[r.id] || { count: 0, likedByMe: false };
     return `<div class="${isReply ? 'reply-item' : 'comment-item'}">
       <div class="comment-header">
         <div class="comment-avatar">${initials}</div>
@@ -2304,6 +2311,9 @@ function renderTrainerComments(rows, trainerId) {
       </div>
       <div class="comment-text">${mention}${esc(r.text)}</div>
       <div class="comment-actions">
+        <button class="comment-like ${likes.likedByMe ? 'liked' : ''}" onclick="toggleTrainerLike('${r.id}','${trainerId}',this)">
+          <span class="like-heart">&#x2665;</span> ${likes.count > 0 ? `${likes.count} ` : ''}${likes.likedByMe ? 'Liked' : 'Like'}
+        </button>
         <button class="comment-reply-btn" onclick="openTrainerReplyBox('${r.id}','${trainerId}','${esc(r.username||'Anonymous')}')">Reply</button>
         ${isOwn ? `<button class="comment-delete" onclick="deleteTrainerComment('${r.id}','${trainerId}')">&#x2715;</button>` : ''}
       </div>
@@ -2335,14 +2345,40 @@ async function submitTrainerReply(parentId, trainerId, replyingToUsername) {
   const text = input ? input.value.trim() : '';
   if (!text) return;
   await sb.from('trainer_comments').insert({ trainer_id: trainerId, user_id: getUID(), username: getUsername(), text, parent_id: parentId });
-  const { data } = await sb.from('trainer_comments').select('*').eq('trainer_id', trainerId).order('created_at', { ascending: false }).limit(50);
-  renderTrainerComments(data || [], trainerId);
+  await reloadTrainerComments(trainerId);
 }
 
 async function deleteTrainerComment(commentId, trainerId) {
   await sb.from('trainer_comments').delete().eq('id', commentId);
-  const { data } = await sb.from('trainer_comments').select('*').eq('trainer_id', trainerId).order('created_at', { ascending: false }).limit(50);
-  renderTrainerComments(data || [], trainerId);
+  await reloadTrainerComments(trainerId);
+}
+
+async function reloadTrainerComments(trainerId) {
+  const [{ data: comments }, { data: likesData }] = await Promise.all([
+    sb.from('trainer_comments').select('*').eq('trainer_id', trainerId).order('created_at', { ascending: false }).limit(50),
+    sb.from('trainer_comment_likes').select('comment_id, user_id')
+  ]);
+  const likesMap = {};
+  if (likesData) likesData.forEach(l => {
+    if (!likesMap[l.comment_id]) likesMap[l.comment_id] = { count: 0, likedByMe: false };
+    likesMap[l.comment_id].count++;
+    if (l.user_id === getUID()) likesMap[l.comment_id].likedByMe = true;
+  });
+  renderTrainerComments(comments || [], trainerId, likesMap);
+}
+
+async function toggleTrainerLike(commentId, trainerId, btn) {
+  const isLiked = btn.classList.contains('liked');
+  btn.classList.toggle('liked', !isLiked);
+  const countMatch = btn.textContent.match(/\d+/);
+  const current = countMatch ? parseInt(countMatch[0]) : 0;
+  const newCount = isLiked ? Math.max(0, current - 1) : current + 1;
+  btn.innerHTML = `<span class="like-heart">&#x2665;</span> ${newCount > 0 ? `${newCount} ` : ''}${!isLiked ? 'Liked' : 'Like'}`;
+  if (isLiked) {
+    await sb.from('trainer_comment_likes').delete().eq('comment_id', commentId).eq('user_id', getUID());
+  } else {
+    await sb.from('trainer_comment_likes').insert({ comment_id: commentId, user_id: getUID() });
+  }
 }
 
 function closeTrainerModal() {
