@@ -251,6 +251,33 @@
     .setup-banner code { background: var(--surface2); padding: 1px 6px; border-radius: 4px; font-size: 0.82rem; color: #aaa; }
     .setup-banner.show { display: block; }
 
+    /* ── HOT TAKE ── */
+    .hot-take-card {
+      position: fixed; bottom: 28px; right: 28px; z-index: 800;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 20px 20px 16px; width: 300px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+      transform: translateY(120%); opacity: 0;
+      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
+      pointer-events: none;
+    }
+    .hot-take-card.visible { transform: translateY(0); opacity: 1; pointer-events: all; }
+    .hot-take-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .hot-take-title { font-size: 0.95rem; font-weight: 800; }
+    .hot-take-close { background: none; border: none; color: var(--muted); font-size: 1rem; cursor: pointer; line-height: 1; padding: 2px 4px; border-radius: 4px; transition: color 0.15s; }
+    .hot-take-close:hover { color: var(--text); }
+    .hot-take-prompt { font-size: 0.75rem; color: var(--muted); margin-bottom: 10px; }
+    .hot-take-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.85rem; resize: none; outline: none; min-height: 64px; transition: border-color 0.2s; }
+    .hot-take-input:focus { border-color: var(--red); }
+    .hot-take-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+    .hot-take-hint { font-size: 0.68rem; color: var(--muted); }
+    .hot-take-submit { padding: 7px 18px; border-radius: 999px; background: var(--red); color: white; font-size: 0.8rem; font-weight: 700; border: none; cursor: pointer; transition: opacity 0.2s; }
+    .hot-take-submit:hover { opacity: 0.85; }
+    .hot-take-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+    @media (max-width: 640px) {
+      .hot-take-card { bottom: 0; right: 0; left: 0; width: 100%; border-radius: 20px 20px 0 0; }
+    }
+
     .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface2); border: 1px solid var(--border); border-radius: 999px; padding: 12px 24px; font-size: 0.88rem; font-weight: 600; z-index: 1000; transition: transform 0.3s; pointer-events: none; white-space: nowrap; }
     .toast.show { transform: translateX(-50%) translateY(0); }
     .global-loader { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 32px; gap: 16px; color: var(--muted); }
@@ -702,6 +729,20 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- HOT TAKE CARD -->
+<div class="hot-take-card" id="hot-take-card">
+  <div class="hot-take-header">
+    <span class="hot-take-title">🔥 Got a hot take?</span>
+    <button class="hot-take-close" onclick="dismissHotTake()">&#x2715;</button>
+  </div>
+  <div class="hot-take-prompt" id="hot-take-prompt"></div>
+  <textarea class="hot-take-input" id="hot-take-input" maxlength="200" rows="2"></textarea>
+  <div class="hot-take-footer">
+    <span class="hot-take-hint">max 200 chars</span>
+    <button class="hot-take-submit" id="hot-take-submit" onclick="submitHotTake()">Drop it 🔥</button>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════
 // SUPABASE CONFIG — replace with your values
@@ -1073,6 +1114,7 @@ async function init() {
   if (dbReady) {
     loadCommunityStats().then(() => applyFilters()).catch(() => {});
   }
+  initHotTake();
 }
 
 async function loadAllPokemon() {
@@ -2760,6 +2802,75 @@ function closeTrainerModal() {
 }
 function closeTrainerModalOnBg(e) {
   if (e.target === document.getElementById('trainer-modal-overlay')) closeTrainerModal();
+}
+
+// ═══════════════════════════════════════════════
+// HOT TAKE
+// ═══════════════════════════════════════════════
+const HT_PROMPTS = [
+  { label: 'Drop a controversial opinion…', placeholder: '"Charizard is overrated."' },
+  { label: 'Say something bold…',           placeholder: '"Gengar is mid at best."' },
+  { label: 'Defend the underrated…',        placeholder: '"Furret deserves more respect."' },
+  { label: 'Call out the overrated…',       placeholder: '"Mewtwo isn\'t that impressive."' },
+  { label: 'Spill the tea…',                placeholder: '"Gen 5 has the best designs."' },
+  { label: 'What\'s your unpopular take?',  placeholder: '"Pikachu should have evolved."' },
+];
+let htTimer = null;
+let htScrollFired = false;
+
+function initHotTake() {
+  const last = parseInt(localStorage.getItem('pr_ht_last') || '0');
+  const now = Date.now();
+  if (now - last < 24 * 60 * 60 * 1000) return; // shown in last 24h — skip
+
+  // Timer trigger: 15 seconds
+  clearTimeout(htTimer);
+  htTimer = setTimeout(showHotTake, 15000);
+
+  // Scroll trigger: 400px down
+  if (!htScrollFired) {
+    const onScroll = () => {
+      if (window.scrollY > 400 && !document.getElementById('hot-take-card').classList.contains('visible')) {
+        const last2 = parseInt(localStorage.getItem('pr_ht_last') || '0');
+        if (Date.now() - last2 >= 24 * 60 * 60 * 1000) showHotTake();
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    htScrollFired = true;
+  }
+}
+
+function showHotTake() {
+  clearTimeout(htTimer);
+  const card = document.getElementById('hot-take-card');
+  if (card.classList.contains('visible')) return;
+  const p = HT_PROMPTS[Math.floor(Math.random() * HT_PROMPTS.length)];
+  document.getElementById('hot-take-prompt').textContent = p.label;
+  document.getElementById('hot-take-input').placeholder = p.placeholder;
+  document.getElementById('hot-take-input').value = '';
+  card.classList.add('visible');
+}
+
+function dismissHotTake() {
+  document.getElementById('hot-take-card').classList.remove('visible');
+  localStorage.setItem('pr_ht_last', Date.now().toString());
+}
+
+async function submitHotTake() {
+  const input = document.getElementById('hot-take-input');
+  const text = input.value.trim();
+  if (!text) { input.focus(); return; }
+  const btn = document.getElementById('hot-take-submit');
+  btn.disabled = true;
+  btn.textContent = 'Posting…';
+  if (dbReady) {
+    await sb.from('hot_takes').insert({ user_id: getUID(), username: getUsername(), text });
+  }
+  dismissHotTake();
+  showToast('🔥 Hot take dropped!');
+  btn.disabled = false;
+  btn.textContent = 'Drop it 🔥';
+  localStorage.setItem('pr_ht_last', Date.now().toString());
 }
 </script>
 </body>
