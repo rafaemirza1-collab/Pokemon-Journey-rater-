@@ -309,6 +309,65 @@
     .team-rating-meta span { color: var(--accent); font-weight: 700; }
     .team-comments-section { display: flex; flex-direction: column; gap: 10px; }
     .team-comment-input-wrap { display: flex; flex-direction: column; gap: 8px; }
+
+    /* ── TRAINERS ── */
+    #view-trainers { padding: 32px; }
+    .trainers-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+    .trainers-header h1 { font-size: 2rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 6px; }
+    .trainers-header p { color: var(--muted); font-size: 0.9rem; }
+    .trainer-region-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px; scrollbar-width: none; }
+    .trainer-region-bar::-webkit-scrollbar { display: none; }
+    .trainer-sort-bar { display: flex; gap: 8px; margin-bottom: 24px; }
+    .trainer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
+    .trainer-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; cursor: pointer; transition: all 0.2s; position: relative; }
+    .trainer-card:hover { border-color: #444; transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+    .trainer-card-img-wrap { aspect-ratio: 3/4; overflow: hidden; background: var(--surface2); display: flex; align-items: center; justify-content: center; }
+    .trainer-card-img-wrap img { width: 100%; height: 100%; object-fit: cover; object-position: top center; transition: transform 0.4s; }
+    .trainer-card:hover .trainer-card-img-wrap img { transform: scale(1.05); }
+    .trainer-card-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 3.5rem; font-weight: 900; background: linear-gradient(135deg, var(--accent2), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .trainer-card-info { padding: 12px; }
+    .trainer-card-name { font-size: 0.95rem; font-weight: 800; margin-bottom: 3px; text-transform: capitalize; }
+    .trainer-card-region { font-size: 0.7rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .trainer-card-stars { display: flex; gap: 1px; }
+    .trainer-card-stars .s { font-size: 0.75rem; color: #333; }
+    .trainer-card-stars .s.filled { color: var(--accent); }
+    .trainer-card-score { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
+    .trainer-card-score span { color: var(--accent); font-weight: 700; }
+
+    /* Trainer modal */
+    .trainer-modal-overlay { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); align-items: center; justify-content: center; padding: 20px; }
+    .trainer-modal-overlay.open { display: flex; }
+    .trainer-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; width: 100%; max-width: 640px; max-height: 90vh; overflow-y: auto; position: relative; }
+    .trainer-modal-hero { display: flex; gap: 28px; padding: 32px; border-bottom: 1px solid var(--border); align-items: flex-start; }
+    .trainer-modal-img-wrap { flex-shrink: 0; width: 160px; border-radius: 16px; overflow: hidden; background: var(--surface2); aspect-ratio: 3/4; }
+    .trainer-modal-img-wrap img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+    .trainer-modal-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 5rem; font-weight: 900; background: linear-gradient(135deg, var(--accent2), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .trainer-modal-info { flex: 1; }
+    .trainer-modal-region { font-size: 0.72rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+    .trainer-modal-name { font-size: 2rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 4px; }
+    .trainer-modal-game { font-size: 0.85rem; color: var(--muted); margin-bottom: 20px; }
+    .trainer-modal-community { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+    .trainer-modal-avg { font-size: 2.4rem; font-weight: 900; color: var(--accent); line-height: 1; }
+    .trainer-modal-avg-detail { display: flex; flex-direction: column; gap: 4px; }
+    .trainer-modal-avg-stars { display: flex; gap: 3px; }
+    .trainer-modal-avg-stars .s { font-size: 1rem; color: #333; }
+    .trainer-modal-avg-stars .s.filled { color: var(--accent); }
+    .trainer-modal-avg-label { font-size: 0.78rem; color: var(--muted); }
+    .trainer-modal-my-rating { }
+    .trainer-modal-my-rating .section-label { font-size: 0.7rem; margin-bottom: 8px; }
+    .trainer-stars-row { display: flex; gap: 4px; margin-bottom: 6px; }
+    .trainer-star-btn { font-size: 1.8rem; cursor: pointer; color: #333; transition: color 0.15s, transform 0.15s; border: none; background: none; padding: 0; line-height: 1; }
+    .trainer-star-btn:hover, .trainer-star-btn.hover, .trainer-star-btn.selected { color: var(--accent); }
+    .trainer-star-btn:hover { transform: scale(1.15); }
+    .trainer-modal-rating-note { font-size: 0.8rem; color: var(--muted); }
+    .trainer-modal-rating-note span { color: var(--accent); font-weight: 700; }
+    .trainer-modal-body { padding: 24px 32px; display: flex; flex-direction: column; gap: 20px; }
+    .trainer-breakdown { }
+    .trainer-rating-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .trainer-rating-row-label { font-size: 0.78rem; color: var(--muted); width: 28px; text-align: right; }
+    .trainer-rating-bar-wrap { flex: 1; height: 6px; background: var(--surface2); border-radius: 999px; overflow: hidden; }
+    .trainer-rating-bar-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width 0.4s; }
+    .trainer-rating-row-count { font-size: 0.75rem; color: var(--muted); width: 20px; }
   </style>
 </head>
 <body>
@@ -335,6 +394,7 @@
     <button class="nav-tab active" data-view="browse" onclick="switchView('browse')">Pokédex</button>
     <button class="nav-tab" data-view="rankings" onclick="switchView('rankings')">&#x1F3C6; Rankings</button>
     <button class="nav-tab" data-view="teams" onclick="switchView('teams')">&#x1F6E1; Teams</button>
+    <button class="nav-tab" data-view="trainers" onclick="switchView('trainers')">🏆 Trainers</button>
   </div>
   <div class="nav-right">
     <div class="nav-search">
@@ -403,6 +463,7 @@
       <button class="rank-tab" id="rank-tab-popular" onclick="setRankTab('popular')">&#x1F525; Most Popular</button>
       <button class="rank-tab" id="rank-tab-reviewed" onclick="setRankTab('reviewed')">&#x1F4AC; Most Reviewed</button>
       <button class="rank-tab" id="rank-tab-teams" onclick="setRankTab('teams')">&#x1F6E1; Top Teams</button>
+      <button class="rank-tab" id="rank-tab-trainers" onclick="setRankTab('trainers')">🏆 Top Trainers</button>
     </div>
   </div>
   <div class="rankings-list" id="rankings-list">
@@ -428,6 +489,24 @@
   </div>
 </div>
 
+<!-- TRAINERS VIEW -->
+<div id="view-trainers" class="view">
+  <div class="trainers-header">
+    <div>
+      <h1>🏆 Trainer Rankings</h1>
+      <p>Rate and review Pokémon protagonists from games &amp; anime</p>
+    </div>
+  </div>
+  <div class="trainer-region-bar" id="trainer-region-bar"></div>
+  <div class="trainer-sort-bar">
+    <button class="rank-tab active" id="trainer-sort-rated" onclick="setTrainerSort('rated')">⭐ Highest Rated</button>
+    <button class="rank-tab" id="trainer-sort-reviewed" onclick="setTrainerSort('reviewed')">💬 Most Reviewed</button>
+  </div>
+  <div class="trainer-grid" id="trainer-grid">
+    <div style="padding:60px;text-align:center;color:var(--muted)">Loading trainers...</div>
+  </div>
+</div>
+
 <!-- TEAM BUILDER OVERLAY -->
 <div class="builder-overlay" id="builder-overlay">
   <div class="builder-modal">
@@ -450,6 +529,11 @@
 <!-- TEAM DETAIL OVERLAY -->
 <div class="team-detail-overlay" id="team-detail-overlay" onclick="closeTeamDetailOnBg(event)">
   <div class="team-detail-modal" id="team-detail-modal"></div>
+</div>
+
+<!-- TRAINER MODAL -->
+<div class="trainer-modal-overlay" id="trainer-modal-overlay" onclick="closeTrainerModalOnBg(event)">
+  <div class="trainer-modal" id="trainer-modal"></div>
 </div>
 
 <!-- POKEMON MODAL -->
@@ -1281,6 +1365,7 @@ function setRankTab(tab) {
   document.getElementById('rank-tab-popular').classList.toggle('active', tab === 'popular');
   document.getElementById('rank-tab-reviewed').classList.toggle('active', tab === 'reviewed');
   document.getElementById('rank-tab-teams').classList.toggle('active', tab === 'teams');
+  document.getElementById('rank-tab-trainers').classList.toggle('active', tab === 'trainers');
   renderRankings();
 }
 
@@ -1339,6 +1424,40 @@ async function renderRankings() {
         </div>
         <div class="rank-right">${scoreDisplay}</div>
       </div>`;
+    }).join('');
+    return;
+  }
+
+  if (currentRankTab === 'trainers') {
+    await loadTrainerStats();
+    const ranked = TRAINERS.map(t => {
+      const s = trainerStats[t.id] || { avg: 0, count: 0 };
+      return { ...t, avg: s.avg, ratingCount: s.count };
+    }).sort((a, b) => {
+      if (a.ratingCount > 0 && b.ratingCount === 0) return -1;
+      if (a.ratingCount === 0 && b.ratingCount > 0) return 1;
+      return b.avg - a.avg || b.ratingCount - a.ratingCount;
+    });
+    list.innerHTML = ranked.map((t, i) => {
+      const numClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+      const filled = Math.round(t.avg);
+      const stars = [1,2,3,4,5].map(s => `<span class="s ${s<=filled?'filled':''}">&#9733;</span>`).join('');
+      const scoreDisplay = t.ratingCount > 0
+        ? `<div class="rank-score">${t.avg.toFixed(1)}</div><div class="rank-votes">${t.ratingCount} vote${t.ratingCount!==1?'s':''}</div>`
+        : `<div class="rank-score" style="color:var(--muted);font-size:1rem">—</div><div class="rank-votes">No ratings</div>`;
+      return `<div class="rank-item" onclick="openTrainerModal('${t.id}')">
+      <div class="rank-num ${numClass}">${i+1}</div>
+      <div style="width:56px;height:56px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--surface2)">
+        <img style="width:100%;height:100%;object-fit:cover;object-position:top" src="${t.img}"
+          onerror="this.style.display='none'"/>
+      </div>
+      <div class="rank-info">
+        <div class="rank-name">${t.name}</div>
+        <div class="rank-sub">${t.region} · ${t.game}</div>
+        <div class="rank-stars">${stars}</div>
+      </div>
+      <div class="rank-right">${scoreDisplay}</div>
+    </div>`;
     }).join('');
     return;
   }
@@ -1422,6 +1541,7 @@ function switchView(view) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.view===view));
   if (view === 'rankings') renderRankings();
   if (view === 'teams') loadTeams();
+  if (view === 'trainers') initTrainersView();
 }
 
 // ═══════════════════════════════════════════════
@@ -1906,6 +2026,332 @@ async function deleteTeamComment(commentId, teamId) {
 }
 
 init();
+
+// ═══════════════════════════════════════════════
+// TRAINER RANKINGS
+// ═══════════════════════════════════════════════
+const TRAINERS = [
+  { id: 'red',     name: 'Red',        region: 'Kanto',  game: 'FireRed / LeafGreen',       gender: '♂', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Red_FRLG_artwork.png' },
+  { id: 'leaf',    name: 'Leaf',       region: 'Kanto',  game: 'FireRed / LeafGreen',       gender: '♀', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Leaf_FRLG_artwork.png' },
+  { id: 'ethan',   name: 'Ethan',      region: 'Johto',  game: 'HeartGold / SoulSilver',    gender: '♂', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Ethan_HGSS_artwork.png' },
+  { id: 'kris',    name: 'Kris',       region: 'Johto',  game: 'Crystal',                   gender: '♀', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Kris_GS_artwork.png' },
+  { id: 'lyra',    name: 'Lyra',       region: 'Johto',  game: 'HeartGold / SoulSilver',    gender: '♀', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Lyra_HGSS_artwork.png' },
+  { id: 'brendan', name: 'Brendan',    region: 'Hoenn',  game: 'Omega Ruby / Alpha Sapphire', gender: '♂', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Brendan_ORAS_artwork.png' },
+  { id: 'may',     name: 'May',        region: 'Hoenn',  game: 'Omega Ruby / Alpha Sapphire', gender: '♀', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/May_ORAS_artwork.png' },
+  { id: 'lucas',   name: 'Lucas',      region: 'Sinnoh', game: 'Diamond / Pearl',           gender: '♂', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Lucas_DP_artwork.png' },
+  { id: 'dawn',    name: 'Dawn',       region: 'Sinnoh', game: 'Diamond / Pearl',           gender: '♀', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Dawn_DP_artwork.png' },
+  { id: 'hilbert', name: 'Hilbert',    region: 'Unova',  game: 'Black / White',             gender: '♂', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Hilbert_BW_artwork.png' },
+  { id: 'hilda',   name: 'Hilda',      region: 'Unova',  game: 'Black / White',             gender: '♀', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Hilda_BW_artwork.png' },
+  { id: 'nate',    name: 'Nate',       region: 'Unova',  game: 'Black 2 / White 2',         gender: '♂', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Nate_B2W2_artwork.png' },
+  { id: 'rosa',    name: 'Rosa',       region: 'Unova',  game: 'Black 2 / White 2',         gender: '♀', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Rosa_B2W2_artwork.png' },
+  { id: 'calem',   name: 'Calem',      region: 'Kalos',  game: 'X / Y',                     gender: '♂', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Calem_XY_artwork.png' },
+  { id: 'serena',  name: 'Serena',     region: 'Kalos',  game: 'X / Y',                     gender: '♀', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Serena_XY_artwork.png' },
+  { id: 'elio',    name: 'Elio',       region: 'Alola',  game: 'Sun / Moon',                gender: '♂', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Elio_SM_artwork.png' },
+  { id: 'selene',  name: 'Selene',     region: 'Alola',  game: 'Sun / Moon',                gender: '♀', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Selene_SM_artwork.png' },
+  { id: 'victor',  name: 'Victor',     region: 'Galar',  game: 'Sword / Shield',            gender: '♂', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Victor_SwSh_artwork.png' },
+  { id: 'gloria',  name: 'Gloria',     region: 'Galar',  game: 'Sword / Shield',            gender: '♀', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Gloria_SwSh_artwork.png' },
+  { id: 'florian', name: 'Florian',    region: 'Paldea', game: 'Scarlet / Violet',          gender: '♂', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Florian_SV_artwork.png' },
+  { id: 'juliana', name: 'Juliana',    region: 'Paldea', game: 'Scarlet / Violet',          gender: '♀', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Juliana_SV_artwork.png' },
+  { id: 'ash',     name: 'Ash Ketchum', region: 'Anime', game: 'Pokémon Anime (Series 1–25)', gender: '♂', img: 'https://bulbapedia.bulbagarden.net/wiki/Special:FilePath/Ash_anime_artwork.png' },
+];
+
+let trainerStats = {};      // keyed by trainer_id → { avg, count, comments }
+let trainerFilter = 'All';
+let trainerSort   = 'rated';
+
+const TRAINER_REGIONS = ['All', 'Kanto', 'Johto', 'Hoenn', 'Sinnoh', 'Unova', 'Kalos', 'Alola', 'Galar', 'Paldea', 'Anime'];
+
+async function loadTrainerStats() {
+  if (!dbReady) return;
+  const [{ data: ratings }, { data: comments }] = await Promise.all([
+    sb.from('trainer_ratings').select('trainer_id, stars').limit(100000),
+    sb.from('trainer_comments').select('trainer_id').limit(100000)
+  ]);
+  const map = {};
+  if (ratings) ratings.forEach(r => {
+    if (!map[r.trainer_id]) map[r.trainer_id] = { total: 0, count: 0, comments: 0 };
+    map[r.trainer_id].total += r.stars;
+    map[r.trainer_id].count += 1;
+  });
+  if (comments) comments.forEach(r => {
+    if (!map[r.trainer_id]) map[r.trainer_id] = { total: 0, count: 0, comments: 0 };
+    map[r.trainer_id].comments = (map[r.trainer_id].comments || 0) + 1;
+  });
+  Object.entries(map).forEach(([id, v]) => {
+    trainerStats[id] = { avg: v.count ? v.total / v.count : 0, count: v.count, comments: v.comments || 0 };
+  });
+}
+
+function initTrainerRegionBar() {
+  const bar = document.getElementById('trainer-region-bar');
+  if (!bar) return;
+  bar.innerHTML = TRAINER_REGIONS.map(r =>
+    `<button class="gen-btn ${r === trainerFilter ? 'active' : ''}" onclick="setTrainerFilter('${r}')">${r}</button>`
+  ).join('');
+}
+
+function setTrainerFilter(region) {
+  trainerFilter = region;
+  document.querySelectorAll('#trainer-region-bar .gen-btn').forEach(b =>
+    b.classList.toggle('active', b.textContent === region)
+  );
+  renderTrainerGrid();
+}
+
+function setTrainerSort(sort) {
+  trainerSort = sort;
+  document.getElementById('trainer-sort-rated').classList.toggle('active', sort === 'rated');
+  document.getElementById('trainer-sort-reviewed').classList.toggle('active', sort === 'reviewed');
+  renderTrainerGrid();
+}
+
+async function initTrainersView() {
+  initTrainerRegionBar();
+  await loadTrainerStats();
+  renderTrainerGrid();
+}
+
+function renderTrainerGrid() {
+  const grid = document.getElementById('trainer-grid');
+  if (!grid) return;
+  let list = trainerFilter === 'All' ? [...TRAINERS] : TRAINERS.filter(t => t.region === trainerFilter);
+  list.sort((a, b) => {
+    const sa = trainerStats[a.id] || { avg: 0, count: 0, comments: 0 };
+    const sb2 = trainerStats[b.id] || { avg: 0, count: 0, comments: 0 };
+    if (trainerSort === 'reviewed') return (sb2.comments - sa.comments) || (sb2.count - sa.count);
+    if (sa.count > 0 && sb2.count === 0) return -1;
+    if (sa.count === 0 && sb2.count > 0) return 1;
+    if (sa.count > 0 && sb2.count > 0) return sb2.avg - sa.avg || sb2.count - sa.count;
+    return 0;
+  });
+  grid.innerHTML = list.map(t => {
+    const stats = trainerStats[t.id] || { avg: 0, count: 0, comments: 0 };
+    const filled = Math.round(stats.avg);
+    const stars = [1,2,3,4,5].map(i => `<span class="s ${i<=filled?'filled':''}">&#9733;</span>`).join('');
+    const scoreText = stats.count
+      ? `<span>${stats.avg.toFixed(1)}</span> avg · ${stats.count} vote${stats.count>1?'s':''}`
+      : 'No ratings yet';
+    return `<div class="trainer-card" onclick="openTrainerModal('${t.id}')">
+      <div class="trainer-card-img-wrap">
+        <img src="${t.img}" alt="${t.name}"
+          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+        <div class="trainer-card-placeholder" style="display:none">${t.name.charAt(0)}</div>
+      </div>
+      <div class="trainer-card-info">
+        <div class="trainer-card-name">${t.name}</div>
+        <div class="trainer-card-region">${t.region} ${t.gender}</div>
+        <div class="trainer-card-stars">${stars}</div>
+        <div class="trainer-card-score">${scoreText}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function openTrainerModal(trainerId) {
+  const trainer = TRAINERS.find(t => t.id === trainerId);
+  if (!trainer) return;
+  const modal = document.getElementById('trainer-modal');
+  modal.innerHTML = `<div style="padding:60px;text-align:center;color:var(--muted)">Loading...</div>`;
+  document.getElementById('trainer-modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  const uid = getUID();
+  const [{ data: allRatings }, { data: myRow }, { data: comments }] = await Promise.all([
+    sb.from('trainer_ratings').select('stars').eq('trainer_id', trainerId),
+    sb.from('trainer_ratings').select('stars').eq('trainer_id', trainerId).eq('user_id', uid).maybeSingle(),
+    sb.from('trainer_comments').select('*').eq('trainer_id', trainerId).order('created_at', { ascending: false }).limit(50)
+  ]);
+
+  const ratingCount = allRatings ? allRatings.length : 0;
+  const avg = ratingCount ? allRatings.reduce((s, r) => s + r.stars, 0) / ratingCount : 0;
+  const myRating = myRow ? myRow.stars : 0;
+  const filled = Math.round(avg);
+  const cStars = [1,2,3,4,5].map(i => `<span class="s ${i<=filled?'filled':''}">&#9733;</span>`).join('');
+  const myStarBtns = [1,2,3,4,5].map(i =>
+    `<button class="trainer-star-btn ${i<=myRating?'selected':''}" data-val="${i}"
+      onmouseenter="hoverTrainerStars(${i})" onmouseleave="unhoverTrainerStars()"
+      onclick="submitTrainerRating('${trainerId}',${i})">&#9733;</button>`
+  ).join('');
+
+  modal.innerHTML = `
+    <button class="modal-close" onclick="closeTrainerModal()">&#x2715;</button>
+    <div class="trainer-modal-hero">
+      <div class="trainer-modal-img-wrap">
+        <img src="${trainer.img}" alt="${trainer.name}"
+          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+        <div class="trainer-modal-placeholder" style="display:none">${trainer.name.charAt(0)}</div>
+      </div>
+      <div class="trainer-modal-info">
+        <div class="trainer-modal-region">${trainer.region} · ${trainer.gender}</div>
+        <div class="trainer-modal-name">${trainer.name}</div>
+        <div class="trainer-modal-game">${trainer.game}</div>
+        <div class="trainer-modal-community">
+          <div class="trainer-modal-avg">${ratingCount ? avg.toFixed(1) : '—'}</div>
+          <div class="trainer-modal-avg-detail">
+            <div class="trainer-modal-avg-stars">${cStars}</div>
+            <div class="trainer-modal-avg-label">${ratingCount ? `${ratingCount} community vote${ratingCount>1?'s':''}` : 'No ratings yet'}</div>
+          </div>
+        </div>
+        <div class="trainer-modal-my-rating">
+          <div class="section-label">Your Rating</div>
+          <div class="trainer-stars-row" id="trainer-stars-input">${myStarBtns}</div>
+          <div class="trainer-modal-rating-note" id="trainer-rating-note">
+            ${myRating ? `You rated <span>${myRating}/5 stars</span>` : "You haven't rated this yet"}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="trainer-modal-body">
+      <div class="trainer-breakdown" id="trainer-breakdown"></div>
+      <div>
+        <div class="section-label">Community Reviews</div>
+        <div class="team-comment-input-wrap">
+          <textarea class="comment-textarea" id="trainer-comment-input" placeholder="Share your thoughts on this trainer..."></textarea>
+          <button class="comment-btn" onclick="submitTrainerComment('${trainerId}')">Post Review</button>
+        </div>
+        <div class="comments-list" id="trainer-comments-list"></div>
+      </div>
+    </div>`;
+
+  if (allRatings && allRatings.length) renderTrainerBreakdown(allRatings);
+  renderTrainerComments(comments || [], trainerId);
+}
+
+function renderTrainerBreakdown(ratings) {
+  const el = document.getElementById('trainer-breakdown');
+  if (!el || !ratings.length) return;
+  const counts = {1:0,2:0,3:0,4:0,5:0};
+  ratings.forEach(r => { if (r.stars) counts[r.stars]++; });
+  const total = ratings.length;
+  el.innerHTML = [5,4,3,2,1].map(s => {
+    const pct = total ? Math.round((counts[s]/total)*100) : 0;
+    return `<div class="trainer-rating-row">
+      <span class="trainer-rating-row-label">${s}&#9733;</span>
+      <div class="trainer-rating-bar-wrap"><div class="trainer-rating-bar-fill" style="width:${pct}%"></div></div>
+      <span class="trainer-rating-row-count">${counts[s]}</span>
+    </div>`;
+  }).join('');
+}
+
+function hoverTrainerStars(v) {
+  document.querySelectorAll('.trainer-star-btn').forEach((b, i) => b.classList.toggle('hover', i < v));
+}
+function unhoverTrainerStars() {
+  document.querySelectorAll('.trainer-star-btn').forEach(b => b.classList.remove('hover'));
+}
+
+async function submitTrainerRating(trainerId, stars) {
+  document.querySelectorAll('.trainer-star-btn').forEach((b, i) => b.classList.toggle('selected', i < stars));
+  const note = document.getElementById('trainer-rating-note');
+  if (note) note.innerHTML = `You rated <span>${stars}/5 stars</span>`;
+  if (!dbReady) return;
+  await sb.from('trainer_ratings').upsert({ trainer_id: trainerId, user_id: getUID(), stars }, { onConflict: 'trainer_id,user_id' });
+  const { data: allRatings } = await sb.from('trainer_ratings').select('stars').eq('trainer_id', trainerId);
+  if (!allRatings) return;
+  const count = allRatings.length;
+  const avg = count ? allRatings.reduce((s, r) => s + r.stars, 0) / count : 0;
+  const filled = Math.round(avg);
+  const el = document.querySelector('.trainer-modal-avg');
+  if (el) el.textContent = avg.toFixed(1);
+  const cStarsEl = document.querySelector('.trainer-modal-avg-stars');
+  if (cStarsEl) cStarsEl.innerHTML = [1,2,3,4,5].map(i => `<span class="s ${i<=filled?'filled':''}">&#9733;</span>`).join('');
+  const labelEl = document.querySelector('.trainer-modal-avg-label');
+  if (labelEl) labelEl.textContent = `${count} community vote${count>1?'s':''}`;
+  renderTrainerBreakdown(allRatings);
+  // Update card in grid
+  if (!trainerStats[trainerId]) trainerStats[trainerId] = { avg: 0, count: 0, comments: 0 };
+  trainerStats[trainerId].avg = avg;
+  trainerStats[trainerId].count = count;
+  renderTrainerGrid();
+}
+
+async function submitTrainerComment(trainerId) {
+  const input = document.getElementById('trainer-comment-input');
+  const text = input ? input.value.trim() : '';
+  if (!text) return;
+  input.value = '';
+  if (!dbReady) return;
+  await sb.from('trainer_comments').insert({ trainer_id: trainerId, user_id: getUID(), username: getUsername(), text });
+  const { data } = await sb.from('trainer_comments').select('*').eq('trainer_id', trainerId).order('created_at', { ascending: false }).limit(50);
+  renderTrainerComments(data || [], trainerId);
+  if (!trainerStats[trainerId]) trainerStats[trainerId] = { avg: 0, count: 0, comments: 0 };
+  trainerStats[trainerId].comments = (trainerStats[trainerId].comments || 0) + 1;
+  renderTrainerGrid();
+}
+
+function renderTrainerComments(rows, trainerId) {
+  const el = document.getElementById('trainer-comments-list');
+  if (!el) return;
+  if (!rows.length) { el.innerHTML = `<div class="no-comments">No reviews yet — be the first!</div>`; return; }
+  const uid = getUID();
+  const topLevel = rows.filter(r => !r.parent_id);
+  const repliesMap = {};
+  rows.filter(r => r.parent_id).forEach(r => {
+    if (!repliesMap[r.parent_id]) repliesMap[r.parent_id] = [];
+    repliesMap[r.parent_id].push(r);
+  });
+  function buildHTML(r, isReply, replyingTo) {
+    const isOwn = r.user_id === uid;
+    const initials = (r.username||'A').charAt(0).toUpperCase();
+    const dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '';
+    const mention = isReply && replyingTo ? `<span class="reply-mention">@${esc(replyingTo)}</span> ` : '';
+    return `<div class="${isReply ? 'reply-item' : 'comment-item'}">
+      <div class="comment-header">
+        <div class="comment-avatar">${initials}</div>
+        <span class="comment-username">${esc(r.username||'Anonymous')}</span>
+        ${isOwn ? `<span class="comment-own-badge">You</span>` : ''}
+        <span class="comment-date">${dateStr}</span>
+      </div>
+      <div class="comment-text">${mention}${esc(r.text)}</div>
+      <div class="comment-actions">
+        <button class="comment-reply-btn" onclick="openTrainerReplyBox('${r.id}','${trainerId}','${esc(r.username||'Anonymous')}')">Reply</button>
+        ${isOwn ? `<button class="comment-delete" onclick="deleteTrainerComment('${r.id}','${trainerId}')">&#x2715;</button>` : ''}
+      </div>
+      <div id="trainer-reply-box-${r.id}"></div>
+    </div>`;
+  }
+  el.innerHTML = topLevel.map(r => {
+    const replies = repliesMap[r.id] || [];
+    return buildHTML(r, false, '') + (replies.length
+      ? `<div class="replies-list">${replies.map(rep => buildHTML(rep, true, r.username||'Anonymous')).join('')}</div>`
+      : '');
+  }).join('');
+}
+
+function openTrainerReplyBox(parentId, trainerId, replyingToUsername) {
+  document.querySelectorAll('[id^="trainer-reply-box-"]').forEach(b => { if (b.id !== `trainer-reply-box-${parentId}`) b.innerHTML = ''; });
+  const box = document.getElementById(`trainer-reply-box-${parentId}`);
+  if (!box) return;
+  if (box.innerHTML) { box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="reply-input-wrap">
+    <textarea class="comment-textarea reply-textarea" id="trainer-reply-input-${parentId}" placeholder="Replying to @${esc(replyingToUsername)}..."></textarea>
+    <button class="comment-btn" onclick="submitTrainerReply('${parentId}','${trainerId}','${esc(replyingToUsername)}')">Reply</button>
+  </div>`;
+  document.getElementById(`trainer-reply-input-${parentId}`)?.focus();
+}
+
+async function submitTrainerReply(parentId, trainerId, replyingToUsername) {
+  const input = document.getElementById(`trainer-reply-input-${parentId}`);
+  const text = input ? input.value.trim() : '';
+  if (!text) return;
+  await sb.from('trainer_comments').insert({ trainer_id: trainerId, user_id: getUID(), username: getUsername(), text, parent_id: parentId });
+  const { data } = await sb.from('trainer_comments').select('*').eq('trainer_id', trainerId).order('created_at', { ascending: false }).limit(50);
+  renderTrainerComments(data || [], trainerId);
+}
+
+async function deleteTrainerComment(commentId, trainerId) {
+  await sb.from('trainer_comments').delete().eq('id', commentId);
+  const { data } = await sb.from('trainer_comments').select('*').eq('trainer_id', trainerId).order('created_at', { ascending: false }).limit(50);
+  renderTrainerComments(data || [], trainerId);
+}
+
+function closeTrainerModal() {
+  document.getElementById('trainer-modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function closeTrainerModalOnBg(e) {
+  if (e.target === document.getElementById('trainer-modal-overlay')) closeTrainerModal();
+}
 </script>
 </body>
 </html>
