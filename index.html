@@ -924,15 +924,16 @@ async function upsertUserProfile() {
 }
 
 // ── PROFILE MODAL ──
-async function openProfile() {
+function openProfile() { openUserProfile(getUID(), getUsername()); }
+
+async function openUserProfile(uid, username) {
   const overlay = document.getElementById('profile-overlay');
   const modal = document.getElementById('profile-modal');
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
-  modal.innerHTML = `<button class="modal-close" onclick="closeProfile()">&#x2715;</button><div style="padding:60px;text-align:center;color:var(--muted)">Loading your profile...</div>`;
+  modal.innerHTML = `<button class="modal-close" onclick="closeProfile()">&#x2715;</button><div style="padding:60px;text-align:center;color:var(--muted)">Loading profile...</div>`;
 
-  const uid = getUID();
-  const username = getUsername();
+  const isOwn = uid === getUID();
 
   const [{ data: myRatings }, { data: myComments }, { data: myCommentIds }] = await Promise.all([
     sb.from('ratings').select('pokemon_id, stars, updated_at').eq('user_id', uid).order('updated_at', { ascending: false }).limit(100),
@@ -950,7 +951,7 @@ async function openProfile() {
   const reviewCount = myComments ? myComments.length : 0;
   const ratingCount = myRatings ? myRatings.length : 0;
   const badge = getBadge(reviewCount);
-  const initial = username.charAt(0).toUpperCase();
+  const initial = (username||'A').charAt(0).toUpperCase();
 
   const ratedGrid = myRatings && myRatings.length
     ? myRatings.slice(0, 24).map(r => {
@@ -985,9 +986,9 @@ async function openProfile() {
     <button class="modal-close" onclick="closeProfile()">&#x2715;</button>
     <div class="profile-header">
       <div class="profile-avatar-large">${initial}</div>
-      <div class="profile-username">${esc(username)}</div>
+      <div class="profile-username">${esc(username||'Anonymous')}</div>
       ${badge ? `<div><div class="profile-badge" style="background:${badge.bg};color:${badge.color}">${badge.icon} ${badge.label}</div></div>` : '<div style="height:8px"></div>'}
-      <button class="profile-edit-btn" onclick="closeProfile();openNameModal()">✏️ Edit Username</button>
+      ${isOwn ? `<button class="profile-edit-btn" onclick="closeProfile();openNameModal()">✏️ Edit Username</button>` : ''}
     </div>
     <div class="profile-stats">
       <div class="profile-stat-box">
@@ -1005,11 +1006,11 @@ async function openProfile() {
     </div>
     <div class="profile-body">
       <div>
-        <div class="profile-section-title">My Rated Pokémon</div>
+        <div class="profile-section-title">${isOwn ? 'My' : `${esc(username||'Their')}'s`} Rated Pokémon</div>
         <div class="profile-rated-grid">${ratedGrid}</div>
       </div>
       <div>
-        <div class="profile-section-title">My Reviews</div>
+        <div class="profile-section-title">${isOwn ? 'My' : `${esc(username||'Their')}'s`} Reviews</div>
         <div class="profile-reviews-list">${reviewsList}</div>
       </div>
     </div>`;
@@ -1464,8 +1465,8 @@ function renderComments(rows, id, likesMap = {}, reviewerMap = {}) {
     const badge = !isReply ? badgeHTML(reviewCount) : '';
     return `<div class="${isReply ? 'reply-item' : 'comment-item'}" id="comment-${r.id}">
       <div class="comment-header">
-        <div class="comment-avatar">${initials}</div>
-        <span class="comment-username">${esc(r.username||'Anonymous')}</span>
+        <div class="comment-avatar" style="cursor:pointer" onclick="openUserProfile('${r.user_id}','${esc(r.username||'Anonymous')}')">${initials}</div>
+        <span class="comment-username" style="cursor:pointer" onclick="openUserProfile('${r.user_id}','${esc(r.username||'Anonymous')}')">${esc(r.username||'Anonymous')}</span>
         ${badge}
         ${r.stars && !isReply ? `<span class="comment-rating-badge">${'&#9733;'.repeat(r.stars)}</span>` : ''}
         ${isOwn ? `<span class="comment-own-badge">You</span>` : ''}
@@ -2287,8 +2288,8 @@ function renderTeamComments(rows, teamId) {
     const mention = isReply && replyingTo ? `<span class="reply-mention">@${esc(replyingTo)}</span> ` : '';
     return `<div class="${isReply ? 'reply-item' : 'comment-item'}" id="tc-${r.id}">
       <div class="comment-header">
-        <div class="comment-avatar">${initials}</div>
-        <span class="comment-username">${esc(r.username||'Anonymous')}</span>
+        <div class="comment-avatar" style="cursor:pointer" onclick="openUserProfile('${r.user_id}','${esc(r.username||'Anonymous')}')">${initials}</div>
+        <span class="comment-username" style="cursor:pointer" onclick="openUserProfile('${r.user_id}','${esc(r.username||'Anonymous')}')">${esc(r.username||'Anonymous')}</span>
         ${isOwn ? `<span class="comment-own-badge">You</span>` : ''}
         <span class="comment-date">${dateStr}</span>
       </div>
@@ -2642,8 +2643,8 @@ function renderTrainerComments(rows, trainerId, likesMap = {}) {
     const likes = likesMap[r.id] || { count: 0, likedByMe: false };
     return `<div class="${isReply ? 'reply-item' : 'comment-item'}">
       <div class="comment-header">
-        <div class="comment-avatar">${initials}</div>
-        <span class="comment-username">${esc(r.username||'Anonymous')}</span>
+        <div class="comment-avatar" style="cursor:pointer" onclick="openUserProfile('${r.user_id}','${esc(r.username||'Anonymous')}')">${initials}</div>
+        <span class="comment-username" style="cursor:pointer" onclick="openUserProfile('${r.user_id}','${esc(r.username||'Anonymous')}')">${esc(r.username||'Anonymous')}</span>
         ${isOwn ? `<span class="comment-own-badge">You</span>` : ''}
         <span class="comment-date">${dateStr}</span>
       </div>
