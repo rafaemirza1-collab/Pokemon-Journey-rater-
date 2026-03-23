@@ -157,6 +157,30 @@
     .rank-votes { font-size: 0.72rem; color: var(--muted); }
     .empty-rankings { text-align: center; padding: 60px 0; color: var(--muted); }
 
+    /* ── QUICK RATE ── */
+    #view-rate { min-height: calc(100vh - 64px); display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .rate-container { width: 100%; max-width: 420px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .rate-progress-wrap { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+    .rate-progress-bar { width: 100%; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .rate-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent)); border-radius: 2px; transition: width 0.4s ease; width: 0%; }
+    .rate-progress-label { font-size: 0.78rem; color: var(--muted); text-align: center; }
+    .rate-card-wrap { width: 100%; overflow: hidden; }
+    .rate-card { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 28px; padding: 36px 28px 28px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+    .rate-pokemon-num { font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+    .rate-pokemon-img { width: 180px; height: 180px; object-fit: contain; filter: drop-shadow(0 10px 28px rgba(0,0,0,0.5)); }
+    .rate-pokemon-name { font-size: 2rem; font-weight: 900; text-transform: capitalize; letter-spacing: -1px; line-height: 1; }
+    .rate-pokemon-types { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+    .rate-community { font-size: 0.78rem; color: var(--accent); font-weight: 600; }
+    .rate-stars { display: flex; gap: 10px; margin: 4px 0; }
+    .rate-star-btn { font-size: 2.8rem; cursor: pointer; color: #2a2a2a; transition: color 0.12s, transform 0.12s; border: none; background: none; padding: 0; line-height: 1; }
+    .rate-star-btn.hover, .rate-star-btn.lit { color: var(--accent); transform: scale(1.2); }
+    .rate-actions { display: flex; gap: 10px; margin-top: 4px; }
+    .rate-action-btn { padding: 9px 22px; border-radius: 999px; font-size: 0.83rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted); transition: all 0.2s; }
+    .rate-action-btn:hover { border-color: #555; color: var(--text); }
+    .rate-done { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 60px 0; color: var(--muted); text-align: center; }
+    .rate-done-icon { font-size: 4rem; }
+    .rate-done h2 { font-size: 1.6rem; font-weight: 900; color: var(--text); }
+
     /* ── SUGGESTIONS ── */
     .suggestions-section { border-top: 1px solid var(--border); padding: 24px 32px 28px; }
     .suggestions-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
@@ -233,6 +257,7 @@
   <div class="nav-tabs">
     <button class="nav-tab active" data-view="browse" onclick="switchView('browse')">Pokédex</button>
     <button class="nav-tab" data-view="rankings" onclick="switchView('rankings')">&#x1F3C6; Rankings</button>
+    <button class="nav-tab" data-view="rate" onclick="switchView('rate')">&#x26A1; Quick Rate</button>
   </div>
   <div class="nav-right">
     <div class="nav-search">
@@ -304,6 +329,17 @@
   </div>
   <div class="rankings-list" id="rankings-list">
     <div class="empty-rankings"><p>Loading...</p></div>
+  </div>
+</div>
+
+<!-- QUICK RATE VIEW -->
+<div id="view-rate" class="view">
+  <div class="rate-container">
+    <div class="rate-progress-wrap">
+      <div class="rate-progress-bar"><div class="rate-progress-fill" id="rate-progress-fill"></div></div>
+      <div class="rate-progress-label" id="rate-progress-label"></div>
+    </div>
+    <div class="rate-card-wrap" id="rate-card-wrap"></div>
   </div>
 </div>
 
@@ -1036,6 +1072,7 @@ function switchView(view) {
   document.getElementById(`view-${view}`).classList.add('active');
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.view===view));
   if (view === 'rankings') renderRankings();
+  if (view === 'rate') initRateMode();
 }
 
 // ═══════════════════════════════════════════════
@@ -1109,6 +1146,147 @@ function showToast(msg) {
   t.textContent = msg; t.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ═══════════════════════════════════════════════
+// QUICK RATE MODE
+// ═══════════════════════════════════════════════
+let rateQueue = [];
+let rateIndex = 0;
+
+function initRateMode() {
+  // Unrated Pokemon shuffled first, already-rated at the end
+  const rated = new Set(Object.keys(communityStats).filter(id => communityStats[id] && communityStats[id].count > 0).map(Number));
+  const unrated = allPokemon.filter(p => !rated.has(p.id)).sort(() => Math.random() - 0.5);
+  const alreadyRated = allPokemon.filter(p => rated.has(p.id)).sort(() => Math.random() - 0.5);
+  rateQueue = [...unrated, ...alreadyRated];
+  rateIndex = 0;
+  renderRateCard();
+}
+
+function renderRateCard() {
+  const wrap = document.getElementById('rate-card-wrap');
+  if (!wrap) return;
+
+  if (rateIndex >= rateQueue.length) {
+    wrap.innerHTML = `<div class="rate-done">
+      <div class="rate-done-icon">&#x1F389;</div>
+      <h2>You've rated them all!</h2>
+      <p style="font-size:0.9rem">True Pokémon Master.</p>
+      <button class="rate-action-btn" onclick="initRateMode()" style="margin-top:8px;color:var(--text)">Start Over</button>
+    </div>`;
+    document.getElementById('rate-progress-fill').style.width = '100%';
+    document.getElementById('rate-progress-label').textContent = `All ${rateQueue.length} Pokémon rated!`;
+    return;
+  }
+
+  const p = rateQueue[rateIndex];
+  const pct = Math.round((rateIndex / rateQueue.length) * 100);
+  document.getElementById('rate-progress-fill').style.width = pct + '%';
+  document.getElementById('rate-progress-label').textContent = `${rateIndex} rated · ${rateQueue.length - rateIndex} to go`;
+
+  const types = typeCache[p.id] || [];
+  const typeBadges = types.map(t =>
+    `<span class="type-badge" style="background:${TYPE_COLORS[t]||'#666'};font-size:0.78rem;padding:4px 12px">${t}</span>`
+  ).join('');
+  const stats = communityStats[p.id];
+  const communityNote = stats && stats.count
+    ? `<span class="rate-community">&#9733; ${stats.avg.toFixed(1)} community avg · ${stats.count} vote${stats.count>1?'s':''}</span>`
+    : '';
+
+  wrap.innerHTML = `<div class="rate-card" id="rate-card">
+    <span class="rate-pokemon-num">#${String(p.id).padStart(4,'0')}</span>
+    <img class="rate-pokemon-img" src="${ART(p.id)}" alt="${p.name}" onerror="this.src='${SPRITE(p.id)}'"/>
+    <div class="rate-pokemon-name">${p.name.replace(/-/g,' ')}</div>
+    <div class="rate-pokemon-types" id="rate-types">${typeBadges || '<span style="color:var(--muted);font-size:0.78rem">Loading...</span>'}</div>
+    ${communityNote}
+    <div class="rate-stars" id="rate-stars">
+      ${[1,2,3,4,5].map(i =>
+        `<button class="rate-star-btn" data-val="${i}"
+           onmouseenter="hoverRateStars(${i})" onmouseleave="unhoverRateStars()"
+           onclick="doQuickRate(${p.id},'${p.name}',${i})">&#9733;</button>`
+      ).join('')}
+    </div>
+    <div class="rate-actions">
+      <button class="rate-action-btn" onclick="skipRate()">Skip</button>
+      <button class="rate-action-btn" onclick="openModal(${p.id},'${p.name}')">Details</button>
+    </div>
+  </div>`;
+
+  if (!typeCache[p.id]) {
+    fetchTypes(p.id).then(() => {
+      const el = document.getElementById('rate-types');
+      if (el && typeCache[p.id]) {
+        el.innerHTML = typeCache[p.id].map(t =>
+          `<span class="type-badge" style="background:${TYPE_COLORS[t]||'#666'};font-size:0.78rem;padding:4px 12px">${t}</span>`
+        ).join('');
+      }
+    });
+  }
+}
+
+function hoverRateStars(v) {
+  document.querySelectorAll('.rate-star-btn').forEach((b, i) => b.classList.toggle('hover', i < v));
+}
+function unhoverRateStars() {
+  document.querySelectorAll('.rate-star-btn').forEach(b => b.classList.remove('hover'));
+}
+
+async function doQuickRate(pokemonId, pokemonName, stars) {
+  // Light up stars immediately
+  document.querySelectorAll('.rate-star-btn').forEach((b, i) => {
+    b.classList.toggle('lit', i < stars);
+    b.classList.remove('hover');
+    b.disabled = true;
+  });
+
+  if (dbReady) {
+    const uid = getUID();
+    await sb.from('ratings').upsert({
+      id: `${pokemonId}_${uid}`, pokemon_id: pokemonId, user_id: uid,
+      username: getUsername(), stars, updated_at: new Date().toISOString()
+    });
+    // Optimistic update to communityStats
+    const prev = communityStats[pokemonId] || { avg: 0, count: 0, comments: 0 };
+    const newCount = prev.count + 1;
+    communityStats[pokemonId] = {
+      avg: (prev.avg * prev.count + stars) / newCount,
+      count: newCount,
+      comments: prev.comments || 0
+    };
+  }
+
+  showToast(`${pokemonName.replace(/-/g,' ')} — ${stars} star${stars>1?'s':''}! &#9733;`);
+  advanceRateCard(false);
+}
+
+function skipRate() {
+  advanceRateCard(true);
+}
+
+function advanceRateCard(skipDirection) {
+  const card = document.getElementById('rate-card');
+  if (card) {
+    card.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
+    card.style.transform = skipDirection ? 'translateX(110%) rotate(4deg)' : 'translateX(-110%) rotate(-4deg)';
+    card.style.opacity = '0';
+  }
+  setTimeout(() => {
+    rateIndex++;
+    renderRateCard();
+    // Slide next card in from opposite side
+    const next = document.getElementById('rate-card');
+    if (next) {
+      next.style.transition = 'none';
+      next.style.transform = skipDirection ? 'translateX(-60%)' : 'translateX(60%)';
+      next.style.opacity = '0';
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        next.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
+        next.style.transform = 'translateX(0)';
+        next.style.opacity = '1';
+      }));
+    }
+  }, 220);
 }
 
 init();
