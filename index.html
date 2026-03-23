@@ -887,7 +887,6 @@ async function submitRating(id, stars) {
     loadBreakdown(id);
   }
   showToast(`Rated ${stars} star${stars>1?'s':''}!`);
-  scheduleAutoAdvance(id);
 }
 
 function updateCardStats(id, avg, count) {
@@ -940,7 +939,8 @@ async function submitComment(id) {
   if (error) { showToast('Could not post — check Supabase setup'); return; }
   input.value = '';
   showToast('Review posted!');
-  scheduleAutoAdvance(id);
+  const next = getNextPokemon(id);
+  if (next) openModal(next.id, next.name);
   // realtime will refresh the list automatically
 }
 
