@@ -227,6 +227,80 @@
       .modal-body { padding: 20px; }
       .setup-banner { margin: 14px 16px 0; }
     }
+
+    /* ── TEAMS ── */
+    #view-teams { padding: 32px; }
+    .teams-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 16px; flex-wrap: wrap; }
+    .teams-header h1 { font-size: 2rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 4px; }
+    .teams-header p { color: var(--muted); font-size: 0.88rem; }
+    .create-team-btn { flex-shrink: 0; padding: 10px 22px; border-radius: 999px; background: linear-gradient(135deg, var(--accent2), #5b21b6); color: white; font-weight: 700; font-size: 0.88rem; border: none; cursor: pointer; transition: opacity 0.2s; white-space: nowrap; }
+    .create-team-btn:hover { opacity: 0.85; }
+    .teams-sort-bar { display: flex; gap: 8px; margin-bottom: 20px; }
+    .teams-feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+    .team-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; gap: 12px; }
+    .team-card:hover { border-color: #444; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    .team-card-header { display: flex; align-items: center; gap: 10px; }
+    .team-card-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--accent2), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 800; color: white; flex-shrink: 0; }
+    .team-card-meta { flex: 1; min-width: 0; }
+    .team-card-name { font-size: 1rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .team-card-creator { font-size: 0.72rem; color: var(--muted); }
+    .team-card-sprites { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+    .team-card-sprite { width: 52px; height: 52px; object-fit: contain; image-rendering: pixelated; }
+    .team-card-desc { font-size: 0.82rem; color: #aaa; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .team-card-footer { display: flex; align-items: center; gap: 14px; padding-top: 8px; border-top: 1px solid var(--border); }
+    .team-card-stat { font-size: 0.75rem; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+    .teams-empty { text-align: center; padding: 60px 0; color: var(--muted); }
+
+    /* Builder overlay */
+    .builder-overlay { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); align-items: flex-start; justify-content: center; padding: 20px; overflow-y: auto; }
+    .builder-overlay.open { display: flex; }
+    .builder-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; width: 100%; max-width: 640px; padding: 32px; display: flex; flex-direction: column; gap: 18px; margin: auto; position: relative; }
+    .builder-modal-header { display: flex; align-items: center; justify-content: space-between; }
+    .builder-modal-header h2 { font-size: 1.4rem; font-weight: 900; }
+    .builder-slots { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+    .builder-slot { width: 88px; height: 88px; border: 2px dashed var(--border); border-radius: 14px; display: flex; align-items: center; justify-content: center; position: relative; background: var(--surface2); flex-shrink: 0; transition: border-color 0.2s; }
+    .builder-slot.filled { border-style: solid; border-color: var(--accent2); }
+    .builder-slot img { width: 64px; height: 64px; object-fit: contain; image-rendering: pixelated; }
+    .builder-slot-empty { font-size: 1.8rem; color: #2a2a2a; }
+    .builder-slot-remove { position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; background: var(--red); border-radius: 50%; border: none; cursor: pointer; font-size: 0.65rem; color: white; display: flex; align-items: center; justify-content: center; line-height: 1; }
+    .builder-slot-label { position: absolute; bottom: 3px; left: 0; right: 0; text-align: center; font-size: 0.5rem; color: var(--muted); font-weight: 700; text-transform: capitalize; overflow: hidden; white-space: nowrap; padding: 0 4px; }
+    .builder-field { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.9rem; outline: none; width: 100%; transition: border-color 0.2s; }
+    .builder-field:focus { border-color: var(--accent2); }
+    .builder-field::placeholder { color: var(--muted); }
+    .builder-desc-field { min-height: 80px; resize: vertical; }
+    .builder-picker-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+    .builder-pokemon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; max-height: 220px; overflow-y: auto; padding: 2px; }
+    .builder-poke-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 6px 4px; cursor: pointer; transition: all 0.15s; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+    .builder-poke-btn:hover:not(:disabled) { border-color: var(--accent2); background: rgba(59,91,167,0.12); }
+    .builder-poke-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .builder-poke-img { width: 46px; height: 46px; object-fit: contain; image-rendering: pixelated; }
+    .builder-poke-name { font-size: 0.55rem; font-weight: 600; text-transform: capitalize; color: var(--text); }
+    .builder-submit-btn { padding: 14px; border-radius: 999px; background: linear-gradient(135deg, var(--accent2), #5b21b6); color: white; font-weight: 700; font-size: 0.95rem; border: none; cursor: pointer; transition: opacity 0.2s; }
+    .builder-submit-btn:hover { opacity: 0.85; }
+    .builder-submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Team detail modal */
+    .team-detail-overlay { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); align-items: center; justify-content: center; padding: 20px; }
+    .team-detail-overlay.open { display: flex; }
+    .team-detail-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; width: 100%; max-width: 620px; max-height: 90vh; overflow-y: auto; position: relative; }
+    .team-detail-head { padding: 28px 32px 20px; border-bottom: 1px solid var(--border); }
+    .team-detail-creator-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .team-detail-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--accent2), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800; color: white; flex-shrink: 0; }
+    .team-detail-creator-name { font-weight: 700; font-size: 0.9rem; }
+    .team-detail-date { font-size: 0.72rem; color: var(--muted); }
+    .team-detail-name { font-size: 1.7rem; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 8px; }
+    .team-detail-desc { font-size: 0.88rem; color: #aaa; line-height: 1.7; }
+    .team-detail-body { padding: 24px 32px; display: flex; flex-direction: column; gap: 22px; }
+    .team-pokemon-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .team-poke-slot { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+    .team-poke-slot img { width: 76px; height: 76px; object-fit: contain; image-rendering: pixelated; transition: transform 0.2s; }
+    .team-poke-slot:hover img { transform: translateY(-4px); }
+    .team-poke-slot-name { font-size: 0.62rem; font-weight: 600; text-transform: capitalize; color: var(--muted); text-align: center; }
+    .team-like-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 20px; border-radius: 999px; border: 1px solid var(--border); background: none; color: var(--muted); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .team-like-btn:hover { border-color: #e05c7a; color: #e05c7a; }
+    .team-like-btn.liked { border-color: #e05c7a; color: #e05c7a; background: rgba(224,92,122,0.1); }
+    .team-comments-section { display: flex; flex-direction: column; gap: 10px; }
+    .team-comment-input-wrap { display: flex; flex-direction: column; gap: 8px; }
   </style>
 </head>
 <body>
@@ -252,6 +326,7 @@
   <div class="nav-tabs">
     <button class="nav-tab active" data-view="browse" onclick="switchView('browse')">Pokédex</button>
     <button class="nav-tab" data-view="rankings" onclick="switchView('rankings')">&#x1F3C6; Rankings</button>
+    <button class="nav-tab" data-view="teams" onclick="switchView('teams')">&#x1F6E1; Teams</button>
   </div>
   <div class="nav-right">
     <div class="nav-search">
@@ -326,6 +401,48 @@
   </div>
 </div>
 
+<!-- TEAMS VIEW -->
+<div id="view-teams" class="view">
+  <div class="teams-header">
+    <div>
+      <h1>&#x1F6E1; Team Builder</h1>
+      <p>Build and share your dream Pokémon team</p>
+    </div>
+    <button class="create-team-btn" onclick="openBuilder()">+ Create Team</button>
+  </div>
+  <div class="teams-sort-bar">
+    <button class="rank-tab active" id="teams-tab-recent" onclick="setTeamsSort('recent')">&#x1F552; Most Recent</button>
+    <button class="rank-tab" id="teams-tab-popular" onclick="setTeamsSort('popular')">&#x1F525; Most Popular</button>
+  </div>
+  <div class="teams-feed" id="teams-feed">
+    <div class="teams-empty"><p>Loading teams...</p></div>
+  </div>
+</div>
+
+<!-- TEAM BUILDER OVERLAY -->
+<div class="builder-overlay" id="builder-overlay">
+  <div class="builder-modal">
+    <div class="builder-modal-header">
+      <h2>&#x1F6E1; Build Your Team</h2>
+      <button class="modal-close" onclick="closeBuilder()">&#x2715;</button>
+    </div>
+    <div class="builder-slots" id="builder-slots"></div>
+    <input class="builder-field" id="builder-name" type="text" placeholder="Team name (e.g. Rain Dance Squad)" maxlength="60"/>
+    <textarea class="builder-field builder-desc-field" id="builder-desc" placeholder="Describe your team strategy — why these Pokémon, how they work together..."></textarea>
+    <div>
+      <div class="builder-picker-label" style="margin-bottom:8px">Pick your 6 Pokémon</div>
+      <input class="builder-field" id="builder-search" type="text" placeholder="Search Pokémon..." oninput="filterBuilderPokemon(this.value)" style="margin-bottom:10px"/>
+      <div class="builder-pokemon-grid" id="builder-pokemon-grid"></div>
+    </div>
+    <button class="builder-submit-btn" id="builder-submit-btn" onclick="submitTeam()">Share Team</button>
+  </div>
+</div>
+
+<!-- TEAM DETAIL OVERLAY -->
+<div class="team-detail-overlay" id="team-detail-overlay" onclick="closeTeamDetailOnBg(event)">
+  <div class="team-detail-modal" id="team-detail-modal"></div>
+</div>
+
 <!-- POKEMON MODAL -->
 <div class="modal-overlay" id="modal-overlay" onclick="closeModalOnBg(event)">
   <div class="modal" id="modal">
@@ -391,6 +508,43 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
   create policy "public read likes"   on comment_likes for select using (true);
   create policy "public insert likes" on comment_likes for insert with check (true);
   create policy "public delete likes" on comment_likes for delete using (true);
+
+  -- TEAM BUILDER (run these too):
+  create table teams (
+    id uuid primary key default gen_random_uuid(),
+    user_id text not null,
+    username text,
+    name text not null default 'My Team',
+    description text,
+    pokemon_ids integer[] not null,
+    created_at timestamptz default now()
+  );
+  create table team_likes (
+    team_id uuid references teams(id) on delete cascade,
+    user_id text not null,
+    primary key (team_id, user_id)
+  );
+  create table team_comments (
+    id uuid primary key default gen_random_uuid(),
+    team_id uuid references teams(id) on delete cascade,
+    user_id text not null,
+    username text,
+    text text not null,
+    parent_id uuid references team_comments(id) on delete cascade,
+    created_at timestamptz default now()
+  );
+  alter table teams enable row level security;
+  alter table team_likes enable row level security;
+  alter table team_comments enable row level security;
+  create policy "public read teams" on teams for select using (true);
+  create policy "public insert teams" on teams for insert with check (true);
+  create policy "public delete teams" on teams for delete using (true);
+  create policy "public read team_likes" on team_likes for select using (true);
+  create policy "public insert team_likes" on team_likes for insert with check (true);
+  create policy "public delete team_likes" on team_likes for delete using (true);
+  create policy "public read team_comments" on team_comments for select using (true);
+  create policy "public insert team_comments" on team_comments for insert with check (true);
+  create policy "public delete team_comments" on team_comments for delete using (true);
 */
 
 // ═══════════════════════════════════════════════
@@ -1207,6 +1361,7 @@ function switchView(view) {
   document.getElementById(`view-${view}`).classList.add('active');
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.view===view));
   if (view === 'rankings') renderRankings();
+  if (view === 'teams') loadTeams();
 }
 
 // ═══════════════════════════════════════════════
@@ -1283,6 +1438,350 @@ function showToast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
+
+// ═══════════════════════════════════════════════
+// TEAM BUILDER
+// ═══════════════════════════════════════════════
+let teamsData = [];
+let teamSort = 'recent';
+let builderSlots = [null,null,null,null,null,null];
+let builderSearchQuery = '';
+
+// ─── Feed ───
+async function loadTeams() {
+  if (!dbReady) return;
+  const { data: teams } = await sb.from('teams').select('*').order('created_at', { ascending: false }).limit(200);
+  if (!teams) return;
+  const { data: likes } = await sb.from('team_likes').select('team_id, user_id');
+  const { data: comments } = await sb.from('team_comments').select('team_id').is('parent_id', null);
+  const likesMap = {};
+  const myLikes = new Set();
+  if (likes) likes.forEach(l => {
+    likesMap[l.team_id] = (likesMap[l.team_id] || 0) + 1;
+    if (l.user_id === getUID()) myLikes.add(l.team_id);
+  });
+  const commentsMap = {};
+  if (comments) comments.forEach(c => { commentsMap[c.team_id] = (commentsMap[c.team_id] || 0) + 1; });
+  teamsData = teams.map(t => ({ ...t, likeCount: likesMap[t.id] || 0, commentCount: commentsMap[t.id] || 0, likedByMe: myLikes.has(t.id) }));
+  renderTeamsFeed();
+}
+
+function setTeamsSort(sort) {
+  teamSort = sort;
+  document.getElementById('teams-tab-recent').classList.toggle('active', sort === 'recent');
+  document.getElementById('teams-tab-popular').classList.toggle('active', sort === 'popular');
+  renderTeamsFeed();
+}
+
+function renderTeamsFeed() {
+  const feed = document.getElementById('teams-feed');
+  if (!feed) return;
+  if (!teamsData.length) {
+    feed.innerHTML = `<div class="teams-empty"><p>No teams yet.</p><small>Be the first to build one!</small></div>`;
+    return;
+  }
+  const sorted = [...teamsData].sort((a, b) =>
+    teamSort === 'popular' ? b.likeCount - a.likeCount : new Date(b.created_at) - new Date(a.created_at)
+  );
+  feed.innerHTML = sorted.map(t => {
+    const sprites = t.pokemon_ids.slice(0, 6).map(id =>
+      `<img class="team-card-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png" alt="${id}"/>`
+    ).join('');
+    const initials = (t.username || 'A').charAt(0).toUpperCase();
+    const dateStr = new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return `<div class="team-card" onclick="openTeamDetail('${t.id}')">
+      <div class="team-card-header">
+        <div class="team-card-avatar">${initials}</div>
+        <div class="team-card-meta">
+          <div class="team-card-name">${esc(t.name)}</div>
+          <div class="team-card-creator">by ${esc(t.username || 'Anonymous')} &middot; ${dateStr}</div>
+        </div>
+      </div>
+      <div class="team-card-sprites">${sprites}</div>
+      ${t.description ? `<div class="team-card-desc">${esc(t.description)}</div>` : ''}
+      <div class="team-card-footer">
+        <span class="team-card-stat">&#x2665; ${t.likeCount} like${t.likeCount !== 1 ? 's' : ''}</span>
+        <span class="team-card-stat">&#x1F4AC; ${t.commentCount} comment${t.commentCount !== 1 ? 's' : ''}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Builder ───
+function openBuilder() {
+  builderSlots = [null,null,null,null,null,null];
+  builderSearchQuery = '';
+  document.getElementById('builder-name').value = '';
+  document.getElementById('builder-desc').value = '';
+  document.getElementById('builder-search').value = '';
+  document.getElementById('builder-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  renderBuilderSlots();
+  renderBuilderPokemon();
+}
+
+function closeBuilder() {
+  document.getElementById('builder-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function renderBuilderSlots() {
+  const el = document.getElementById('builder-slots');
+  if (!el) return;
+  el.innerHTML = builderSlots.map((p, i) => {
+    if (p) {
+      return `<div class="builder-slot filled">
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png" alt="${p.name}"/>
+        <button class="builder-slot-remove" onclick="removeFromTeam(${i})">&#x2715;</button>
+        <span class="builder-slot-label">${p.name.replace(/-/g,' ')}</span>
+      </div>`;
+    }
+    return `<div class="builder-slot"><span class="builder-slot-empty">+</span></div>`;
+  }).join('');
+}
+
+function filterBuilderPokemon(q) {
+  builderSearchQuery = q.toLowerCase();
+  renderBuilderPokemon();
+}
+
+function renderBuilderPokemon() {
+  const el = document.getElementById('builder-pokemon-grid');
+  if (!el) return;
+  const selectedIds = new Set(builderSlots.filter(Boolean).map(p => p.id));
+  const filtered = allPokemon
+    .filter(p => !builderSearchQuery || p.name.includes(builderSearchQuery) || String(p.id).includes(builderSearchQuery))
+    .slice(0, 80);
+  el.innerHTML = filtered.map(p => {
+    const isSel = selectedIds.has(p.id);
+    return `<button class="builder-poke-btn" onclick="addToTeam(${p.id},'${p.name}')" ${isSel ? 'disabled' : ''}>
+      <img class="builder-poke-img" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png" alt="${p.name}"/>
+      <span class="builder-poke-name">${p.name.replace(/-/g,' ')}</span>
+    </button>`;
+  }).join('');
+}
+
+function addToTeam(id, name) {
+  const slot = builderSlots.indexOf(null);
+  if (slot === -1) { showToast('Team is full! Remove a Pokémon first.'); return; }
+  builderSlots[slot] = { id, name };
+  renderBuilderSlots();
+  renderBuilderPokemon();
+}
+
+function removeFromTeam(index) {
+  builderSlots[index] = null;
+  // Compact: shift non-null slots to front
+  const filled = builderSlots.filter(Boolean);
+  builderSlots = [...filled, ...Array(6 - filled.length).fill(null)];
+  renderBuilderSlots();
+  renderBuilderPokemon();
+}
+
+async function submitTeam() {
+  const filled = builderSlots.filter(Boolean);
+  if (filled.length < 6) { showToast('Pick all 6 Pokémon first!'); return; }
+  const name = document.getElementById('builder-name').value.trim() || 'My Team';
+  const description = document.getElementById('builder-desc').value.trim();
+  const btn = document.getElementById('builder-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sharing...';
+  const { error } = await sb.from('teams').insert({
+    user_id: getUID(), username: getUsername(),
+    name, description,
+    pokemon_ids: filled.map(p => p.id)
+  });
+  btn.disabled = false;
+  btn.textContent = 'Share Team';
+  if (error) { showToast('Could not save team'); return; }
+  showToast('Team shared!');
+  closeBuilder();
+  await loadTeams();
+}
+
+// ─── Team Detail ───
+async function openTeamDetail(teamId) {
+  const modal = document.getElementById('team-detail-modal');
+  modal.innerHTML = `<div style="padding:60px;text-align:center;color:var(--muted)">Loading...</div>`;
+  document.getElementById('team-detail-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  const [{ data: team }, { data: likes }, { data: comments }] = await Promise.all([
+    sb.from('teams').select('*').eq('id', teamId).single(),
+    sb.from('team_likes').select('user_id').eq('team_id', teamId),
+    sb.from('team_comments').select('*').eq('team_id', teamId).order('created_at', { ascending: true })
+  ]);
+  if (!team) { modal.innerHTML = `<div style="padding:40px;text-align:center">Team not found.</div>`; return; }
+
+  const likeCount = likes ? likes.length : 0;
+  const likedByMe = likes ? likes.some(l => l.user_id === getUID()) : false;
+  const uid = getUID();
+  const dateStr = new Date(team.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const initials = (team.username || 'A').charAt(0).toUpperCase();
+
+  const pokemonSlots = team.pokemon_ids.map(id => {
+    const p = allPokemon.find(x => x.id === id);
+    const name = p ? p.name : `#${id}`;
+    return `<div class="team-poke-slot" onclick="openModal(${id},'${name}')">
+      <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png"
+           onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png'" alt="${name}"/>
+      <span class="team-poke-slot-name">${name.replace(/-/g,' ')}</span>
+    </div>`;
+  }).join('');
+
+  modal.innerHTML = `
+    <button class="modal-close" onclick="closeTeamDetail()">&#x2715;</button>
+    <div class="team-detail-head">
+      <div class="team-detail-creator-row">
+        <div class="team-detail-avatar">${initials}</div>
+        <div>
+          <div class="team-detail-creator-name">${esc(team.username || 'Anonymous')}</div>
+          <div class="team-detail-date">${dateStr}</div>
+        </div>
+      </div>
+      <div class="team-detail-name">${esc(team.name)}</div>
+      ${team.description ? `<div class="team-detail-desc">${esc(team.description)}</div>` : ''}
+    </div>
+    <div class="team-detail-body">
+      <div class="team-pokemon-row">${pokemonSlots}</div>
+      <div>
+        <button class="team-like-btn ${likedByMe ? 'liked' : ''}" id="team-like-btn" onclick="toggleTeamLike('${teamId}', this)">
+          &#x2665; ${likeCount} Like${likeCount !== 1 ? 's' : ''}
+        </button>
+      </div>
+      <div class="team-comments-section">
+        <div class="section-label">Comments</div>
+        <div class="team-comment-input-wrap">
+          <textarea class="comment-textarea" id="team-comment-input" placeholder="Share your thoughts on this team..." onfocus="clearAutoAdvance()"></textarea>
+          <button class="comment-btn" onclick="submitTeamComment('${teamId}')">Post Comment</button>
+        </div>
+        <div class="comments-list" id="team-comments-list"></div>
+      </div>
+    </div>`;
+
+  renderTeamComments(comments || [], teamId);
+}
+
+function closeTeamDetail() {
+  document.getElementById('team-detail-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function closeTeamDetailOnBg(e) {
+  if (e.target === document.getElementById('team-detail-overlay')) closeTeamDetail();
+}
+
+async function toggleTeamLike(teamId, btn) {
+  const isLiked = btn.classList.contains('liked');
+  btn.classList.toggle('liked', !isLiked);
+  const current = parseInt(btn.textContent.match(/\d+/)?.[0] || 0);
+  const newCount = isLiked ? Math.max(0, current - 1) : current + 1;
+  btn.innerHTML = `&#x2665; ${newCount} Like${newCount !== 1 ? 's' : ''}`;
+
+  if (isLiked) {
+    await sb.from('team_likes').delete().eq('team_id', teamId).eq('user_id', getUID());
+  } else {
+    await sb.from('team_likes').insert({ team_id: teamId, user_id: getUID() });
+  }
+  // Refresh feed counts
+  const team = teamsData.find(t => t.id === teamId);
+  if (team) { team.likeCount += isLiked ? -1 : 1; team.likedByMe = !isLiked; }
+}
+
+function renderTeamComments(rows, teamId) {
+  const el = document.getElementById('team-comments-list');
+  if (!el) return;
+  if (!rows.length) { el.innerHTML = `<div class="no-comments">No comments yet — be the first!</div>`; return; }
+  const uid = getUID();
+  const topLevel = rows.filter(r => !r.parent_id);
+  const repliesMap = {};
+  rows.filter(r => r.parent_id).forEach(r => {
+    if (!repliesMap[r.parent_id]) repliesMap[r.parent_id] = [];
+    repliesMap[r.parent_id].push(r);
+  });
+
+  function buildTCHTML(r, isReply, replyingTo) {
+    const isOwn = r.user_id === uid;
+    const initials = (r.username||'A').charAt(0).toUpperCase();
+    const dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '';
+    const mention = isReply && replyingTo ? `<span class="reply-mention">@${esc(replyingTo)}</span> ` : '';
+    return `<div class="${isReply ? 'reply-item' : 'comment-item'}" id="tc-${r.id}">
+      <div class="comment-header">
+        <div class="comment-avatar">${initials}</div>
+        <span class="comment-username">${esc(r.username||'Anonymous')}</span>
+        ${isOwn ? `<span class="comment-own-badge">You</span>` : ''}
+        <span class="comment-date">${dateStr}</span>
+      </div>
+      <div class="comment-text">${mention}${esc(r.text)}</div>
+      <div class="comment-actions">
+        <button class="comment-reply-btn" onclick="openTeamReplyBox('${r.id}','${teamId}','${esc(r.username||'Anonymous')}')">Reply</button>
+        ${isOwn ? `<button class="comment-delete" onclick="deleteTeamComment('${r.id}','${teamId}')">&#x2715;</button>` : ''}
+      </div>
+      <div id="treply-box-${r.id}"></div>
+    </div>`;
+  }
+
+  el.innerHTML = topLevel.map(r => {
+    const replies = repliesMap[r.id] || [];
+    const repliesHTML = replies.length
+      ? `<div class="replies-list">${replies.map(rep => buildTCHTML(rep, true, r.username||'Anonymous')).join('')}</div>`
+      : '';
+    return buildTCHTML(r, false, '') + repliesHTML;
+  }).join('');
+}
+
+async function submitTeamComment(teamId) {
+  const input = document.getElementById('team-comment-input');
+  const text = input ? input.value.trim() : '';
+  if (!text) return;
+  const { error } = await sb.from('team_comments').insert({
+    team_id: teamId, user_id: getUID(), username: getUsername(), text
+  });
+  if (error) { showToast('Could not post comment'); return; }
+  input.value = '';
+  showToast('Comment posted!');
+  const { data } = await sb.from('team_comments').select('*').eq('team_id', teamId).order('created_at', { ascending: true });
+  renderTeamComments(data || [], teamId);
+  const team = teamsData.find(t => t.id === teamId);
+  if (team) team.commentCount++;
+}
+
+function openTeamReplyBox(parentId, teamId, replyingToUsername) {
+  document.querySelectorAll('[id^="treply-box-"]').forEach(el => { if (el.id !== `treply-box-${parentId}`) el.innerHTML = ''; });
+  const box = document.getElementById(`treply-box-${parentId}`);
+  if (!box) return;
+  if (box.innerHTML.trim()) { box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="inline-reply-wrap">
+    <textarea class="inline-reply-textarea" id="treply-input-${parentId}" placeholder="Replying to ${esc(replyingToUsername)}..."></textarea>
+    <div class="inline-reply-actions">
+      <button class="inline-reply-cancel" onclick="document.getElementById('treply-box-${parentId}').innerHTML=''">Cancel</button>
+      <button class="inline-reply-submit" onclick="submitTeamReply('${parentId}','${teamId}','${esc(replyingToUsername)}')">Post Reply</button>
+    </div>
+  </div>`;
+  document.getElementById(`treply-input-${parentId}`).focus();
+}
+
+async function submitTeamReply(parentId, teamId, replyingToUsername) {
+  const input = document.getElementById(`treply-input-${parentId}`);
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  const { error } = await sb.from('team_comments').insert({
+    team_id: teamId, user_id: getUID(), username: getUsername(), text, parent_id: parentId
+  });
+  if (error) { showToast('Could not post reply'); return; }
+  const box = document.getElementById(`treply-box-${parentId}`);
+  if (box) box.innerHTML = '';
+  showToast('Reply posted!');
+  const { data } = await sb.from('team_comments').select('*').eq('team_id', teamId).order('created_at', { ascending: true });
+  renderTeamComments(data || [], teamId);
+}
+
+async function deleteTeamComment(commentId, teamId) {
+  await sb.from('team_comments').delete().eq('id', commentId);
+  const { data } = await sb.from('team_comments').select('*').eq('team_id', teamId).order('created_at', { ascending: true });
+  renderTeamComments(data || [], teamId);
+}
 
 init();
 </script>
