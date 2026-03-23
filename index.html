@@ -299,6 +299,7 @@
     <div class="rank-tabs">
       <button class="rank-tab active" id="rank-tab-rated" onclick="setRankTab('rated')">&#x2B50; Top Rated</button>
       <button class="rank-tab" id="rank-tab-popular" onclick="setRankTab('popular')">&#x1F525; Most Popular</button>
+      <button class="rank-tab" id="rank-tab-reviewed" onclick="setRankTab('reviewed')">&#x1F4AC; Most Reviewed</button>
     </div>
   </div>
   <div class="rankings-list" id="rankings-list">
@@ -944,6 +945,7 @@ function setRankTab(tab) {
   currentRankTab = tab;
   document.getElementById('rank-tab-rated').classList.toggle('active', tab === 'rated');
   document.getElementById('rank-tab-popular').classList.toggle('active', tab === 'popular');
+  document.getElementById('rank-tab-reviewed').classList.toggle('active', tab === 'reviewed');
   renderRankings();
 }
 
@@ -959,45 +961,71 @@ async function renderRankings() {
   // Refresh stats every time rankings are opened so they're always current
   await loadCommunityStats();
 
-  // All 1025 Pokemon — rated ones first, unrated at the bottom by Pokédex number
+  // Build full list with ratings + comment counts
   const ranked = allPokemon.map(p => {
     const stats = communityStats[p.id];
-    return { id: p.id, name: p.name, avg: stats && stats.count ? stats.avg : 0, count: stats ? stats.count : 0 };
-  }).sort((a, b) => {
+    return {
+      id: p.id, name: p.name,
+      avg: stats && stats.count ? stats.avg : 0,
+      count: stats ? stats.count : 0,
+      comments: stats ? (stats.comments || 0) : 0
+    };
+  });
+
+  if (currentRankTab === 'reviewed') {
+    // Only Pokemon with at least one comment, sorted by comment count
+    ranked.sort((a, b) => b.comments - a.comments || b.count - a.count || a.id - b.id);
+    const withComments = ranked.filter(r => r.comments > 0);
+    if (!withComments.length) {
+      list.innerHTML = `<div class="empty-rankings"><p>No reviews yet.</p><small>Be the first to leave a comment!</small></div>`;
+      return;
+    }
+    list.innerHTML = withComments.map((r, i) => buildRankRow(r, i)).join('');
+    return;
+  }
+
+  ranked.sort((a, b) => {
     if (a.count > 0 && b.count === 0) return -1;
     if (a.count === 0 && b.count > 0) return 1;
     if (a.count > 0 && b.count > 0) {
       if (currentRankTab === 'popular') return b.count - a.count || b.avg - a.avg;
-      return b.avg - a.avg || b.count - a.count; // Top Rated: avg first
+      return b.avg - a.avg || b.count - a.count;
     }
     return a.id - b.id;
   });
 
-  list.innerHTML = ranked.map((r, i) => {
-    const p = allPokemon.find(x => x.id === r.id);
-    if (!p) return '';
-    const filled = Math.round(r.avg);
-    const stars = [1,2,3,4,5].map(s => `<span class="s ${s<=filled?'filled':''}">&#9733;</span>`).join('');
-    const numClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
-    const types = typeCache[r.id]
-      ? typeCache[r.id].map(t => `<span class="type-badge" style="background:${TYPE_COLORS[t]||'#666'};font-size:0.6rem;padding:1px 6px">${t}</span>`).join(' ')
-      : '';
-    const scoreDisplay = r.count > 0
-      ? currentRankTab === 'popular'
-        ? `<div class="rank-score">${r.count}</div><div class="rank-votes">vote${r.count>1?'s':''} · ${r.avg.toFixed(1)} avg</div>`
-        : `<div class="rank-score">${r.avg.toFixed(1)}</div><div class="rank-votes">${r.count} vote${r.count>1?'s':''}</div>`
-      : `<div class="rank-score" style="color:var(--muted);font-size:1rem">—</div><div class="rank-votes">No ratings</div>`;
-    return `<div class="rank-item" onclick="openModal(${r.id},'${p.name}')">
-      <div class="rank-num ${numClass}">${i+1}</div>
-      <img class="rank-img" src="${SPRITE(r.id)}" alt="${p.name}"/>
-      <div class="rank-info">
-        <div class="rank-name">${p.name.replace(/-/g,' ')}</div>
-        <div class="rank-sub">#${String(r.id).padStart(4,'0')} &middot; ${genLabel(r.id)} ${types}</div>
-        <div class="rank-stars">${stars}</div>
-      </div>
-      <div class="rank-right">${scoreDisplay}</div>
-    </div>`;
-  }).join('');
+  list.innerHTML = ranked.map((r, i) => buildRankRow(r, i)).join('');
+}
+
+function buildRankRow(r, i) {
+  const p = allPokemon.find(x => x.id === r.id);
+  if (!p) return '';
+  const filled = Math.round(r.avg);
+  const stars = [1,2,3,4,5].map(s => `<span class="s ${s<=filled?'filled':''}">&#9733;</span>`).join('');
+  const numClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+  const types = typeCache[r.id]
+    ? typeCache[r.id].map(t => `<span class="type-badge" style="background:${TYPE_COLORS[t]||'#666'};font-size:0.6rem;padding:1px 6px">${t}</span>`).join(' ')
+    : '';
+  let scoreDisplay;
+  if (currentRankTab === 'reviewed') {
+    scoreDisplay = `<div class="rank-score">${r.comments}</div><div class="rank-votes">review${r.comments>1?'s':''}${r.count > 0 ? ` · ${r.avg.toFixed(1)} avg` : ''}</div>`;
+  } else if (r.count > 0) {
+    scoreDisplay = currentRankTab === 'popular'
+      ? `<div class="rank-score">${r.count}</div><div class="rank-votes">vote${r.count>1?'s':''} · ${r.avg.toFixed(1)} avg</div>`
+      : `<div class="rank-score">${r.avg.toFixed(1)}</div><div class="rank-votes">${r.count} vote${r.count>1?'s':''}</div>`;
+  } else {
+    scoreDisplay = `<div class="rank-score" style="color:var(--muted);font-size:1rem">—</div><div class="rank-votes">No ratings</div>`;
+  }
+  return `<div class="rank-item" onclick="openModal(${r.id},'${p.name}')">
+    <div class="rank-num ${numClass}">${i+1}</div>
+    <img class="rank-img" src="${SPRITE(r.id)}" alt="${p.name}"/>
+    <div class="rank-info">
+      <div class="rank-name">${p.name.replace(/-/g,' ')}</div>
+      <div class="rank-sub">#${String(r.id).padStart(4,'0')} &middot; ${genLabel(r.id)} ${types}</div>
+      <div class="rank-stars">${stars}</div>
+    </div>
+    <div class="rank-right">${scoreDisplay}</div>
+  </div>`;
 }
 
 // ═══════════════════════════════════════════════
