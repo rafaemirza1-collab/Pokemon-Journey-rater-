@@ -1606,7 +1606,7 @@ async function submitComment(id) {
 async function deleteComment(commentId, pokemonId) {
   if (!dbReady) return;
   await sb.from('comments').delete().eq('id', commentId);
-  // realtime will refresh the list
+  await loadComments(pokemonId);
 }
 
 function openReplyBox(parentId, pokemonId, replyingToUsername) {
