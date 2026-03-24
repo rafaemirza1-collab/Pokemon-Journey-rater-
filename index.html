@@ -302,6 +302,29 @@
     .merge-yes-btn { flex: 1; padding: 9px; border-radius: 999px; background: var(--accent2); color: white; font-size: 0.82rem; font-weight: 700; border: none; cursor: pointer; }
     .merge-no-btn { flex: 1; padding: 9px; border-radius: 999px; background: var(--surface2); color: var(--muted); font-size: 0.82rem; font-weight: 600; border: 1px solid var(--border); cursor: pointer; }
     .nav-auth-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; margin-left: 4px; flex-shrink: 0; }
+    /* Account link modal */
+    .acct-link-overlay { display: none; position: fixed; inset: 0; z-index: 700; background: rgba(0,0,0,0.88); backdrop-filter: blur(12px); align-items: center; justify-content: center; padding: 20px; }
+    .acct-link-overlay.open { display: flex; }
+    .acct-link-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; padding: 36px 32px; max-width: 420px; width: 100%; text-align: center; }
+    .acct-link-modal h2 { font-size: 1.35rem; font-weight: 900; margin-bottom: 8px; letter-spacing: -0.5px; }
+    .acct-link-modal p { color: var(--muted); font-size: 0.88rem; line-height: 1.6; margin-bottom: 22px; }
+    .acct-link-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 13px 14px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.95rem; outline: none; text-align: center; transition: border-color 0.2s; margin-bottom: 10px; }
+    .acct-link-input:focus { border-color: var(--accent2); }
+    .acct-link-search-btn { width: 100%; padding: 13px; border-radius: 999px; background: linear-gradient(135deg, var(--accent2), #5b21b6); color: white; font-weight: 700; font-size: 0.92rem; border: none; cursor: pointer; margin-bottom: 10px; transition: opacity 0.2s; }
+    .acct-link-search-btn:hover { opacity: 0.88; }
+    .acct-link-results { margin: 4px 0 12px; text-align: left; display: flex; flex-direction: column; gap: 8px; }
+    .acct-link-result { background: var(--surface2); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .acct-link-result:hover { border-color: var(--accent2); transform: translateY(-2px); }
+    .acct-link-result-name { font-size: 0.95rem; font-weight: 800; }
+    .acct-link-result-stats { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .acct-link-result-arrow { font-size: 1rem; color: var(--accent2); flex-shrink: 0; }
+    .acct-link-skip { font-size: 0.82rem; color: var(--muted); cursor: pointer; margin-top: 4px; display: block; }
+    .acct-link-skip:hover { color: var(--text); }
+    .acct-link-msg { font-size: 0.82rem; color: var(--muted); padding: 10px 0; }
+    @media (max-width: 640px) {
+      .acct-link-overlay { padding: 0; align-items: flex-end; }
+      .acct-link-modal { border-radius: 24px 24px 0 0; max-width: 100%; padding: 28px 20px; }
+    }
 
     .setup-banner { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); border-radius: 12px; padding: 16px 20px; margin: 20px 32px 0; font-size: 0.88rem; line-height: 1.7; color: #ccc; display: none; }
     .setup-banner strong { color: #60a5fa; }
@@ -802,6 +825,20 @@
   <div class="merge-banner-btns">
     <button class="merge-yes-btn" onclick="mergeOldAccount()">Yes, link it</button>
     <button class="merge-no-btn" onclick="dismissMergeBanner()">No thanks</button>
+  </div>
+</div>
+
+<!-- ACCOUNT LINK MODAL -->
+<div class="acct-link-overlay" id="acct-link-overlay">
+  <div class="acct-link-modal">
+    <div style="font-size:2rem;margin-bottom:10px">🔗</div>
+    <h2>Connect your existing account</h2>
+    <p>Had an account before? Enter your trainer name and we'll find it so your ratings, squad, and reviews carry over.</p>
+    <input class="acct-link-input" id="acct-link-input" type="text" placeholder="Your old trainer name..." maxlength="24"
+      onkeydown="if(event.key==='Enter')findAccountByUsername()"/>
+    <button class="acct-link-search-btn" onclick="findAccountByUsername()">Find my account</button>
+    <div class="acct-link-results" id="acct-link-results"></div>
+    <span class="acct-link-skip" onclick="skipAccountLink()">I'm new here — start fresh</span>
   </div>
 </div>
 
@@ -1353,21 +1390,33 @@ async function onAuthSignedIn(checkForMerge) {
   }
   updateUserDisplay();
   document.getElementById('name-modal-overlay').classList.remove('open');
-  if (dbReady) upsertUserProfile();
 
-  // Check if guest has existing data to offer merging
   if (checkForMerge) {
+    // First check: do they have a localhost guest UID to merge?
     const oldUid = localStorage.getItem('pr_uid');
     if (oldUid && oldUid !== authUser.id && oldUid.startsWith('u_')) {
       const { data } = await sb.from('ratings').select('id').eq('user_id', oldUid).limit(1);
       if (data && data.length > 0) {
         pendingMergeUid = oldUid;
         document.getElementById('merge-banner').classList.add('show');
+        return;
       } else {
         localStorage.removeItem('pr_uid');
       }
     }
+    // Second check: does this OAuth account already have data?
+    const { data: existing } = await sb.from('ratings').select('id').eq('user_id', authUser.id).limit(1);
+    if (!existing || existing.length === 0) {
+      // Brand new OAuth account with no data — offer to connect old account
+      setTimeout(() => {
+        document.getElementById('acct-link-overlay').classList.add('open');
+      }, 600);
+      return;
+    }
   }
+
+  if (dbReady) upsertUserProfile();
+  showToast('Welcome back! ✓');
 }
 
 async function mergeOldAccount() {
@@ -1393,6 +1442,61 @@ async function mergeOldAccount() {
 function dismissMergeBanner() {
   document.getElementById('merge-banner').classList.remove('show');
   pendingMergeUid = null;
+}
+
+// ── ACCOUNT LINKING (find old account by username) ──
+async function findAccountByUsername() {
+  const input = document.getElementById('acct-link-input').value.trim();
+  const resultsEl = document.getElementById('acct-link-results');
+  if (!input) { resultsEl.innerHTML = `<div class="acct-link-msg">Enter your trainer name above.</div>`; return; }
+  resultsEl.innerHTML = `<div class="acct-link-msg">Searching...</div>`;
+
+  const { data } = await sb.from('user_profiles').select('user_id, username').ilike('username', input).limit(5);
+  if (!data || data.length === 0) {
+    resultsEl.innerHTML = `<div class="acct-link-msg">No account found with that name. Try a different spelling.</div>`;
+    return;
+  }
+
+  // Get rating + review counts for each match so user can confirm it's theirs
+  const results = await Promise.all(data.map(async u => {
+    const [{ count: rc }, { count: rvc }] = await Promise.all([
+      sb.from('ratings').select('*', { count: 'exact', head: true }).eq('user_id', u.user_id),
+      sb.from('comments').select('*', { count: 'exact', head: true }).eq('user_id', u.user_id).is('parent_id', null)
+    ]);
+    return { ...u, ratings: rc || 0, reviews: rvc || 0 };
+  }));
+
+  resultsEl.innerHTML = results.map(u => `
+    <div class="acct-link-result" onclick="confirmAccountLink('${u.user_id}', '${esc(u.username)}')">
+      <div>
+        <div class="acct-link-result-name">${esc(u.username)}</div>
+        <div class="acct-link-result-stats">${u.ratings} ratings · ${u.reviews} reviews</div>
+      </div>
+      <div class="acct-link-result-arrow">This is me →</div>
+    </div>
+  `).join('');
+}
+
+async function confirmAccountLink(oldUid, oldUsername) {
+  document.getElementById('acct-link-overlay').classList.remove('open');
+  showToast('Linking your account…');
+  const newUid = authUser.id;
+  const tables = ['ratings','comments','teams','drip_votes','drip_comments',
+                  'user_squads','hot_takes','hot_take_comments','hot_take_likes',
+                  'trainer_comments','trainer_comment_likes','trainer_comment_dislikes',
+                  'comment_likes','comment_dislikes','user_profiles'];
+  for (const t of tables) {
+    try { await sb.from(t).update({ user_id: newUid }).eq('user_id', oldUid); } catch {}
+  }
+  localStorage.setItem('pr_username', oldUsername);
+  showToast('Account linked! Your data is back ✓');
+  setTimeout(() => location.reload(), 1500);
+}
+
+function skipAccountLink() {
+  document.getElementById('acct-link-overlay').classList.remove('open');
+  if (dbReady) upsertUserProfile();
+  showToast('Signed in ✓');
 }
 
 // ── NAME / GUEST MODAL ──
