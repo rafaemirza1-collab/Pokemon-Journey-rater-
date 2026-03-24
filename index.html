@@ -2306,7 +2306,7 @@ async function loadConversationList() {
     const allIds = [...new Set([...otherIds, ...followingIds])];
 
     const { data: profiles } = allIds.length
-      ? await sb.from('user_profiles').select('user_id, username, trainer_avatar').in('user_id', allIds)
+      ? await sb.from('user_profiles').select('user_id, username').in('user_id', allIds)
       : { data: [] };
     const profMap = {};
     if (profiles) profiles.forEach(p => { profMap[p.user_id] = p; });
@@ -2377,20 +2377,21 @@ async function searchChatUsers(q) {
   const list = document.getElementById('chat-conv-list');
   list.innerHTML = '<div class="chat-empty">Searching...</div>';
   try {
-    const { data } = await sb.from('user_profiles')
-      .select('user_id, username, trainer_avatar')
+    const { data, error } = await sb.from('user_profiles')
+      .select('user_id, username')
       .ilike('username', `%${q}%`)
       .neq('user_id', getUID())
-      .not('username', 'ilike', 'anonymous')
       .not('username', 'is', null)
-      .limit(20);
-    if (!data || !data.length) {
+      .limit(50);
+    if (error) throw error;
+    const results = (data || []).filter(p => p.username && p.username.toLowerCase() !== 'anonymous');
+    if (!results.length) {
       list.innerHTML = `<div class="chat-empty">No trainers found for "${esc(q)}"</div>`;
       return;
     }
     list.innerHTML = `<div class="chat-section-label">Results for "${esc(q)}"</div>` +
-      data.map(p => chatUserItemHtml(
-        p.user_id, p.username || 'Trainer', p.trainer_avatar, '',
+      results.map(p => chatUserItemHtml(
+        p.user_id, p.username || 'Trainer', profileAvatarCache[p.user_id] || null, '',
         `startConversation('${p.user_id}','${esc(p.username || 'Trainer')}')`
       )).join('');
   } catch {
