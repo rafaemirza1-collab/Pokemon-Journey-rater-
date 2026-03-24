@@ -1590,6 +1590,20 @@ async function confirmGuestMerge(oldUid, oldUsername) {
 }
 
 // ── NAME / GUEST MODAL ──
+function openEditUsernameModal() {
+  const cur = localStorage.getItem('pr_username') || '';
+  document.querySelector('.name-modal').innerHTML = `
+    <div style="font-size:2rem;margin-bottom:10px">✏️</div>
+    <h2 style="font-size:1.4rem;font-weight:900;margin-bottom:8px">Edit Username</h2>
+    <p style="color:var(--muted);font-size:0.88rem;margin-bottom:20px">This is how other trainers see you on PokéRater.</p>
+    <input class="name-input" id="name-input" type="text" placeholder="Enter your trainer name..." maxlength="24"/>
+    <button class="name-save-btn" onclick="saveName()">Save Name</button>
+    <div class="name-skip" onclick="document.getElementById('name-modal-overlay').classList.remove('open')">Cancel</div>
+  `;
+  document.getElementById('name-input').value = cur === 'Anonymous' ? '' : cur;
+  document.getElementById('name-modal-overlay').classList.add('open');
+}
+
 function openNameModal() {
   const cur = localStorage.getItem('pr_username') || '';
   const modal = document.querySelector('.name-modal');
@@ -1760,7 +1774,7 @@ async function openUserProfile(uid, username) {
       ${badge ? `<div><div class="profile-badge" style="background:${badge.bg};color:${badge.color}">${badge.icon} ${badge.label}</div></div>` : '<div style="height:8px"></div>'}
       ${isOwn ? `
         <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px">
-          <button class="profile-edit-btn" onclick="closeProfile();openNameModal()">✏️ Edit Username</button>
+          <button class="profile-edit-btn" onclick="closeProfile();openEditUsernameModal()">✏️ Edit Username</button>
           ${authUser
             ? `<button class="auth-sign-out-btn" onclick="signOut()">Sign Out</button>
                <button class="auth-link-btn" onclick="closeProfile();openGuestMergeModal()">🔗 Link Account</button>`
