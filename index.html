@@ -1473,15 +1473,80 @@ async function init() {
 
 async function loadAllPokemon() {
   try {
-    const res = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=${TOTAL}&offset=0`);
+    // Fetch full list including alternate forms (2000 covers all current entries)
+    const res = await fetch('https://pokeapi.co/api/v2/pokemon?limit=2000&offset=0');
     const data = await res.json();
-    allPokemon = data.results.map(p => {
+    const all = data.results.map(p => {
       const parts = p.url.split('/').filter(Boolean);
       return { id: parseInt(parts[parts.length-1]), name: p.name };
-    }).filter(p => p.id <= TOTAL).sort((a,b) => a.id - b.id);
+    });
+
+    // Base Pokémon: IDs 1–1025
+    const base = all.filter(p => p.id >= 1 && p.id <= TOTAL);
+    const baseByName = {};
+    base.forEach(p => { baseByName[p.name] = p.id; p.sortKey = p.id; });
+
+    // Extra forms: Mega, Primal, Arceus variants, Gigantamax, Eternamax
+    const forms = all.filter(p => p.id > TOTAL && isWantedForm(p.name));
+    forms.forEach(p => {
+      const baseName = getFormBaseName(p.name);
+      const baseId = baseByName[baseName] || null;
+      p.baseId = baseId;
+      p.gen = baseId ? getPokemonGen(baseId) : null;
+      // Sort right after base species; ties broken by raw ID
+      p.sortKey = baseId ? baseId + 0.5 : 99999 + p.id * 0.0001;
+    });
+
+    allPokemon = [...base, ...forms].sort((a, b) =>
+      a.sortKey !== b.sortKey ? a.sortKey - b.sortKey : a.id - b.id
+    );
   } catch {
-    document.getElementById('pokemon-grid').innerHTML = `<div class="global-loader"><p>Failed to load. Check connection and refresh.</p></div>`;
+    document.getElementById('pokemon-grid').innerHTML =
+      `<div class="global-loader"><p>Failed to load. Check connection and refresh.</p></div>`;
   }
+}
+
+function isWantedForm(name) {
+  // Exclude form spam (costumes, palette swaps, size variants)
+  if (/^pikachu-/.test(name) || /^pichu-/.test(name)) return false;
+  if (/^eevee-(partner|starter)/.test(name)) return false;
+  if (/^alcremie-/.test(name)) return false;   // 63 colour variants
+  if (/^vivillon-/.test(name)) return false;   // 18 wing patterns
+  if (/minior-.*-core/.test(name)) return false;
+  if (/^basculin-/.test(name)) return false;
+  if (/^meowstic-/.test(name)) return false;
+  if (/^indeedee-/.test(name)) return false;
+  if (/^oinkologne-/.test(name)) return false;
+  if (/^maushold-/.test(name)) return false;
+  if (/castform-/.test(name)) return false;
+  if (/^mimikyu-(busted|totem)/.test(name)) return false;
+  // Include wanted forms
+  if (/-mega(-x|-y)?$/.test(name)) return true;   // all Mega evolutions
+  if (name.endsWith('-primal')) return true;       // Primal Kyogre/Groudon
+  if (/^arceus-/.test(name)) return true;          // all 18 Arceus type forms
+  if (name.includes('-gmax')) return true;         // all Gigantamax forms
+  if (name.endsWith('-eternamax')) return true;    // Eternamax Eternatus
+  return false;
+}
+
+function getFormBaseName(name) {
+  if (/^arceus-/.test(name)) return 'arceus';
+  if (name.endsWith('-eternamax')) return name.replace(/-eternamax$/, '');
+  if (/-mega(-x|-y)?$/.test(name)) return name.replace(/-mega(-x|-y)?$/, '');
+  if (name.endsWith('-primal')) return name.replace(/-primal$/, '');
+  if (name.includes('-gmax')) {
+    // e.g. toxtricity-amped-gmax → toxtricity, venusaur-gmax → venusaur
+    return name.split('-gmax')[0]
+      .replace(/-(amped|low-key|single-strike|rapid-strike|crowned)$/, '');
+  }
+  return name;
+}
+
+function getPokemonGen(id) {
+  for (const [gen, [min, max]] of Object.entries(GENS)) {
+    if (id >= min && id <= max) return parseInt(gen);
+  }
+  return null;
 }
 
 async function loadCommunityStats() {
@@ -1519,8 +1584,10 @@ async function loadCommunityStats() {
 function applyFilters() {
   let list = [...allPokemon];
   if (currentGen !== 'all') {
+    const genNum = parseInt(currentGen);
     const [min, max] = GENS[currentGen];
-    list = list.filter(p => p.id >= min && p.id <= max);
+    // Forms use p.gen (inherited from base species); base pokemon use ID range
+    list = list.filter(p => p.gen != null ? p.gen === genNum : (p.id >= min && p.id <= max));
   }
   if (currentTypeFilter !== 'all' && typePokemonCache[currentTypeFilter]) {
     list = list.filter(p => typePokemonCache[currentTypeFilter].has(p.id));
@@ -1540,7 +1607,7 @@ function applyFilters() {
       return ta.localeCompare(tb) || a.id - b.id;
     });
   } else {
-    list.sort((a,b) => a.id - b.id);
+    list.sort((a,b) => (a.sortKey||a.id) - (b.sortKey||b.id) || a.id - b.id);
   }
   filteredPokemon = list;
   displayedCount = 0;
