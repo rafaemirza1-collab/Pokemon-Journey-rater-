@@ -2381,6 +2381,8 @@ async function searchChatUsers(q) {
       .select('user_id, username, trainer_avatar')
       .ilike('username', `%${q}%`)
       .neq('user_id', getUID())
+      .not('username', 'ilike', 'anonymous')
+      .not('username', 'is', null)
       .limit(20);
     if (!data || !data.length) {
       list.innerHTML = `<div class="chat-empty">No trainers found for "${esc(q)}"</div>`;
@@ -2665,6 +2667,9 @@ async function init() {
     loadMyTrainerAvatarFromDB();
     updateChatBadge();
     subscribeToConvUpdates();
+    // Sync this user's profile so they show up in search
+    const username = getUsername();
+    if (username && username !== 'Anonymous') upsertUserProfile();
   }
   initHotTake();
   initDiscovery();
