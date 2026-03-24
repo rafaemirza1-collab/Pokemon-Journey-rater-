@@ -1683,8 +1683,9 @@ function createCard(p) {
 
   div.innerHTML = `
     <span class="poke-card-num">#${String(p.id).padStart(4,'0')}</span>
-    <img class="poke-card-img loading" src="${SPRITE(p.id)}" alt="${p.name}"
-         onload="this.classList.remove('loading')" onerror="this.removeAttribute('src')"/>
+    <img class="poke-card-img loading" src="${p.id > TOTAL ? ART(p.id) : SPRITE(p.id)}" alt="${p.name}"
+         onload="this.classList.remove('loading')"
+         onerror="this.onerror=null;this.style.imageRendering='auto';this.src='${ART(p.id)}'"/>
     <span class="poke-card-name">${p.name.replace(/-/g,' ')}</span>
     <div class="poke-card-types" data-types-id="${p.id}">${types}</div>
     <div class="poke-card-rating">
