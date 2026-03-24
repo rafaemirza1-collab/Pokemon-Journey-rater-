@@ -1719,6 +1719,7 @@ function isWantedForm(name) {
   if (/^arceus-/.test(name)) return true;          // all 18 Arceus type forms
   if (name.includes('-gmax')) return true;         // all Gigantamax forms
   if (name.endsWith('-eternamax')) return true;    // Eternamax Eternatus
+  if (name === 'greninja-ash') return true;        // Ash-Greninja
   return false;
 }
 
@@ -1732,6 +1733,7 @@ function getFormBaseName(name) {
     return name.split('-gmax')[0]
       .replace(/-(amped|low-key|single-strike|rapid-strike|crowned)$/, '');
   }
+  if (name === 'greninja-ash') return 'greninja';
   return name;
 }
 
