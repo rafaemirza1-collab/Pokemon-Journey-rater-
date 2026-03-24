@@ -93,6 +93,13 @@
     .modal-types { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
     .modal-type-badge { font-size: 0.8rem; font-weight: 700; padding: 4px 14px; border-radius: 999px; text-transform: capitalize; color: white; }
     .modal-gen { font-size: 0.8rem; color: var(--muted); }
+    .base-stats { margin-top: 20px; }
+    .base-stats-title { font-size: 0.7rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+    .stat-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+    .stat-name { font-size: 0.72rem; font-weight: 700; color: var(--muted); width: 54px; text-align: right; flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-val { font-size: 0.78rem; font-weight: 800; width: 28px; flex-shrink: 0; }
+    .stat-bar-bg { flex: 1; height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; }
+    .stat-bar-fill { height: 100%; border-radius: 999px; transition: width 0.6s ease; }
     .modal-community-score { margin-top: 12px; display: flex; align-items: center; gap: 10px; }
     .community-avg { font-size: 1.5rem; font-weight: 900; color: var(--accent); }
     .community-detail { display: flex; flex-direction: column; gap: 2px; }
@@ -2154,11 +2161,13 @@ const typeObserver = new IntersectionObserver(entries => {
   });
 }, { rootMargin: '300px' });
 
+const statsCache = {};
 async function fetchTypes(id) {
   try {
     const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
     const data = await res.json();
     typeCache[id] = data.types.map(t => t.type.name);
+    statsCache[id] = data.stats.map(s => ({ name: s.stat.name, value: s.base_stat }));
     saveTypeCache();
     const el = document.querySelector(`[data-types-id="${id}"]`);
     if (el) el.innerHTML = typeCache[id].map(t =>
@@ -2193,6 +2202,32 @@ async function openModal(id, name) {
     `<span class="modal-type-badge" style="background:${TYPE_COLORS[t]||'#666'}">${t}</span>`
   ).join('');
 
+  // Render base stats if available
+  const STAT_LABELS = { hp:'HP', attack:'Atk', defense:'Def', 'special-attack':'SpA', 'special-defense':'SpD', speed:'Spe' };
+  const STAT_COLORS = { hp:'#ff5959', attack:'#f5ac78', defense:'#fae078', 'special-attack':'#9db7f5', 'special-defense':'#a7db8d', speed:'#fa92b2' };
+  setTimeout(() => {
+    const statsEl = document.getElementById('modal-base-stats');
+    if (!statsEl) return;
+    const stats = statsCache[id];
+    if (!stats) return;
+    const total = stats.reduce((s, r) => s + r.value, 0);
+    statsEl.innerHTML = `
+      <div class="base-stats-title">Base Stats</div>
+      ${stats.map(s => {
+        const pct = Math.round((s.value / 255) * 100);
+        return `<div class="stat-row">
+          <div class="stat-name">${STAT_LABELS[s.name] || s.name}</div>
+          <div class="stat-val">${s.value}</div>
+          <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${pct}%;background:${STAT_COLORS[s.name]||'#888'}"></div></div>
+        </div>`;
+      }).join('')}
+      <div class="stat-row" style="margin-top:4px;border-top:1px solid var(--border);padding-top:6px">
+        <div class="stat-name" style="color:var(--text)">Total</div>
+        <div class="stat-val" style="color:var(--text);font-size:0.85rem">${total}</div>
+        <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${Math.round((total/780)*100)}%;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div></div>
+      </div>`;
+  }, 50);
+
   // Community score
   let stats = communityStats[id] || { avg: 0, count: 0 };
   if (dbReady && !stats.count) {
@@ -2215,6 +2250,7 @@ async function openModal(id, name) {
         <div class="modal-name">${name.replace(/-/g,' ')}</div>
         <div class="modal-types">${typeBadges}</div>
         <div class="modal-gen">${genLabel(id)}</div>
+        <div class="base-stats" id="modal-base-stats"></div>
         <div class="modal-community-score">
           <div class="community-avg" id="modal-avg">${avgDisp}</div>
           <div class="community-detail">
