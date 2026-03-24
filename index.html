@@ -283,6 +283,31 @@
     .profile-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 14px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; margin-bottom: 14px; }
     .profile-edit-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); border-radius: 999px; padding: 7px 18px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
     .profile-edit-btn:hover { border-color: #555; color: var(--text); }
+    /* SOCIAL STATS */
+    .profile-social-row { display: flex; justify-content: center; gap: 28px; margin: 10px 0 14px; }
+    .profile-social-stat { text-align: center; cursor: pointer; padding: 4px 8px; border-radius: 10px; transition: background 0.15s; }
+    .profile-social-stat:hover { background: var(--surface2); }
+    .profile-social-stat.no-click { cursor: default; }
+    .profile-social-stat.no-click:hover { background: transparent; }
+    .profile-social-num { font-size: 1.3rem; font-weight: 900; color: var(--text); line-height: 1; }
+    .profile-social-label { font-size: 0.65rem; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .follow-btn { padding: 9px 32px; border-radius: 999px; font-size: 0.88rem; font-weight: 700; cursor: pointer; transition: all 0.25s; margin-top: 8px; }
+    .follow-btn.not-following { background: linear-gradient(135deg, var(--accent), #c0392b); color: white; border: none; box-shadow: 0 0 16px rgba(230,57,70,0.3); }
+    .follow-btn.not-following:hover { transform: translateY(-1px); box-shadow: 0 0 24px rgba(230,57,70,0.5); }
+    .follow-btn.is-following { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .follow-btn.is-following:hover { border-color: var(--accent); color: var(--accent); background: rgba(230,57,70,0.08); }
+    /* FOLLOWERS MODAL */
+    .followers-overlay { display: none; position: fixed; inset: 0; z-index: 900; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); align-items: center; justify-content: center; padding: 20px; }
+    .followers-overlay.open { display: flex; }
+    .followers-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; width: 100%; max-width: 380px; max-height: 75vh; display: flex; flex-direction: column; overflow: hidden; }
+    .followers-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .followers-modal-title { font-size: 1rem; font-weight: 800; letter-spacing: -0.3px; }
+    .followers-list { overflow-y: auto; flex: 1; }
+    .follower-item { display: flex; align-items: center; gap: 12px; padding: 12px 24px; cursor: pointer; transition: background 0.15s; }
+    .follower-item:hover { background: var(--surface2); }
+    .follower-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--accent2), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 800; color: white; flex-shrink: 0; overflow: hidden; }
+    .follower-name { font-size: 0.9rem; font-weight: 700; }
+    .followers-empty { padding: 48px 24px; text-align: center; color: var(--muted); font-size: 0.9rem; }
     .profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); }
     .profile-stat-box { background: var(--surface); padding: 20px 12px; text-align: center; }
     .profile-stat-num { font-size: 1.8rem; font-weight: 900; color: var(--accent); line-height: 1; }
@@ -885,6 +910,17 @@
     <p id="guest-merge-desc">Searching this browser for a guest account to merge.</p>
     <div id="guest-merge-body"></div>
     <span class="guest-merge-cancel" onclick="closeGuestMergeModal()">Cancel</span>
+  </div>
+</div>
+
+<!-- FOLLOWERS / FOLLOWING MODAL -->
+<div class="followers-overlay" id="followers-overlay" onclick="if(event.target===this)closeFollowersModal()">
+  <div class="followers-modal">
+    <div class="followers-modal-header">
+      <div class="followers-modal-title" id="followers-modal-title">Followers</div>
+      <button class="modal-close" style="position:static;margin:0" onclick="closeFollowersModal()">&#x2715;</button>
+    </div>
+    <div class="followers-list" id="followers-list"></div>
   </div>
 </div>
 
@@ -1873,8 +1909,26 @@ async function openUserProfile(uid, username) {
     likesReceived = count || 0;
   }
 
+  // Social stats (followers/following/posts) — wrapped so missing table doesn't break profile
+  let followers = 0, following = 0, isFollowing = false, htCount = 0, tcCount = 0;
+  try {
+    const [fc, fgc, fRow, ht, tc] = await Promise.all([
+      sb.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', uid),
+      sb.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', uid),
+      isOwn ? Promise.resolve({ data: null }) : sb.from('follows').select('id').eq('follower_id', getUID()).eq('following_id', uid).maybeSingle(),
+      sb.from('hot_takes').select('*', { count: 'exact', head: true }).eq('user_id', uid),
+      sb.from('trainer_comments').select('*', { count: 'exact', head: true }).eq('user_id', uid)
+    ]);
+    followers = fc.count || 0;
+    following = fgc.count || 0;
+    isFollowing = !!fRow.data;
+    htCount = ht.count || 0;
+    tcCount = tc.count || 0;
+  } catch {}
+
   const reviewCount = myComments ? myComments.length : 0;
   const ratingCount = myRatings ? myRatings.length : 0;
+  const postCount = reviewCount + htCount + tcCount;
   const badge = getBadge(reviewCount);
   const initial = (username||'A').charAt(0).toUpperCase();
 
@@ -1956,7 +2010,21 @@ async function openUserProfile(uid, username) {
       })()}</div>
       ${isOwn ? `<div class="profile-change-photo" onclick="openTrainerPicker()">Change Photo</div>` : ''}
       <div class="profile-username">${esc(username||'Anonymous')}</div>
-      ${badge ? `<div><div class="profile-badge" style="background:${badge.bg};color:${badge.color}">${badge.icon} ${badge.label}</div></div>` : '<div style="height:8px"></div>'}
+      ${badge ? `<div><div class="profile-badge" style="background:${badge.bg};color:${badge.color}">${badge.icon} ${badge.label}</div></div>` : '<div style="height:4px"></div>'}
+      <div class="profile-social-row">
+        <div class="profile-social-stat" onclick="openFollowersModal('${uid}','followers')">
+          <div class="profile-social-num" id="follower-count-${uid}">${followers}</div>
+          <div class="profile-social-label">Followers</div>
+        </div>
+        <div class="profile-social-stat" onclick="openFollowersModal('${uid}','following')">
+          <div class="profile-social-num">${following}</div>
+          <div class="profile-social-label">Following</div>
+        </div>
+        <div class="profile-social-stat no-click">
+          <div class="profile-social-num">${postCount}</div>
+          <div class="profile-social-label">Posts</div>
+        </div>
+      </div>
       ${isOwn ? `
         <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px">
           <button class="profile-edit-btn" onclick="closeProfile();openEditUsernameModal()">✏️ Edit Username</button>
@@ -1965,7 +2033,7 @@ async function openUserProfile(uid, username) {
             : `<button class="auth-link-btn" onclick="closeProfile();document.getElementById('name-modal-overlay').classList.add('open')">🔗 Link Account</button>`}
         </div>
         ${authUser ? `<div style="font-size:0.72rem;color:var(--muted);margin-top:8px">✓ Signed in · ${esc(authUser.email||'')}</div>` : '<div style="font-size:0.72rem;color:var(--muted);margin-top:8px">Guest mode — sign in to sync across devices</div>'}
-      ` : ''}
+      ` : `<button class="follow-btn ${isFollowing ? 'is-following' : 'not-following'}" id="follow-btn-${uid}" onclick="${isFollowing ? `unfollowUser('${uid}')` : `followUser('${uid}')`}">${isFollowing ? 'Following' : 'Follow'}</button>`}
     </div>
     <div class="profile-stats">
       <div class="profile-stat-box">
@@ -2007,6 +2075,83 @@ function closeProfile() {
 }
 function closeProfileOnBg(e) {
   if (e.target === document.getElementById('profile-overlay')) closeProfile();
+}
+
+// ── FOLLOW SYSTEM ──
+async function followUser(uid) {
+  if (!getUID()) return showToast('Sign in to follow trainers');
+  try {
+    await sb.from('follows').insert({ follower_id: getUID(), following_id: uid });
+    const btn = document.getElementById('follow-btn-' + uid);
+    if (btn) {
+      btn.className = 'follow-btn is-following';
+      btn.textContent = 'Following';
+      btn.onclick = () => unfollowUser(uid);
+    }
+    const countEl = document.getElementById('follower-count-' + uid);
+    if (countEl) countEl.textContent = parseInt(countEl.textContent || '0') + 1;
+    showToast('Following ✓');
+  } catch {}
+}
+
+async function unfollowUser(uid) {
+  try {
+    await sb.from('follows').delete().eq('follower_id', getUID()).eq('following_id', uid);
+    const btn = document.getElementById('follow-btn-' + uid);
+    if (btn) {
+      btn.className = 'follow-btn not-following';
+      btn.textContent = 'Follow';
+      btn.onclick = () => followUser(uid);
+    }
+    const countEl = document.getElementById('follower-count-' + uid);
+    if (countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent || '0') - 1);
+    showToast('Unfollowed');
+  } catch {}
+}
+
+async function openFollowersModal(uid, type) {
+  const overlay = document.getElementById('followers-overlay');
+  const list = document.getElementById('followers-list');
+  document.getElementById('followers-modal-title').textContent = type === 'followers' ? 'Followers' : 'Following';
+  list.innerHTML = '<div class="followers-empty">Loading...</div>';
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  try {
+    let userIds = [];
+    if (type === 'followers') {
+      const { data } = await sb.from('follows').select('follower_id').eq('following_id', uid).limit(200);
+      userIds = data ? data.map(r => r.follower_id) : [];
+    } else {
+      const { data } = await sb.from('follows').select('following_id').eq('follower_id', uid).limit(200);
+      userIds = data ? data.map(r => r.following_id) : [];
+    }
+    if (!userIds.length) {
+      list.innerHTML = `<div class="followers-empty">${type === 'followers' ? 'No followers yet.' : 'Not following anyone yet.'}</div>`;
+      return;
+    }
+    const { data: profiles } = await sb.from('user_profiles').select('user_id, username, trainer_avatar').in('user_id', userIds);
+    list.innerHTML = userIds.map(id => {
+      const p = profiles ? profiles.find(x => x.user_id === id) : null;
+      const name = p?.username || 'Anonymous';
+      const av = p?.trainer_avatar;
+      const trainerObj = av ? TRAINERS.find(t => t.id === av) : null;
+      const initial = name.charAt(0).toUpperCase();
+      const avatarContent = trainerObj
+        ? `<img src="${trainerObj.img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;border-radius:50%;display:block" onerror="this.parentElement.textContent='${initial}'"/>`
+        : initial;
+      return `<div class="follower-item" onclick="closeFollowersModal();openUserProfile('${id}','${esc(name)}')">
+        <div class="follower-avatar">${avatarContent}</div>
+        <div class="follower-name">${esc(name)}</div>
+      </div>`;
+    }).join('');
+  } catch {
+    list.innerHTML = `<div class="followers-empty">Could not load.</div>`;
+  }
+}
+
+function closeFollowersModal() {
+  document.getElementById('followers-overlay').classList.remove('open');
+  document.body.style.overflow = '';
 }
 function updateUserDisplay() {
   const n = getUsername();
