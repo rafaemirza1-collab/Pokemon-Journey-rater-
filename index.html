@@ -1289,6 +1289,11 @@ const TYPE_COLORS = {
 let authUser = null;       // set when signed in via OAuth
 let pendingMergeUid = null; // old guest UID waiting to be merged
 
+function resolveUsername(userId, storedName) {
+  if (userId && userId === getUID()) return getUsername();
+  return storedName || 'Anonymous';
+}
+
 function getUID() {
   if (authUser) return authUser.id;
   let u = localStorage.getItem('pr_uid');
@@ -2377,8 +2382,8 @@ function renderComments(rows, id, likesMap = {}, reviewerMap = {}, dislikesMap =
     const badge = !isReply ? badgeHTML(reviewCount) : '';
     return `<div class="${isReply ? 'reply-item' : 'comment-item'}" id="comment-${r.id}">
       <div class="comment-header">
-        <div class="comment-avatar" style="cursor:pointer" onclick="openUserProfile('${r.user_id}','${esc(r.username||'Anonymous')}')">${initials}</div>
-        <span class="comment-username" style="cursor:pointer" onclick="openUserProfile('${r.user_id}','${esc(r.username||'Anonymous')}')">${esc(r.username||'Anonymous')}</span>
+        <div class="comment-avatar" style="cursor:pointer" onclick="openUserProfile('${r.user_id}','${esc(resolveUsername(r.user_id, r.username))}')">${initials}</div>
+        <span class="comment-username" style="cursor:pointer" onclick="openUserProfile('${r.user_id}','${esc(resolveUsername(r.user_id, r.username))}')">${esc(resolveUsername(r.user_id, r.username))}</span>
         ${badge}
         ${r.stars && !isReply ? `<span class="comment-rating-badge">${'&#9733;'.repeat(r.stars)}</span>` : ''}
         ${isOwn ? `<span class="comment-own-badge">You</span>` : ''}
@@ -2392,7 +2397,7 @@ function renderComments(rows, id, likesMap = {}, reviewerMap = {}, dislikesMap =
         <button class="comment-dislike ${dlikes.dislikedByMe ? 'disliked' : ''}" onclick="toggleDislike('${r.id}', ${id}, this)">
           &#x1F44E; ${dlikes.count > 0 ? `${dlikes.count} ` : ''}${dlikes.dislikedByMe ? 'Disliked' : 'Dislike'}
         </button>
-        <button class="comment-reply-btn" onclick="openReplyBox('${r.id}', ${id}, '${esc(r.username||'Anonymous')}')">Reply</button>
+        <button class="comment-reply-btn" onclick="openReplyBox('${r.id}', ${id}, '${esc(resolveUsername(r.user_id, r.username))}')">Reply</button>
       </div>
       <div id="reply-box-${r.id}"></div>
       ${(isOwn || isAdmin()) ? `<button class="comment-delete" onclick="deleteComment('${r.id}', ${id})">${isAdmin() && !isOwn ? '🗑' : '&#x2715;'}</button>` : ''}
@@ -2418,7 +2423,7 @@ function renderLocalComments(id) {
     <div class="comment-item">
       <div class="comment-header">
         <div class="comment-avatar">${(c.username||'A').charAt(0).toUpperCase()}</div>
-        <span class="comment-username">${esc(c.username||'Anonymous')}</span>
+        <span class="comment-username">${esc(resolveUsername(c.user_id || c.uid, c.username))}</span>
         ${c.uid === uid ? `<span class="comment-own-badge">You</span>` : ''}
         <span class="comment-date">${c.date||''}</span>
       </div>
@@ -3252,14 +3257,14 @@ function renderTeamComments(rows, teamId) {
     const mention = isReply && replyingTo ? `<span class="reply-mention">@${esc(replyingTo)}</span> ` : '';
     return `<div class="${isReply ? 'reply-item' : 'comment-item'}" id="tc-${r.id}">
       <div class="comment-header">
-        <div class="comment-avatar" style="cursor:pointer" onclick="openUserProfile('${r.user_id}','${esc(r.username||'Anonymous')}')">${initials}</div>
-        <span class="comment-username" style="cursor:pointer" onclick="openUserProfile('${r.user_id}','${esc(r.username||'Anonymous')}')">${esc(r.username||'Anonymous')}</span>
+        <div class="comment-avatar" style="cursor:pointer" onclick="openUserProfile('${r.user_id}','${esc(resolveUsername(r.user_id, r.username))}')">${initials}</div>
+        <span class="comment-username" style="cursor:pointer" onclick="openUserProfile('${r.user_id}','${esc(resolveUsername(r.user_id, r.username))}')">${esc(resolveUsername(r.user_id, r.username))}</span>
         ${isOwn ? `<span class="comment-own-badge">You</span>` : ''}
         <span class="comment-date">${dateStr}</span>
       </div>
       <div class="comment-text">${mention}${esc(r.text)}</div>
       <div class="comment-actions">
-        <button class="comment-reply-btn" onclick="openTeamReplyBox('${r.id}','${teamId}','${esc(r.username||'Anonymous')}')">Reply</button>
+        <button class="comment-reply-btn" onclick="openTeamReplyBox('${r.id}','${teamId}','${esc(resolveUsername(r.user_id, r.username))}')">Reply</button>
         ${(isOwn || isAdmin()) ? `<button class="comment-delete" onclick="deleteTeamComment('${r.id}','${teamId}')">${isAdmin() && !isOwn ? '🗑' : '&#x2715;'}</button>` : ''}
       </div>
       <div id="treply-box-${r.id}"></div>
@@ -3615,8 +3620,8 @@ function renderTrainerComments(rows, trainerId, likesMap = {}, dislikesMap = {})
     const tdlikes = dislikesMap[r.id] || { count: 0, dislikedByMe: false };
     return `<div class="${isReply ? 'reply-item' : 'comment-item'}">
       <div class="comment-header">
-        <div class="comment-avatar" style="cursor:pointer" onclick="openUserProfile('${r.user_id}','${esc(r.username||'Anonymous')}')">${initials}</div>
-        <span class="comment-username" style="cursor:pointer" onclick="openUserProfile('${r.user_id}','${esc(r.username||'Anonymous')}')">${esc(r.username||'Anonymous')}</span>
+        <div class="comment-avatar" style="cursor:pointer" onclick="openUserProfile('${r.user_id}','${esc(resolveUsername(r.user_id, r.username))}')">${initials}</div>
+        <span class="comment-username" style="cursor:pointer" onclick="openUserProfile('${r.user_id}','${esc(resolveUsername(r.user_id, r.username))}')">${esc(resolveUsername(r.user_id, r.username))}</span>
         ${isOwn ? `<span class="comment-own-badge">You</span>` : ''}
         <span class="comment-date">${dateStr}</span>
       </div>
@@ -3628,7 +3633,7 @@ function renderTrainerComments(rows, trainerId, likesMap = {}, dislikesMap = {})
         <button class="comment-dislike ${tdlikes.dislikedByMe ? 'disliked' : ''}" onclick="toggleTrainerDislike('${r.id}','${trainerId}',this)">
           &#x1F44E; ${tdlikes.count > 0 ? `${tdlikes.count} ` : ''}${tdlikes.dislikedByMe ? 'Disliked' : 'Dislike'}
         </button>
-        <button class="comment-reply-btn" onclick="openTrainerReplyBox('${r.id}','${trainerId}','${esc(r.username||'Anonymous')}')">Reply</button>
+        <button class="comment-reply-btn" onclick="openTrainerReplyBox('${r.id}','${trainerId}','${esc(resolveUsername(r.user_id, r.username))}')">Reply</button>
         ${(isOwn || isAdmin()) ? `<button class="comment-delete" onclick="deleteTrainerComment('${r.id}','${trainerId}')">${isAdmin() && !isOwn ? '🗑' : '&#x2715;'}</button>` : ''}
       </div>
       <div id="trainer-reply-box-${r.id}"></div>
@@ -4064,8 +4069,8 @@ function renderDripComments(comments, battleId) {
     }
     return `<div class="drip-comment-item">
       <div class="drip-comment-header">
-        <div class="drip-comment-avatar" onclick="openUserProfile('${c.user_id}','${esc(c.username||'Anonymous')}')">${initial}</div>
-        <span class="drip-comment-username" onclick="openUserProfile('${c.user_id}','${esc(c.username||'Anonymous')}')">${esc(c.username||'Anonymous')}</span>
+        <div class="drip-comment-avatar" onclick="openUserProfile('${c.user_id}','${esc(resolveUsername(c.user_id || c.uid, c.username))}')">${initial}</div>
+        <span class="drip-comment-username" onclick="openUserProfile('${c.user_id}','${esc(resolveUsername(c.user_id || c.uid, c.username))}')">${esc(resolveUsername(c.user_id || c.uid, c.username))}</span>
         ${votedFor}
         <span class="drip-comment-date">${dateStr}</span>
       </div>
@@ -4533,9 +4538,9 @@ async function renderHtFeed(reset) {
     const replies = commentMap[t.id] || 0;
     const timeStr = timeAgo(t.created_at);
     return `<div class="ht-card">
-      <div class="ht-card-header" onclick="openUserProfile('${t.user_id}','${esc(t.username||'Anonymous')}')">
+      <div class="ht-card-header" onclick="openUserProfile('${t.user_id}','${esc(resolveUsername(t.user_id, t.username))}')">
         <div class="ht-avatar">${initial}</div>
-        <span class="ht-username">${esc(t.username||'Anonymous')}</span>
+        <span class="ht-username">${esc(resolveUsername(t.user_id, t.username))}</span>
         <span class="ht-time">${timeStr}</span>
       </div>
       <div class="ht-text">${esc(t.text)}</div>
@@ -4639,9 +4644,9 @@ async function loadHtThread(takeId) {
   const initial = (take.username||'A').charAt(0).toUpperCase();
 
   head.innerHTML = `
-    <div class="ht-card-header" onclick="openUserProfile('${take.user_id}','${esc(take.username||'Anonymous')}')">
+    <div class="ht-card-header" onclick="openUserProfile('${take.user_id}','${esc(resolveUsername(take.user_id, take.username))}')">
       <div class="ht-avatar">${initial}</div>
-      <span class="ht-username">${esc(take.username||'Anonymous')}</span>
+      <span class="ht-username">${esc(resolveUsername(take.user_id, take.username))}</span>
       <span class="ht-time">${timeStr}</span>
     </div>
     <div class="ht-thread-original">${esc(take.text)}</div>
@@ -4665,9 +4670,9 @@ async function loadHtThread(takeId) {
     const ci = (c.username||'A').charAt(0).toUpperCase();
     const dateStr = new Date(c.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
     return `<div class="ht-reply-item" id="htr-${c.id}">
-      <div class="ht-reply-header" onclick="openUserProfile('${c.user_id}','${esc(c.username||'Anonymous')}')">
+      <div class="ht-reply-header" onclick="openUserProfile('${c.user_id}','${esc(resolveUsername(c.user_id || c.uid, c.username))}')">
         <div class="ht-avatar" style="width:24px;height:24px;font-size:0.65rem">${ci}</div>
-        <span class="ht-username" style="font-size:0.82rem">${esc(c.username||'Anonymous')}</span>
+        <span class="ht-username" style="font-size:0.82rem">${esc(resolveUsername(c.user_id || c.uid, c.username))}</span>
         ${badgeHTML(0)}
         <span class="ht-time">${dateStr}</span>
       </div>
