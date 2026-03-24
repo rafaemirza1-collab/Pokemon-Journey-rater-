@@ -1638,11 +1638,24 @@ function openNameModal() {
 }
 function saveName(skip) {
   const val = skip ? '' : document.getElementById('name-input').value.trim();
-  localStorage.setItem('pr_username', val || 'Anonymous');
+  const newName = val || 'Anonymous';
+  localStorage.setItem('pr_username', newName);
   updateUserDisplay();
   document.getElementById('name-modal-overlay').classList.remove('open');
-  if (dbReady) upsertUserProfile();
+  if (dbReady) {
+    upsertUserProfile();
+    if (!skip) updateUsernameEverywhere(newName);
+  }
   if (!skip) showToast('Name saved!');
+}
+
+async function updateUsernameEverywhere(newName) {
+  const uid = getUID();
+  if (!uid) return;
+  const tables = ['comments', 'drip_comments', 'hot_takes', 'hot_take_comments', 'trainer_comments'];
+  for (const t of tables) {
+    try { await sb.from(t).update({ username: newName }).eq('user_id', uid); } catch {}
+  }
 }
 
 // ── BADGE LOGIC ──
