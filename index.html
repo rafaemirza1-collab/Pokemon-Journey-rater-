@@ -141,6 +141,14 @@
       animation: shine-label 2.8s linear infinite;
       display: inline-block;
     }
+    .community-reviews-label {
+      font-size: 0.9rem; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 14px;
+      background: linear-gradient(90deg, var(--accent2) 0%, #c77dff 40%, #fff 50%, #c77dff 60%, var(--accent2) 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      animation: shine-label 2.8s linear infinite;
+      display: inline-block;
+    }
     @keyframes shine-label {
       0% { background-position: 200% center; }
       100% { background-position: -200% center; }
@@ -2376,7 +2384,7 @@ async function openModal(id, name) {
       <div class="ratings-breakdown" id="ratings-breakdown"></div>
     </div>
     <div>
-      <div class="section-label">Community Reviews</div>
+      <div class="community-reviews-label">Community Reviews</div>
       <div class="comment-input-wrap">
         <textarea class="comment-textarea" id="comment-input"
           placeholder="Share your journey — battles, memories, what this Pokémon excels at..."
@@ -3765,7 +3773,7 @@ async function openTrainerModal(trainerId) {
     <div class="trainer-modal-body">
       <div class="trainer-breakdown" id="trainer-breakdown"></div>
       <div>
-        <div class="section-label">Community Reviews</div>
+        <div class="community-reviews-label">Community Reviews</div>
         <div class="team-comment-input-wrap">
           <textarea class="comment-textarea" id="trainer-comment-input" placeholder="Share your thoughts on this trainer..."></textarea>
           <button class="comment-btn" onclick="submitTrainerComment('${trainerId}')">Post Review</button>
