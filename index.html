@@ -107,7 +107,30 @@
     .community-stars .s { font-size: 0.85rem; color: #333; }
     .community-stars .s.filled { color: var(--accent); }
     .community-label { font-size: 0.75rem; color: var(--muted); }
+    .modal-tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 5; }
+    .modal-tab { flex: 1; padding: 13px 10px; font-size: 0.82rem; font-weight: 700; background: none; border: none; color: var(--muted); cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .modal-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+    .modal-tab:hover:not(.active) { color: var(--text); }
     .modal-body { padding: 28px 32px; display: flex; flex-direction: column; gap: 28px; }
+    /* Pokédex Info tab */
+    .poke-info-tab { padding: 28px 32px; display: flex; flex-direction: column; gap: 32px; }
+    .poke-info-heading { font-size: 0.7rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+    .evo-chain { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .evo-stage { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+    .evo-stage.current .evo-sprite { outline: 2px solid var(--accent); border-radius: 50%; background: rgba(230,57,70,0.08); }
+    .evo-sprite { width: 72px; height: 72px; object-fit: contain; image-rendering: pixelated; }
+    .evo-name { font-size: 0.72rem; font-weight: 700; text-transform: capitalize; text-align: center; }
+    .evo-arrow-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 0 4px; }
+    .evo-arrow { font-size: 1.2rem; color: var(--muted); }
+    .evo-condition { font-size: 0.65rem; color: var(--accent2); font-weight: 600; text-align: center; max-width: 70px; line-height: 1.3; }
+    .moves-table { display: flex; flex-direction: column; gap: 4px; }
+    .move-row { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border); }
+    .move-level { font-size: 0.7rem; font-weight: 800; color: var(--accent); width: 36px; flex-shrink: 0; text-align: center; background: rgba(230,57,70,0.1); border-radius: 6px; padding: 2px 4px; }
+    .move-name { font-size: 0.85rem; font-weight: 600; text-transform: capitalize; }
+    @media (max-width: 640px) {
+      .poke-info-tab { padding: 18px 16px; gap: 24px; }
+      .evo-sprite { width: 56px; height: 56px; }
+    }
     .section-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 12px; }
     .stars-input { display: flex; gap: 8px; }
     .star-btn { font-size: 2rem; cursor: pointer; color: #333; transition: color 0.15s, transform 0.15s; border: none; background: none; padding: 0; line-height: 1; }
@@ -1064,7 +1087,12 @@
   <div class="modal" id="modal">
     <button class="modal-close" onclick="closeModal()">&#x2715;</button>
     <div id="modal-hero"></div>
+    <div class="modal-tabs" id="modal-tabs">
+      <button class="modal-tab active" id="modal-tab-ratings" onclick="switchModalTab('ratings')">⭐ Ratings & Reviews</button>
+      <button class="modal-tab" id="modal-tab-pokedex" onclick="switchModalTab('pokedex')">📖 Pokédex Info</button>
+    </div>
     <div class="modal-body" id="modal-body"></div>
+    <div id="modal-pokedex-tab" style="display:none"></div>
   </div>
 </div>
 
@@ -2187,8 +2215,12 @@ function genLabel(id) {
   return '';
 }
 
+let currentModalId = null;
+const movesCache = {};
+
 async function openModal(id, name) {
   clearAutoAdvance();
+  currentModalId = id;
   if (realtimeChannel) { if (sb) sb.removeChannel(realtimeChannel); realtimeChannel = null; }
   const existingSugg = document.getElementById('suggestions-section');
   if (existingSugg) existingSugg.remove();
@@ -2196,12 +2228,28 @@ async function openModal(id, name) {
   document.getElementById('modal-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 
+  // Reset tabs to default
+  document.getElementById('modal-tab-ratings').classList.add('active');
+  document.getElementById('modal-tab-pokedex').classList.remove('active');
+  document.getElementById('modal-body').style.display = '';
+  document.getElementById('modal-pokedex-tab').style.display = 'none';
+  document.getElementById('modal-pokedex-tab').dataset.loaded = '';
+
   // Always fetch fresh data for this Pokémon (types + stats in one call)
   try {
     const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
     const pdata = await res.json();
     typeCache[id] = pdata.types.map(t => t.type.name);
     statsCache[id] = pdata.stats.map(s => ({ name: s.stat.name, value: s.base_stat }));
+    movesCache[id] = pdata.moves
+      .map(m => {
+        const lvlDetails = m.version_group_details.filter(d => d.move_learn_method.name === 'level-up');
+        if (!lvlDetails.length) return null;
+        const level = lvlDetails[lvlDetails.length - 1].level_learned_at;
+        return { name: m.move.name, level };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.level - b.level);
     saveTypeCache();
   } catch {}
 
@@ -2312,6 +2360,87 @@ async function openModal(id, name) {
   } else {
     renderLocalComments(id);
   }
+}
+
+function switchModalTab(tab) {
+  document.getElementById('modal-body').style.display = tab === 'ratings' ? '' : 'none';
+  document.getElementById('modal-pokedex-tab').style.display = tab === 'pokedex' ? '' : 'none';
+  document.getElementById('modal-tab-ratings').classList.toggle('active', tab === 'ratings');
+  document.getElementById('modal-tab-pokedex').classList.toggle('active', tab === 'pokedex');
+  if (tab === 'pokedex' && !document.getElementById('modal-pokedex-tab').dataset.loaded) {
+    document.getElementById('modal-pokedex-tab').dataset.loaded = '1';
+    loadPokedexTab(currentModalId);
+  }
+}
+
+async function loadPokedexTab(id) {
+  const el = document.getElementById('modal-pokedex-tab');
+  el.innerHTML = `<div class="poke-info-tab"><div style="color:var(--muted);font-size:0.88rem;text-align:center;padding:20px 0">Loading...</div></div>`;
+
+  // Evolution chain
+  let evoHTML = '';
+  try {
+    const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`);
+    const speciesData = await speciesRes.json();
+    const chainRes = await fetch(speciesData.evolution_chain.url);
+    const chainData = await chainRes.json();
+
+    const stages = [];
+    function walkChain(node) {
+      const speciesId = parseInt(node.species.url.split('/').filter(Boolean).pop());
+      const condition = node.evolution_details[0] || null;
+      stages.push({ id: speciesId, name: node.species.name, condition });
+      node.evolves_to.forEach(n => walkChain(n));
+    }
+    walkChain(chainData.chain);
+
+    function evoConditionText(detail) {
+      if (!detail) return '';
+      if (detail.min_level) return `Lv. ${detail.min_level}`;
+      if (detail.item) return detail.item.name.replace(/-/g,' ');
+      if (detail.trigger?.name === 'trade') return 'Trade';
+      if (detail.min_happiness) return 'Happiness';
+      if (detail.trigger?.name === 'use-item' && detail.item) return detail.item.name.replace(/-/g,' ');
+      return detail.trigger?.name?.replace(/-/g,' ') || '';
+    }
+
+    let evoChain = '';
+    stages.forEach((stage, i) => {
+      if (i > 0) {
+        const cond = evoConditionText(stage.condition);
+        evoChain += `<div class="evo-arrow-wrap"><div class="evo-arrow">→</div>${cond ? `<div class="evo-condition">${cond}</div>` : ''}</div>`;
+      }
+      const isCurrent = stage.id === id;
+      evoChain += `
+        <div class="evo-stage ${isCurrent ? 'current' : ''}" onclick="closeModal();setTimeout(()=>openModal(${stage.id},'${stage.name}'),100)">
+          <img class="evo-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${stage.id}.png" alt="${stage.name}"/>
+          <div class="evo-name">${stage.name.replace(/-/g,' ')}</div>
+          ${isCurrent ? '<div style="font-size:0.6rem;color:var(--accent);font-weight:700;margin-top:2px">◀ YOU ARE HERE</div>' : ''}
+        </div>`;
+    });
+    evoHTML = stages.length > 1
+      ? `<div><div class="poke-info-heading">Evolution Chain</div><div class="evo-chain">${evoChain}</div></div>`
+      : `<div><div class="poke-info-heading">Evolution Chain</div><div style="color:var(--muted);font-size:0.85rem">This Pokémon does not evolve.</div></div>`;
+  } catch {
+    evoHTML = `<div><div class="poke-info-heading">Evolution Chain</div><div style="color:var(--muted);font-size:0.85rem">Could not load evolution data.</div></div>`;
+  }
+
+  // Level-up moves
+  const moves = movesCache[id] || [];
+  const movesHTML = moves.length
+    ? `<div>
+        <div class="poke-info-heading">Moves Learned by Level Up</div>
+        <div class="moves-table">
+          ${moves.map(m => `
+            <div class="move-row">
+              <div class="move-level">${m.level === 0 ? '—' : `Lv.${m.level}`}</div>
+              <div class="move-name">${m.name.replace(/-/g,' ')}</div>
+            </div>`).join('')}
+        </div>
+      </div>`
+    : `<div><div class="poke-info-heading">Moves Learned by Level Up</div><div style="color:var(--muted);font-size:0.85rem">No level-up moves found.</div></div>`;
+
+  el.innerHTML = `<div class="poke-info-tab">${evoHTML}${movesHTML}</div>`;
 }
 
 function getNextPokemon(currentId) {
