@@ -918,6 +918,12 @@
   .chat-input:focus { border-color: #555; }
   .chat-send-btn { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #c0392b); border: none; color: white; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
   .chat-send-btn:hover { transform: scale(1.1); }
+  .chat-search-wrap { padding: 10px 12px 6px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
+  .chat-search-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; font-size: 0.83rem; color: var(--text); outline: none; font-family: 'Inter', sans-serif; box-sizing: border-box; }
+  .chat-search-input:focus { border-color: #555; }
+  .chat-section-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); padding: 10px 16px 6px; }
+  .user-result-item { display: flex; align-items: center; gap: 12px; padding: 10px 16px; cursor: pointer; transition: background 0.15s; }
+  .user-result-item:hover { background: var(--surface2); }
   @media (max-width: 640px) {
     .chat-drawer { right: 0; width: 100%; border-radius: 16px 16px 0 0; }
   }
@@ -1019,6 +1025,10 @@
     <button class="chat-back-btn" id="chat-back-btn" onclick="chatBackToList()" style="display:none">&#x2190;</button>
     <div class="chat-drawer-title" id="chat-drawer-title">Messages</div>
     <button class="chat-close-btn" onclick="closeChat()">&#x2715;</button>
+  </div>
+  <div class="chat-search-wrap" id="chat-search-wrap">
+    <input class="chat-search-input" id="chat-search-input" placeholder="Search trainers..." autocomplete="off"
+      oninput="onChatSearch(this.value)"/>
   </div>
   <div class="chat-conv-list" id="chat-conv-list"></div>
   <div class="chat-messages-wrap" id="chat-messages-wrap" style="display:none"></div>
@@ -2255,6 +2265,8 @@ function chatBackToList() {
   activeChatConvId = null;
   activeChatOtherUid = null;
   document.getElementById('chat-conv-list').style.display = '';
+  document.getElementById('chat-search-wrap').style.display = '';
+  document.getElementById('chat-search-input').value = '';
   document.getElementById('chat-messages-wrap').style.display = 'none';
   document.getElementById('chat-input-row').style.display = 'none';
   document.getElementById('chat-back-btn').style.display = 'none';
@@ -2263,51 +2275,124 @@ function chatBackToList() {
   loadConversationList();
 }
 
+function chatUserItemHtml(uid, name, trainerAvatar, sublabel, onclick) {
+  const trainerObj = trainerAvatar ? TRAINERS.find(t => t.id === trainerAvatar) : null;
+  const initial = (name || 'T').charAt(0).toUpperCase();
+  const avatarContent = trainerObj
+    ? `<img src="${trainerObj.img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;border-radius:50%;display:block"/>`
+    : initial;
+  return `<div class="user-result-item" onclick="${onclick}">
+    <div class="conv-avatar">${avatarContent}</div>
+    <div class="conv-info">
+      <div class="conv-name">${esc(name)}</div>
+      ${sublabel ? `<div class="conv-preview">${sublabel}</div>` : ''}
+    </div>
+  </div>`;
+}
+
 async function loadConversationList() {
   const list = document.getElementById('chat-conv-list');
   list.innerHTML = '<div class="chat-empty">Loading...</div>';
   const uid = getUID();
   try {
-    const { data: convs } = await sb.from('conversations')
-      .select('*').or(`user_a.eq.${uid},user_b.eq.${uid}`)
-      .order('last_at', { ascending: false }).limit(50);
-    if (!convs || !convs.length) {
-      list.innerHTML = '<div class="chat-empty">No messages yet.<br/>Message someone from their profile!</div>';
-      return;
-    }
-    // Fetch other users' profiles for avatars/names
-    const otherIds = convs.map(c => c.user_a === uid ? c.user_b : c.user_a);
-    const { data: profiles } = await sb.from('user_profiles').select('user_id, username, trainer_avatar').in('user_id', otherIds);
+    // Load in parallel: conversations + people I follow
+    const [{ data: convs }, { data: followRows }] = await Promise.all([
+      sb.from('conversations').select('*').or(`user_a.eq.${uid},user_b.eq.${uid}`).order('last_at', { ascending: false }).limit(50),
+      sb.from('follows').select('following_id').eq('follower_id', uid).limit(20)
+    ]);
+
+    const otherIds = (convs || []).map(c => c.user_a === uid ? c.user_b : c.user_a);
+    const followingIds = (followRows || []).map(r => r.following_id).filter(id => id !== uid);
+    const allIds = [...new Set([...otherIds, ...followingIds])];
+
+    const { data: profiles } = allIds.length
+      ? await sb.from('user_profiles').select('user_id, username, trainer_avatar').in('user_id', allIds)
+      : { data: [] };
     const profMap = {};
     if (profiles) profiles.forEach(p => { profMap[p.user_id] = p; });
-    list.innerHTML = convs.map(c => {
-      const otherId = c.user_a === uid ? c.user_b : c.user_a;
-      const isUserA = c.user_a === uid;
-      const myUnread = isUserA ? (c.unread_a || 0) : (c.unread_b || 0);
-      const p = profMap[otherId];
-      const name = p?.username || c[isUserA ? 'name_b' : 'name_a'] || 'Trainer';
-      const av = p?.trainer_avatar;
-      const trainerObj = av ? TRAINERS.find(t => t.id === av) : null;
-      const initial = name.charAt(0).toUpperCase();
-      const avatarContent = trainerObj
-        ? `<img src="${trainerObj.img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;border-radius:50%;display:block"/>`
-        : initial;
-      const timeStr = c.last_at ? timeAgo(c.last_at) : '';
-      const preview = c.last_message ? esc(c.last_message).slice(0, 40) + (c.last_message.length > 40 ? '…' : '') : 'Say hello!';
-      return `<div class="conv-item ${myUnread > 0 ? 'unread' : ''}" onclick="openConversation('${c.id}','${otherId}','${esc(name)}')">
-        <div class="conv-avatar">${avatarContent}</div>
-        <div class="conv-info">
-          <div class="conv-name">${esc(name)}</div>
-          <div class="conv-preview">${preview}</div>
-        </div>
-        <div class="conv-meta">
-          <div class="conv-time">${timeStr}</div>
-          ${myUnread > 0 ? `<div class="conv-unread-dot"></div>` : ''}
-        </div>
-      </div>`;
-    }).join('');
+
+    // Suggested: people I follow who I haven't messaged yet
+    const convOtherSet = new Set(otherIds);
+    const suggested = followingIds.filter(id => !convOtherSet.has(id));
+
+    let html = '';
+
+    if (suggested.length) {
+      html += `<div class="chat-section-label">Suggested</div>`;
+      html += suggested.map(id => {
+        const p = profMap[id];
+        const name = p?.username || 'Trainer';
+        return chatUserItemHtml(id, name, p?.trainer_avatar, 'Following', `startConversation('${id}','${esc(name)}')`);
+      }).join('');
+    }
+
+    if (convs && convs.length) {
+      html += `<div class="chat-section-label">Recent</div>`;
+      html += convs.map(c => {
+        const otherId = c.user_a === uid ? c.user_b : c.user_a;
+        const isUserA = c.user_a === uid;
+        const myUnread = isUserA ? (c.unread_a || 0) : (c.unread_b || 0);
+        const p = profMap[otherId];
+        const name = p?.username || c[isUserA ? 'name_b' : 'name_a'] || 'Trainer';
+        const av = p?.trainer_avatar;
+        const trainerObj = av ? TRAINERS.find(t => t.id === av) : null;
+        const initial = name.charAt(0).toUpperCase();
+        const avatarContent = trainerObj
+          ? `<img src="${trainerObj.img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;border-radius:50%;display:block"/>`
+          : initial;
+        const timeStr = c.last_at ? timeAgo(c.last_at) : '';
+        const preview = c.last_message ? esc(c.last_message).slice(0, 40) + (c.last_message.length > 40 ? '…' : '') : 'Say hello!';
+        return `<div class="conv-item ${myUnread > 0 ? 'unread' : ''}" onclick="openConversation('${c.id}','${otherId}','${esc(name)}')">
+          <div class="conv-avatar">${avatarContent}</div>
+          <div class="conv-info">
+            <div class="conv-name">${esc(name)}</div>
+            <div class="conv-preview">${preview}</div>
+          </div>
+          <div class="conv-meta">
+            <div class="conv-time">${timeStr}</div>
+            ${myUnread > 0 ? `<div class="conv-unread-dot"></div>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    if (!html) {
+      html = '<div class="chat-empty">No messages yet.<br/>Search for a trainer to start chatting!</div>';
+    }
+    list.innerHTML = html;
   } catch(e) {
     list.innerHTML = '<div class="chat-empty">Could not load messages.</div>';
+  }
+}
+
+let _chatSearchTimer = null;
+function onChatSearch(val) {
+  clearTimeout(_chatSearchTimer);
+  const q = val.trim();
+  if (!q) { loadConversationList(); return; }
+  _chatSearchTimer = setTimeout(() => searchChatUsers(q), 280);
+}
+
+async function searchChatUsers(q) {
+  const list = document.getElementById('chat-conv-list');
+  list.innerHTML = '<div class="chat-empty">Searching...</div>';
+  try {
+    const { data } = await sb.from('user_profiles')
+      .select('user_id, username, trainer_avatar')
+      .ilike('username', `%${q}%`)
+      .neq('user_id', getUID())
+      .limit(20);
+    if (!data || !data.length) {
+      list.innerHTML = `<div class="chat-empty">No trainers found for "${esc(q)}"</div>`;
+      return;
+    }
+    list.innerHTML = `<div class="chat-section-label">Results for "${esc(q)}"</div>` +
+      data.map(p => chatUserItemHtml(
+        p.user_id, p.username || 'Trainer', p.trainer_avatar, '',
+        `startConversation('${p.user_id}','${esc(p.username || 'Trainer')}')`
+      )).join('');
+  } catch {
+    list.innerHTML = '<div class="chat-empty">Search failed.</div>';
   }
 }
 
@@ -2316,6 +2401,7 @@ async function openConversation(convId, otherUid, otherName) {
   activeChatOtherUid = otherUid;
   activeChatOtherName = otherName;
   document.getElementById('chat-conv-list').style.display = 'none';
+  document.getElementById('chat-search-wrap').style.display = 'none';
   document.getElementById('chat-messages-wrap').style.display = 'flex';
   document.getElementById('chat-input-row').style.display = 'flex';
   document.getElementById('chat-back-btn').style.display = '';
