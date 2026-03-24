@@ -1471,10 +1471,56 @@ async function findGuestAccountToMerge() {
     }
   }
 
-  // Nothing found
-  titleEl.textContent = 'No guest account found';
-  descEl.textContent = 'We couldn\'t find a guest account linked to this browser. If your old data was on a different device or browser, it can\'t be recovered automatically.';
-  bodyEl.innerHTML = '';
+  // Auto-detection failed — show manual search fallback
+  titleEl.textContent = 'Enter your old trainer name';
+  descEl.textContent = 'We couldn\'t detect your old account automatically. Type the trainer name you used before signing in with Google.';
+  bodyEl.innerHTML = `
+    <input id="guest-merge-name-input" type="text" placeholder="Your old trainer name..." maxlength="24"
+      style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:13px 14px;color:var(--text);font-family:'Inter',sans-serif;font-size:0.95rem;outline:none;text-align:center;margin-bottom:10px;transition:border-color 0.2s;"
+      onkeydown="if(event.key==='Enter')searchGuestByName()"
+      onfocus="this.style.borderColor='var(--accent2)'" onblur="this.style.borderColor='var(--border)'"/>
+    <button class="guest-merge-confirm-btn" onclick="searchGuestByName()">Find my account</button>
+    <div id="guest-merge-search-results" style="margin-top:10px"></div>
+  `;
+}
+
+async function searchGuestByName() {
+  const input = document.getElementById('guest-merge-name-input').value.trim();
+  const resultsEl = document.getElementById('guest-merge-search-results');
+  if (!input) return;
+  resultsEl.innerHTML = `<div style="font-size:0.82rem;color:var(--muted);padding:8px 0">Searching...</div>`;
+
+  const { data: profiles } = await sb.from('user_profiles').select('user_id, username').ilike('username', input);
+  if (!profiles || profiles.length === 0) {
+    resultsEl.innerHTML = `<div style="font-size:0.82rem;color:var(--muted);padding:8px 0">No account found with that name.</div>`;
+    return;
+  }
+  // Only show guest accounts (u_ prefix), not other OAuth accounts
+  const guests = profiles.filter(p => p.user_id.startsWith('u_') && p.user_id !== authUser.id);
+  if (guests.length === 0) {
+    resultsEl.innerHTML = `<div style="font-size:0.82rem;color:var(--muted);padding:8px 0">No guest account found with that name.</div>`;
+    return;
+  }
+
+  const withCounts = await Promise.all(guests.map(async g => {
+    const [{ count: rc }, { count: cc }] = await Promise.all([
+      sb.from('ratings').select('*', { count: 'exact', head: true }).eq('user_id', g.user_id),
+      sb.from('comments').select('*', { count: 'exact', head: true }).eq('user_id', g.user_id).is('parent_id', null)
+    ]);
+    return { ...g, ratings: rc || 0, reviews: cc || 0 };
+  }));
+
+  resultsEl.innerHTML = withCounts.map(g => `
+    <div onclick="confirmGuestMerge('${g.user_id}','${esc(g.username)}')"
+      style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;transition:border-color 0.2s;"
+      onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div>
+        <div style="font-size:0.95rem;font-weight:800">🎮 ${esc(g.username)}</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:2px">${g.ratings} ratings · ${g.reviews} reviews</div>
+      </div>
+      <div style="font-size:0.88rem;color:var(--accent2);font-weight:700;flex-shrink:0">This is me →</div>
+    </div>
+  `).join('');
 }
 
 async function showGuestMergeFound(oldUid, username, guestRatings, guestReviews) {
@@ -1545,7 +1591,6 @@ async function confirmGuestMerge(oldUid, oldUsername) {
 
 // ── NAME / GUEST MODAL ──
 function openNameModal() {
-  if (authUser) { openProfile(); return; } // already signed in — open profile instead
   const cur = localStorage.getItem('pr_username') || '';
   document.getElementById('name-input').value = cur === 'Anonymous' ? '' : cur;
   document.getElementById('name-modal-overlay').classList.add('open');
