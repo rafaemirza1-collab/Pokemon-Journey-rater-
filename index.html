@@ -132,6 +132,18 @@
       .evo-sprite { width: 56px; height: 56px; }
     }
     .section-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 12px; }
+    .your-rating-label {
+      font-size: 0.9rem; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 14px;
+      background: linear-gradient(90deg, var(--accent) 0%, #ff9a9e 40%, #fff 50%, #ff9a9e 60%, var(--accent) 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      animation: shine-label 2.8s linear infinite;
+      display: inline-block;
+    }
+    @keyframes shine-label {
+      0% { background-position: 200% center; }
+      100% { background-position: -200% center; }
+    }
     .stars-input { display: flex; gap: 8px; }
     .star-btn { font-size: 2rem; cursor: pointer; color: #333; transition: color 0.15s, transform 0.15s; border: none; background: none; padding: 0; line-height: 1; }
     .star-btn:hover, .star-btn.hover, .star-btn.selected { color: var(--accent); }
@@ -2324,7 +2336,7 @@ async function openModal(id, name) {
 
   document.getElementById('modal-body').innerHTML = `
     <div>
-      <div class="section-label">Your Rating</div>
+      <div class="your-rating-label">Your Rating</div>
       <div class="stars-input" id="stars-input">
         ${[1,2,3,4,5].map(i =>
           `<button class="star-btn ${i<=myRating?'selected':''}" data-val="${i}"
@@ -3674,7 +3686,7 @@ async function openTrainerModal(trainerId) {
           </div>
         </div>
         <div class="trainer-modal-my-rating">
-          <div class="section-label">Your Rating</div>
+          <div class="your-rating-label">Your Rating</div>
           <div class="trainer-stars-row" id="trainer-stars-input">${myStarBtns}</div>
           <div class="trainer-modal-rating-note" id="trainer-rating-note">
             ${myRating ? `You rated <span>${myRating}/5 stars</span>` : "You haven't rated this yet"}
