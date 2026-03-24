@@ -126,7 +126,8 @@
     .moves-table { display: flex; flex-direction: column; gap: 4px; }
     .move-row { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border); }
     .move-level { font-size: 0.7rem; font-weight: 800; color: var(--accent); width: 36px; flex-shrink: 0; text-align: center; background: rgba(230,57,70,0.1); border-radius: 6px; padding: 2px 4px; }
-    .move-name { font-size: 0.85rem; font-weight: 600; text-transform: capitalize; }
+    .move-name { font-size: 0.85rem; font-weight: 600; text-transform: capitalize; flex: 1; }
+    .move-type-badge { font-size: 0.65rem; font-weight: 700; text-transform: capitalize; padding: 2px 8px; border-radius: 999px; color: white; flex-shrink: 0; letter-spacing: 0.5px; }
     @media (max-width: 640px) {
       .poke-info-tab { padding: 18px 16px; gap: 24px; }
       .evo-sprite { width: 56px; height: 56px; }
@@ -2437,20 +2438,34 @@ async function loadPokedexTab(id) {
     evoHTML = `<div><div class="poke-info-heading">Evolution Chain</div><div style="color:var(--muted);font-size:0.85rem">Could not load evolution data.</div></div>`;
   }
 
-  // Level-up moves
+  // Level-up moves — fetch types in parallel, use cache
   const moves = movesCache[id] || [];
-  const movesHTML = moves.length
-    ? `<div>
-        <div class="poke-info-heading">Moves Learned by Level Up</div>
-        <div class="moves-table">
-          ${moves.map(m => `
-            <div class="move-row">
-              <div class="move-level">${m.level === 0 ? '—' : `Lv.${m.level}`}</div>
-              <div class="move-name">${m.name.replace(/-/g,' ')}</div>
-            </div>`).join('')}
-        </div>
-      </div>`
-    : `<div><div class="poke-info-heading">Moves Learned by Level Up</div><div style="color:var(--muted);font-size:0.85rem">No level-up moves found.</div></div>`;
+  let movesHTML = `<div><div class="poke-info-heading">Moves Learned by Level Up</div><div style="color:var(--muted);font-size:0.85rem">No level-up moves found.</div></div>`;
+  if (moves.length) {
+    const moveTypeCache = window._moveTypeCache || (window._moveTypeCache = {});
+    const uncached = moves.filter(m => !moveTypeCache[m.name]);
+    await Promise.all(uncached.map(async m => {
+      try {
+        const r = await fetch(`https://pokeapi.co/api/v2/move/${m.name}`);
+        const d = await r.json();
+        moveTypeCache[m.name] = d.type.name;
+      } catch { moveTypeCache[m.name] = 'normal'; }
+    }));
+    movesHTML = `<div>
+      <div class="poke-info-heading">Moves Learned by Level Up</div>
+      <div class="moves-table">
+        ${moves.map(m => {
+          const type = moveTypeCache[m.name] || 'normal';
+          const color = TYPE_COLORS[type] || '#9399A4';
+          return `<div class="move-row" style="border-left: 3px solid ${color}; background: ${color}18;">
+            <div class="move-level">${m.level === 0 ? '—' : `Lv.${m.level}`}</div>
+            <div class="move-name">${m.name.replace(/-/g,' ')}</div>
+            <div class="move-type-badge" style="background:${color}">${type}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
 
   el.innerHTML = `<div class="poke-info-tab">${evoHTML}${movesHTML}</div>`;
 }
