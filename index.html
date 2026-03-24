@@ -300,6 +300,23 @@
     .merge-yes-btn { flex: 1; padding: 9px; border-radius: 999px; background: var(--accent2); color: white; font-size: 0.82rem; font-weight: 700; border: none; cursor: pointer; }
     .merge-no-btn { flex: 1; padding: 9px; border-radius: 999px; background: var(--surface2); color: var(--muted); font-size: 0.82rem; font-weight: 600; border: 1px solid var(--border); cursor: pointer; }
     .nav-auth-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; margin-left: 4px; flex-shrink: 0; }
+    /* Guest merge modal */
+    .guest-merge-overlay { display: none; position: fixed; inset: 0; z-index: 800; background: rgba(0,0,0,0.88); backdrop-filter: blur(12px); align-items: center; justify-content: center; padding: 20px; }
+    .guest-merge-overlay.open { display: flex; }
+    .guest-merge-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; padding: 36px 32px; max-width: 400px; width: 100%; text-align: center; }
+    .guest-merge-modal h2 { font-size: 1.25rem; font-weight: 900; margin-bottom: 8px; letter-spacing: -0.5px; }
+    .guest-merge-modal p { color: var(--muted); font-size: 0.88rem; line-height: 1.6; margin-bottom: 20px; }
+    .guest-merge-found { background: rgba(199,125,255,0.08); border: 1px solid rgba(199,125,255,0.25); border-radius: 14px; padding: 16px; margin-bottom: 18px; }
+    .guest-merge-found-name { font-size: 1rem; font-weight: 800; margin-bottom: 4px; }
+    .guest-merge-found-stats { font-size: 0.8rem; color: var(--muted); }
+    .guest-merge-confirm-btn { width: 100%; padding: 13px; border-radius: 999px; background: linear-gradient(135deg, var(--accent2), #5b21b6); color: white; font-weight: 700; font-size: 0.92rem; border: none; cursor: pointer; margin-bottom: 10px; transition: opacity 0.2s; }
+    .guest-merge-confirm-btn:hover { opacity: 0.88; }
+    .guest-merge-cancel { font-size: 0.82rem; color: var(--muted); cursor: pointer; display: block; margin-top: 4px; }
+    .guest-merge-cancel:hover { color: var(--text); }
+    @media (max-width: 640px) {
+      .guest-merge-overlay { padding: 0; align-items: flex-end; }
+      .guest-merge-modal { border-radius: 24px 24px 0 0; max-width: 100%; padding: 28px 20px; }
+    }
 
     .setup-banner { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); border-radius: 12px; padding: 16px 20px; margin: 20px 32px 0; font-size: 0.88rem; line-height: 1.7; color: #ccc; display: none; }
     .setup-banner strong { color: #60a5fa; }
@@ -786,6 +803,17 @@
     <input class="name-input" id="name-input" type="text" placeholder="Enter your trainer name..." maxlength="24"/>
     <button class="name-save-btn" onclick="saveName()">Continue as Guest</button>
     <div class="name-skip" onclick="saveName(true)">Skip (show as Anonymous)</div>
+  </div>
+</div>
+
+<!-- GUEST MERGE MODAL -->
+<div class="guest-merge-overlay" id="guest-merge-overlay">
+  <div class="guest-merge-modal">
+    <div style="font-size:2rem;margin-bottom:10px">🔗</div>
+    <h2 id="guest-merge-title">Looking for your account...</h2>
+    <p id="guest-merge-desc">Searching this browser for a guest account to merge.</p>
+    <div id="guest-merge-body"></div>
+    <span class="guest-merge-cancel" onclick="closeGuestMergeModal()">Cancel</span>
   </div>
 </div>
 
@@ -1381,6 +1409,105 @@ function dismissMergeBanner() {
 }
 
 
+// ── GUEST MERGE MODAL (manual link from profile) ──
+function openGuestMergeModal() {
+  if (!authUser) return;
+  document.getElementById('guest-merge-title').textContent = 'Looking for your account…';
+  document.getElementById('guest-merge-desc').textContent = 'Searching this browser for a guest account to merge.';
+  document.getElementById('guest-merge-body').innerHTML = '';
+  document.getElementById('guest-merge-overlay').classList.add('open');
+  setTimeout(findGuestAccountToMerge, 300);
+}
+
+function closeGuestMergeModal() {
+  document.getElementById('guest-merge-overlay').classList.remove('open');
+}
+
+async function findGuestAccountToMerge() {
+  if (!authUser) return;
+  const bodyEl = document.getElementById('guest-merge-body');
+  const titleEl = document.getElementById('guest-merge-title');
+  const descEl = document.getElementById('guest-merge-desc');
+
+  // Strategy 1: pr_uid still in localStorage
+  const storedUid = localStorage.getItem('pr_uid');
+  if (storedUid && storedUid.startsWith('u_') && storedUid !== authUser.id) {
+    const { data: check } = await sb.from('user_profiles').select('username').eq('user_id', storedUid).maybeSingle();
+    const { count: rc } = await sb.from('ratings').select('*', { count: 'exact', head: true }).eq('user_id', storedUid);
+    const { count: cc } = await sb.from('comments').select('*', { count: 'exact', head: true }).eq('user_id', storedUid).is('parent_id', null);
+    if ((rc || 0) + (cc || 0) > 0) {
+      showGuestMergeFound(storedUid, check?.username || 'Guest', rc || 0, cc || 0);
+      return;
+    }
+  }
+
+  // Strategy 2: match by trainer name stored in localStorage
+  const storedName = localStorage.getItem('pr_username');
+  if (storedName && storedName !== 'Anonymous') {
+    const { data: profiles } = await sb.from('user_profiles').select('user_id, username').ilike('username', storedName);
+    if (profiles) {
+      const guests = profiles.filter(p => p.user_id.startsWith('u_') && p.user_id !== authUser.id);
+      if (guests.length === 1) {
+        const g = guests[0];
+        const { count: rc } = await sb.from('ratings').select('*', { count: 'exact', head: true }).eq('user_id', g.user_id);
+        const { count: cc } = await sb.from('comments').select('*', { count: 'exact', head: true }).eq('user_id', g.user_id).is('parent_id', null);
+        if ((rc || 0) + (cc || 0) > 0) {
+          showGuestMergeFound(g.user_id, g.username, rc || 0, cc || 0);
+          return;
+        }
+      } else if (guests.length > 1) {
+        // Multiple matches — pick the one with most data
+        const withCounts = await Promise.all(guests.map(async g => {
+          const { count: rc } = await sb.from('ratings').select('*', { count: 'exact', head: true }).eq('user_id', g.user_id);
+          return { ...g, total: rc || 0 };
+        }));
+        const best = withCounts.sort((a, b) => b.total - a.total)[0];
+        if (best.total > 0) {
+          const { count: cc } = await sb.from('comments').select('*', { count: 'exact', head: true }).eq('user_id', best.user_id).is('parent_id', null);
+          showGuestMergeFound(best.user_id, best.username, best.total, cc || 0);
+          return;
+        }
+      }
+    }
+  }
+
+  // Nothing found
+  titleEl.textContent = 'No guest account found';
+  descEl.textContent = 'We couldn\'t find a guest account linked to this browser. If your old data was on a different device or browser, it can\'t be recovered automatically.';
+  bodyEl.innerHTML = '';
+}
+
+function showGuestMergeFound(oldUid, username, ratings, reviews) {
+  document.getElementById('guest-merge-title').textContent = 'Found your account!';
+  document.getElementById('guest-merge-desc').textContent = 'We found a guest account on this browser. Merge it into your Google account so nothing is lost.';
+  document.getElementById('guest-merge-body').innerHTML = `
+    <div class="guest-merge-found">
+      <div class="guest-merge-found-name">🎮 ${esc(username)}</div>
+      <div class="guest-merge-found-stats">${ratings} Pokémon rated · ${reviews} reviews written</div>
+    </div>
+    <button class="guest-merge-confirm-btn" onclick="confirmGuestMerge('${oldUid}', '${esc(username)}')">Merge into my account</button>
+  `;
+}
+
+async function confirmGuestMerge(oldUid, oldUsername) {
+  closeGuestMergeModal();
+  showToast('Merging your accounts…');
+  const newUid = authUser.id;
+  const tables = ['ratings','comments','teams','drip_votes','drip_comments',
+                  'user_squads','hot_takes','hot_take_comments','hot_take_likes',
+                  'trainer_comments','trainer_comment_likes','trainer_comment_dislikes',
+                  'comment_likes','comment_dislikes','user_profiles'];
+  for (const t of tables) {
+    try { await sb.from(t).update({ user_id: newUid }).eq('user_id', oldUid); } catch {}
+  }
+  if (oldUsername && (!localStorage.getItem('pr_username') || localStorage.getItem('pr_username') === 'Anonymous')) {
+    localStorage.setItem('pr_username', oldUsername);
+  }
+  localStorage.removeItem('pr_uid');
+  showToast('Accounts merged! All your data is here ✓');
+  setTimeout(() => location.reload(), 1500);
+}
+
 // ── NAME / GUEST MODAL ──
 function openNameModal() {
   if (authUser) { openProfile(); return; } // already signed in — open profile instead
@@ -1528,7 +1655,8 @@ async function openUserProfile(uid, username) {
         <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px">
           <button class="profile-edit-btn" onclick="closeProfile();openNameModal()">✏️ Edit Username</button>
           ${authUser
-            ? `<button class="auth-sign-out-btn" onclick="signOut()">Sign Out</button>`
+            ? `<button class="auth-sign-out-btn" onclick="signOut()">Sign Out</button>
+               <button class="auth-link-btn" onclick="closeProfile();openGuestMergeModal()">🔗 Link Account</button>`
             : `<button class="auth-link-btn" onclick="closeProfile();document.getElementById('name-modal-overlay').classList.add('open')">🔗 Link Account</button>`}
         </div>
         ${authUser ? `<div style="font-size:0.72rem;color:var(--muted);margin-top:8px">✓ Signed in · ${esc(authUser.email||'')}</div>` : '<div style="font-size:0.72rem;color:var(--muted);margin-top:8px">Guest mode — sign in to sync across devices</div>'}
