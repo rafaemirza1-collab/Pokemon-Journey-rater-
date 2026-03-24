@@ -2196,7 +2196,7 @@ async function openModal(id, name) {
   document.getElementById('modal-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 
-  if (!typeCache[id]) await fetchTypes(id);
+  if (!typeCache[id] || !statsCache[id]) await fetchTypes(id);
   const types = typeCache[id] || [];
   const typeBadges = types.map(t =>
     `<span class="modal-type-badge" style="background:${TYPE_COLORS[t]||'#666'}">${t}</span>`
