@@ -2401,6 +2401,8 @@ async function sendChatMessage() {
   if (!text || !activeChatConvId) return;
   input.value = '';
   const uid = getUID();
+  // Show message immediately in UI without waiting for DB
+  appendMessage({ sender_id: uid, text, created_at: new Date().toISOString() });
   try {
     await sb.from('messages').insert({ conversation_id: activeChatConvId, sender_id: uid, text });
     // Update conversation last_message and increment unread for the other user
