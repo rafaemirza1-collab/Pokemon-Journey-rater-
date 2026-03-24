@@ -2196,17 +2196,24 @@ async function openModal(id, name) {
   document.getElementById('modal-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 
-  if (!typeCache[id] || !statsCache[id]) await fetchTypes(id);
+  // Always fetch fresh data for this Pokémon (types + stats in one call)
+  try {
+    const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+    const pdata = await res.json();
+    typeCache[id] = pdata.types.map(t => t.type.name);
+    statsCache[id] = pdata.stats.map(s => ({ name: s.stat.name, value: s.base_stat }));
+    saveTypeCache();
+  } catch {}
+
   const types = typeCache[id] || [];
   const typeBadges = types.map(t =>
     `<span class="modal-type-badge" style="background:${TYPE_COLORS[t]||'#666'}">${t}</span>`
   ).join('');
 
-  // Build base stats HTML inline (statsCache populated by fetchTypes above)
   const STAT_LABELS = { hp:'HP', attack:'Atk', defense:'Def', 'special-attack':'SpA', 'special-defense':'SpD', speed:'Spe' };
   const STAT_COLORS = { hp:'#ff5959', attack:'#f5ac78', defense:'#fae078', 'special-attack':'#9db7f5', 'special-defense':'#a7db8d', speed:'#fa92b2' };
   const baseStats = statsCache[id] || [];
-  const statTotal = baseStats.reduce((s, r) => s + r.value, 0);
+  const statTotal = baseStats.reduce((sum, r) => sum + r.value, 0);
   const baseStatsHTML = baseStats.length ? `
     <div class="base-stats">
       <div class="base-stats-title">Base Stats</div>
