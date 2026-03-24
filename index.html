@@ -2438,26 +2438,52 @@ async function loadPokedexTab(id) {
     evoHTML = `<div><div class="poke-info-heading">Evolution Chain</div><div style="color:var(--muted);font-size:0.85rem">Could not load evolution data.</div></div>`;
   }
 
-  // Level-up moves — fetch types in parallel, use cache
+  // Level-up moves — fetch if not cached, then fetch each move's type
+  if (!movesCache[id] || !movesCache[id].length) {
+    try {
+      const r = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+      const d = await r.json();
+      movesCache[id] = d.moves
+        .map(m => {
+          const lvl = m.version_group_details.filter(x => x.move_learn_method.name === 'level-up');
+          if (!lvl.length) return null;
+          return { name: m.move.name, level: lvl[lvl.length - 1].level_learned_at };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.level - b.level);
+    } catch {}
+  }
+
   const moves = movesCache[id] || [];
   let movesHTML = `<div><div class="poke-info-heading">Moves Learned by Level Up</div><div style="color:var(--muted);font-size:0.85rem">No level-up moves found.</div></div>`;
   if (moves.length) {
-    const moveTypeCache = window._moveTypeCache || (window._moveTypeCache = {});
-    const uncached = moves.filter(m => !moveTypeCache[m.name]);
-    await Promise.all(uncached.map(async m => {
-      try {
-        const r = await fetch(`https://pokeapi.co/api/v2/move/${m.name}`);
-        const d = await r.json();
-        moveTypeCache[m.name] = d.type.name;
-      } catch { moveTypeCache[m.name] = 'normal'; }
-    }));
+    if (!window._moveTypeCache) window._moveTypeCache = {};
+    const mtc = window._moveTypeCache;
+    const uncached = moves.filter(m => !mtc[m.name]);
+    // Fetch in batches of 10 to avoid overwhelming the API
+    for (let i = 0; i < uncached.length; i += 10) {
+      await Promise.all(uncached.slice(i, i + 10).map(async m => {
+        try {
+          const r = await fetch(`https://pokeapi.co/api/v2/move/${m.name}`);
+          const d = await r.json();
+          mtc[m.name] = d.type.name;
+        } catch { mtc[m.name] = 'normal'; }
+      }));
+    }
+
+    function hexToRgb(hex) {
+      const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+      return `${r},${g},${b}`;
+    }
+
     movesHTML = `<div>
       <div class="poke-info-heading">Moves Learned by Level Up</div>
       <div class="moves-table">
         ${moves.map(m => {
-          const type = moveTypeCache[m.name] || 'normal';
+          const type = mtc[m.name] || 'normal';
           const color = TYPE_COLORS[type] || '#9399A4';
-          return `<div class="move-row" style="border-left: 3px solid ${color}; background: ${color}18;">
+          const rgb = hexToRgb(color);
+          return `<div class="move-row" style="border-left:3px solid ${color};background:rgba(${rgb},0.12);">
             <div class="move-level">${m.level === 0 ? '—' : `Lv.${m.level}`}</div>
             <div class="move-name">${m.name.replace(/-/g,' ')}</div>
             <div class="move-type-badge" style="background:${color}">${type}</div>
