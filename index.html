@@ -2202,18 +2202,15 @@ async function openModal(id, name) {
     `<span class="modal-type-badge" style="background:${TYPE_COLORS[t]||'#666'}">${t}</span>`
   ).join('');
 
-  // Render base stats if available
+  // Build base stats HTML inline (statsCache populated by fetchTypes above)
   const STAT_LABELS = { hp:'HP', attack:'Atk', defense:'Def', 'special-attack':'SpA', 'special-defense':'SpD', speed:'Spe' };
   const STAT_COLORS = { hp:'#ff5959', attack:'#f5ac78', defense:'#fae078', 'special-attack':'#9db7f5', 'special-defense':'#a7db8d', speed:'#fa92b2' };
-  setTimeout(() => {
-    const statsEl = document.getElementById('modal-base-stats');
-    if (!statsEl) return;
-    const stats = statsCache[id];
-    if (!stats) return;
-    const total = stats.reduce((s, r) => s + r.value, 0);
-    statsEl.innerHTML = `
+  const baseStats = statsCache[id] || [];
+  const statTotal = baseStats.reduce((s, r) => s + r.value, 0);
+  const baseStatsHTML = baseStats.length ? `
+    <div class="base-stats">
       <div class="base-stats-title">Base Stats</div>
-      ${stats.map(s => {
+      ${baseStats.map(s => {
         const pct = Math.round((s.value / 255) * 100);
         return `<div class="stat-row">
           <div class="stat-name">${STAT_LABELS[s.name] || s.name}</div>
@@ -2223,10 +2220,10 @@ async function openModal(id, name) {
       }).join('')}
       <div class="stat-row" style="margin-top:4px;border-top:1px solid var(--border);padding-top:6px">
         <div class="stat-name" style="color:var(--text)">Total</div>
-        <div class="stat-val" style="color:var(--text);font-size:0.85rem">${total}</div>
-        <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${Math.round((total/780)*100)}%;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div></div>
-      </div>`;
-  }, 50);
+        <div class="stat-val" style="color:var(--text);font-size:0.85rem">${statTotal}</div>
+        <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${Math.round((statTotal/780)*100)}%;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div></div>
+      </div>
+    </div>` : '';
 
   // Community score
   let stats = communityStats[id] || { avg: 0, count: 0 };
@@ -2250,7 +2247,7 @@ async function openModal(id, name) {
         <div class="modal-name">${name.replace(/-/g,' ')}</div>
         <div class="modal-types">${typeBadges}</div>
         <div class="modal-gen">${genLabel(id)}</div>
-        <div class="base-stats" id="modal-base-stats"></div>
+        ${baseStatsHTML}
         <div class="modal-community-score">
           <div class="community-avg" id="modal-avg">${avgDisp}</div>
           <div class="community-detail">
