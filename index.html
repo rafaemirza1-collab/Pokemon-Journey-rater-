@@ -63,6 +63,7 @@
     .poke-card-img { width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; }
     .poke-card-img.loading { opacity: 0; }
     .poke-card-name { font-size: 0.82rem; font-weight: 700; text-transform: capitalize; text-align: center; }
+    .poke-card-flavor { font-size: 0.68rem; color: var(--muted); font-style: italic; text-align: center; line-height: 1.4; padding: 0 2px; min-height: 28px; }
     .poke-card-types { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
     .type-badge { font-size: 0.62rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.4px; color: white; }
     .poke-card-rating { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; }
@@ -2142,6 +2143,11 @@ function loadMoreCards() {
     const card = createCard(p);
     grid.appendChild(card);
     if (!typeCache[p.id]) typeObserver.observe(card);
+    const flavorEl = card.querySelector(`[data-flavor-id]`);
+    if (flavorEl) {
+      if (flavorCache[p.id]) { flavorEl.textContent = flavorCache[p.id]; }
+      else { flavorObserver.observe(flavorEl); }
+    }
   });
   displayedCount += batch.length;
   const wrap = document.getElementById('load-more-wrap');
@@ -2183,6 +2189,7 @@ function createCard(p) {
          onerror="this.onerror=null;this.style.imageRendering='auto';this.src='${ART(p.id)}'"/>
     <span class="poke-card-name">${p.name.replace(/-/g,' ')}</span>
     <div class="poke-card-types" data-types-id="${p.id}">${types}</div>
+    <div class="poke-card-flavor" data-flavor-id="${p.id}"></div>
     <div class="poke-card-rating">
       <div class="poke-card-stars" data-stars-id="${p.id}">${stars}</div>
       ${reviewsNote}
@@ -2201,6 +2208,28 @@ const typeObserver = new IntersectionObserver(entries => {
     if (!typeCache[id]) fetchTypes(id);
   });
 }, { rootMargin: '300px' });
+
+const flavorCache = {};
+const flavorObserver = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const id = parseInt(e.target.dataset.flavorId);
+    flavorObserver.unobserve(e.target);
+    if (!flavorCache[id]) fetchFlavor(id);
+  });
+}, { rootMargin: '400px' });
+
+async function fetchFlavor(id) {
+  try {
+    const res = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`);
+    const data = await res.json();
+    const entry = data.flavor_text_entries.find(e => e.language.name === 'en');
+    const text = entry ? entry.flavor_text.replace(/[\n\f\r]/g, ' ').replace(/\s+/g, ' ').trim() : '';
+    flavorCache[id] = text;
+    const el = document.querySelector(`[data-flavor-id="${id}"]`);
+    if (el) el.textContent = text;
+  } catch {}
+}
 
 const statsCache = {};
 async function fetchTypes(id) {
