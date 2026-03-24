@@ -63,7 +63,6 @@
     .poke-card-img { width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; }
     .poke-card-img.loading { opacity: 0; }
     .poke-card-name { font-size: 0.82rem; font-weight: 700; text-transform: capitalize; text-align: center; }
-    .poke-card-flavor { font-size: 0.68rem; color: var(--muted); font-style: italic; text-align: center; line-height: 1.4; padding: 0 2px; min-height: 28px; }
     .poke-card-types { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
     .type-badge { font-size: 0.62rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.4px; color: white; }
     .poke-card-rating { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; }
@@ -2143,11 +2142,6 @@ function loadMoreCards() {
     const card = createCard(p);
     grid.appendChild(card);
     if (!typeCache[p.id]) typeObserver.observe(card);
-    const flavorEl = card.querySelector(`[data-flavor-id]`);
-    if (flavorEl) {
-      if (flavorCache[p.id]) { flavorEl.textContent = flavorCache[p.id]; }
-      else { flavorObserver.observe(flavorEl); }
-    }
   });
   displayedCount += batch.length;
   const wrap = document.getElementById('load-more-wrap');
@@ -2189,7 +2183,6 @@ function createCard(p) {
          onerror="this.onerror=null;this.style.imageRendering='auto';this.src='${ART(p.id)}'"/>
     <span class="poke-card-name">${p.name.replace(/-/g,' ')}</span>
     <div class="poke-card-types" data-types-id="${p.id}">${types}</div>
-    <div class="poke-card-flavor" data-flavor-id="${p.id}"></div>
     <div class="poke-card-rating">
       <div class="poke-card-stars" data-stars-id="${p.id}">${stars}</div>
       ${reviewsNote}
@@ -2322,6 +2315,10 @@ async function openModal(id, name) {
       </div>
     </div>` : '';
 
+  // Flavor text (Pokédex entry)
+  if (!flavorCache[id]) await fetchFlavor(id);
+  const flavorText = flavorCache[id] || '';
+
   // Community score
   let stats = communityStats[id] || { avg: 0, count: 0 };
   if (dbReady && !stats.count) {
@@ -2344,6 +2341,7 @@ async function openModal(id, name) {
         <div class="modal-name">${name.replace(/-/g,' ')}</div>
         <div class="modal-types">${typeBadges}</div>
         <div class="modal-gen">${genLabel(id)}</div>
+        ${flavorText ? `<div style="font-size:0.78rem;color:var(--muted);font-style:italic;line-height:1.6;margin-top:10px;padding:10px 12px;background:var(--surface2);border-radius:10px;border-left:3px solid var(--accent2)">${flavorText}</div>` : ''}
         ${baseStatsHTML}
         <div class="modal-community-score">
           <div class="community-avg" id="modal-avg">${avgDisp}</div>
