@@ -1776,8 +1776,7 @@ async function openUserProfile(uid, username) {
         <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px">
           <button class="profile-edit-btn" onclick="closeProfile();openEditUsernameModal()">✏️ Edit Username</button>
           ${authUser
-            ? `<button class="auth-sign-out-btn" onclick="signOut()">Sign Out</button>
-               <button class="auth-link-btn" onclick="closeProfile();openGuestMergeModal()">🔗 Link Account</button>`
+            ? `<button class="auth-sign-out-btn" onclick="signOut()">Sign Out</button>`
             : `<button class="auth-link-btn" onclick="closeProfile();document.getElementById('name-modal-overlay').classList.add('open')">🔗 Link Account</button>`}
         </div>
         ${authUser ? `<div style="font-size:0.72rem;color:var(--muted);margin-top:8px">✓ Signed in · ${esc(authUser.email||'')}</div>` : '<div style="font-size:0.72rem;color:var(--muted);margin-top:8px">Guest mode — sign in to sync across devices</div>'}
