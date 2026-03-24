@@ -1518,6 +1518,12 @@ function revokeAdmin() { localStorage.removeItem('pr_admin'); showToast('Admin m
 async function signInWithGoogle() {
   if (!dbReady) { showToast('Database not connected'); return; }
   document.getElementById('name-modal-overlay').classList.remove('open');
+  // Save guest UID and username BEFORE redirect so we can merge on return
+  const guestUid = localStorage.getItem('pr_uid');
+  if (guestUid && guestUid.startsWith('u_')) {
+    localStorage.setItem('pr_pending_merge_uid', guestUid);
+    localStorage.setItem('pr_pending_merge_username', localStorage.getItem('pr_username') || '');
+  }
   await sb.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: location.origin + location.pathname }
@@ -1535,17 +1541,24 @@ async function signOut() {
 // ── AUTH INIT ──
 async function initAuth() {
   if (!dbReady) return;
-  // Restore existing session (handles OAuth redirect callbacks too)
   const { data: { session } } = await sb.auth.getSession();
   if (session?.user) {
     authUser = session.user;
-    await onAuthSignedIn(false);
+    // Check if we saved a guest UID before the OAuth redirect
+    const pendingUid = localStorage.getItem('pr_pending_merge_uid');
+    if (pendingUid && pendingUid.startsWith('u_') && pendingUid !== authUser.id) {
+      localStorage.removeItem('pr_pending_merge_uid');
+      await onAuthSignedIn(false);
+      pendingMergeUid = pendingUid;
+      await mergeOldAccount();
+    } else {
+      await onAuthSignedIn(false);
+    }
   }
   sb.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session?.user) {
-      const isNew = !authUser;
       authUser = session.user;
-      await onAuthSignedIn(isNew);
+      await onAuthSignedIn(false);
     } else if (event === 'SIGNED_OUT') {
       authUser = null;
       updateUserDisplay();
@@ -1564,18 +1577,20 @@ async function onAuthSignedIn(checkForMerge) {
   document.getElementById('name-modal-overlay').classList.remove('open');
 
   if (checkForMerge) {
-    // Automatic detection: read the guest UID from this browser's localStorage
     const oldUid = localStorage.getItem('pr_uid');
     if (oldUid && oldUid !== authUser.id && oldUid.startsWith('u_')) {
-      // Check if that guest UID actually has data in the DB
-      const { data } = await sb.from('ratings').select('id').eq('user_id', oldUid).limit(1);
-      if (data && data.length > 0) {
-        // Silently auto-merge — no modal, no user input needed
+      // Check across multiple tables — user may have commented but never rated
+      const [r1, r2, r3] = await Promise.all([
+        sb.from('ratings').select('id').eq('user_id', oldUid).limit(1),
+        sb.from('comments').select('id').eq('user_id', oldUid).limit(1),
+        sb.from('hot_takes').select('id').eq('user_id', oldUid).limit(1),
+      ]);
+      const hasData = [r1, r2, r3].some(({ data }) => data && data.length > 0);
+      if (hasData) {
         pendingMergeUid = oldUid;
         await mergeOldAccount();
         return;
       } else {
-        // Guest UID existed in localStorage but had no data — just clean it up
         localStorage.removeItem('pr_uid');
       }
     }
@@ -1587,20 +1602,27 @@ async function onAuthSignedIn(checkForMerge) {
 
 async function mergeOldAccount() {
   if (!pendingMergeUid || !authUser) return;
-  document.getElementById('merge-banner').classList.remove('show');
+  try { document.getElementById('merge-banner').classList.remove('show'); } catch {}
   const oldUid = pendingMergeUid;
   const newUid = authUser.id;
-  // Migrate all data tables from guest UID to OAuth UID
+  // Migrate all user_id columns
   const tables = ['ratings','comments','teams','drip_votes','drip_comments',
                   'user_squads','hot_takes','hot_take_comments','hot_take_likes',
                   'trainer_comments','trainer_comment_likes','trainer_comment_dislikes',
-                  'comment_likes','comment_dislikes','user_profiles'];
+                  'comment_likes','comment_dislikes','user_profiles','messages'];
   for (const t of tables) {
     try { await sb.from(t).update({ user_id: newUid }).eq('user_id', oldUid); } catch {}
   }
+  // Migrate follows (has follower_id and following_id, not user_id)
+  try { await sb.from('follows').update({ follower_id: newUid }).eq('follower_id', oldUid); } catch {}
+  try { await sb.from('follows').update({ following_id: newUid }).eq('following_id', oldUid); } catch {}
+  // Migrate conversations (has user_a and user_b)
+  try { await sb.from('conversations').update({ user_a: newUid }).eq('user_a', oldUid); } catch {}
+  try { await sb.from('conversations').update({ user_b: newUid }).eq('user_b', oldUid); } catch {}
   pendingMergeUid = null;
   localStorage.removeItem('pr_uid');
-  showToast('Welcome back! Your account is all here ✓');
+  localStorage.removeItem('pr_pending_merge_uid');
+  showToast('Your account has been linked — all your data is here ✓');
   setTimeout(() => location.reload(), 1500);
 }
 
