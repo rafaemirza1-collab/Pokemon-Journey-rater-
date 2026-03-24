@@ -1436,7 +1436,7 @@ async function findGuestAccountToMerge() {
     const { count: rc } = await sb.from('ratings').select('*', { count: 'exact', head: true }).eq('user_id', storedUid);
     const { count: cc } = await sb.from('comments').select('*', { count: 'exact', head: true }).eq('user_id', storedUid).is('parent_id', null);
     if ((rc || 0) + (cc || 0) > 0) {
-      showGuestMergeFound(storedUid, check?.username || 'Guest', rc || 0, cc || 0);
+      await showGuestMergeFound(storedUid, check?.username || 'Guest', rc || 0, cc || 0);
       return;
     }
   }
@@ -1452,7 +1452,7 @@ async function findGuestAccountToMerge() {
         const { count: rc } = await sb.from('ratings').select('*', { count: 'exact', head: true }).eq('user_id', g.user_id);
         const { count: cc } = await sb.from('comments').select('*', { count: 'exact', head: true }).eq('user_id', g.user_id).is('parent_id', null);
         if ((rc || 0) + (cc || 0) > 0) {
-          showGuestMergeFound(g.user_id, g.username, rc || 0, cc || 0);
+          await showGuestMergeFound(g.user_id, g.username, rc || 0, cc || 0);
           return;
         }
       } else if (guests.length > 1) {
@@ -1464,7 +1464,7 @@ async function findGuestAccountToMerge() {
         const best = withCounts.sort((a, b) => b.total - a.total)[0];
         if (best.total > 0) {
           const { count: cc } = await sb.from('comments').select('*', { count: 'exact', head: true }).eq('user_id', best.user_id).is('parent_id', null);
-          showGuestMergeFound(best.user_id, best.username, best.total, cc || 0);
+          await showGuestMergeFound(best.user_id, best.username, best.total, cc || 0);
           return;
         }
       }
@@ -1477,22 +1477,56 @@ async function findGuestAccountToMerge() {
   bodyEl.innerHTML = '';
 }
 
-function showGuestMergeFound(oldUid, username, ratings, reviews) {
-  document.getElementById('guest-merge-title').textContent = 'Found your account!';
-  document.getElementById('guest-merge-desc').textContent = 'We found a guest account on this browser. Merge it into your Google account so nothing is lost.';
+async function showGuestMergeFound(oldUid, username, guestRatings, guestReviews) {
+  // Fetch current Google account stats too so user sees what's being combined
+  const { count: myRatings } = await sb.from('ratings').select('*', { count: 'exact', head: true }).eq('user_id', authUser.id);
+  const { count: myReviews } = await sb.from('comments').select('*', { count: 'exact', head: true }).eq('user_id', authUser.id).is('parent_id', null);
+  const totalRatings = (myRatings || 0) + (guestRatings || 0);
+  const totalReviews = (myReviews || 0) + (guestReviews || 0);
+  document.getElementById('guest-merge-title').textContent = 'Combine your accounts';
+  document.getElementById('guest-merge-desc').textContent = 'Both accounts\' ratings, reviews, squad, and history will be combined into one. Nothing is lost.';
   document.getElementById('guest-merge-body').innerHTML = `
-    <div class="guest-merge-found">
-      <div class="guest-merge-found-name">🎮 ${esc(username)}</div>
-      <div class="guest-merge-found-stats">${ratings} Pokémon rated · ${reviews} reviews written</div>
+    <div class="guest-merge-found" style="margin-bottom:10px">
+      <div class="guest-merge-found-name" style="font-size:0.78rem;color:var(--muted);font-weight:600;margin-bottom:6px">THIS ACCOUNT (Google)</div>
+      <div class="guest-merge-found-stats">${myRatings || 0} Pokémon rated · ${myReviews || 0} reviews written</div>
     </div>
-    <button class="guest-merge-confirm-btn" onclick="confirmGuestMerge('${oldUid}', '${esc(username)}')">Merge into my account</button>
+    <div style="text-align:center;font-size:1.2rem;margin:-4px 0 6px">+</div>
+    <div class="guest-merge-found" style="margin-bottom:18px">
+      <div class="guest-merge-found-name" style="font-size:0.78rem;color:var(--muted);font-weight:600;margin-bottom:6px">GUEST ACCOUNT</div>
+      <div class="guest-merge-found-name">🎮 ${esc(username)}</div>
+      <div class="guest-merge-found-stats">${guestRatings} Pokémon rated · ${guestReviews} reviews written</div>
+    </div>
+    <div style="text-align:center;font-size:0.82rem;color:var(--accent2);font-weight:700;margin-bottom:14px">= ${totalRatings} total ratings · ${totalReviews} total reviews</div>
+    <button class="guest-merge-confirm-btn" onclick="confirmGuestMerge('${oldUid}', '${esc(username)}')">Combine Both Accounts</button>
   `;
 }
 
 async function confirmGuestMerge(oldUid, oldUsername) {
   closeGuestMergeModal();
-  showToast('Merging your accounts…');
+  showToast('Combining your accounts…');
   const newUid = authUser.id;
+
+  // For ratings: both accounts may have rated the same Pokémon.
+  // Keep the Google account's ratings, pull in guest ratings for Pokémon not yet rated.
+  try {
+    const { data: myRated } = await sb.from('ratings').select('pokemon_id').eq('user_id', newUid);
+    if (myRated && myRated.length > 0) {
+      const myIds = myRated.map(r => r.pokemon_id);
+      // Remove conflicting guest ratings so the update won't hit a unique constraint
+      await sb.from('ratings').delete().eq('user_id', oldUid).in('pokemon_id', myIds);
+    }
+  } catch {}
+
+  // For user_squads: same dedup logic
+  try {
+    const { data: mySquad } = await sb.from('user_squads').select('pokemon_id').eq('user_id', newUid);
+    if (mySquad && mySquad.length > 0) {
+      const myIds = mySquad.map(r => r.pokemon_id);
+      await sb.from('user_squads').delete().eq('user_id', oldUid).in('pokemon_id', myIds);
+    }
+  } catch {}
+
+  // Move all remaining data from guest account to Google account
   const tables = ['ratings','comments','teams','drip_votes','drip_comments',
                   'user_squads','hot_takes','hot_take_comments','hot_take_likes',
                   'trainer_comments','trainer_comment_likes','trainer_comment_dislikes',
@@ -1500,11 +1534,12 @@ async function confirmGuestMerge(oldUid, oldUsername) {
   for (const t of tables) {
     try { await sb.from(t).update({ user_id: newUid }).eq('user_id', oldUid); } catch {}
   }
+
   if (oldUsername && (!localStorage.getItem('pr_username') || localStorage.getItem('pr_username') === 'Anonymous')) {
     localStorage.setItem('pr_username', oldUsername);
   }
   localStorage.removeItem('pr_uid');
-  showToast('Accounts merged! All your data is here ✓');
+  showToast('Both accounts combined! All your data is here ✓');
   setTimeout(() => location.reload(), 1500);
 }
 
