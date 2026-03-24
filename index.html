@@ -638,7 +638,8 @@
     .team-detail-overlay.open { display: flex; }
     .team-detail-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; width: 100%; max-width: 620px; max-height: 90vh; overflow-y: auto; position: relative; }
     .team-detail-head { padding: 28px 32px 20px; border-bottom: 1px solid var(--border); }
-    .team-detail-creator-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .team-detail-creator-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; cursor: pointer; border-radius: 10px; padding: 6px; margin-left: -6px; transition: background 0.15s; }
+    .team-detail-creator-row:hover { background: var(--surface2); }
     .team-detail-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--accent2), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800; color: white; flex-shrink: 0; }
     .team-detail-creator-name { font-weight: 700; font-size: 0.9rem; }
     .team-detail-date { font-size: 0.72rem; color: var(--muted); }
@@ -1518,15 +1519,16 @@ function revokeAdmin() { localStorage.removeItem('pr_admin'); showToast('Admin m
 async function signInWithGoogle() {
   if (!dbReady) { showToast('Database not connected'); return; }
   document.getElementById('name-modal-overlay').classList.remove('open');
-  // Save guest UID and username BEFORE redirect so we can merge on return
   const guestUid = localStorage.getItem('pr_uid');
+  // Build redirect URL — embed guest UID directly so it survives the OAuth round-trip
+  const redirectUrl = new URL(location.origin + location.pathname);
   if (guestUid && guestUid.startsWith('u_')) {
+    redirectUrl.searchParams.set('pm', guestUid);
     localStorage.setItem('pr_pending_merge_uid', guestUid);
-    localStorage.setItem('pr_pending_merge_username', localStorage.getItem('pr_username') || '');
   }
   await sb.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: location.origin + location.pathname }
+    options: { redirectTo: redirectUrl.toString() }
   });
 }
 async function signOut() {
@@ -1541,32 +1543,43 @@ async function signOut() {
 // ── AUTH INIT ──
 async function initAuth() {
   if (!dbReady) return;
-  const { data: { session } } = await sb.auth.getSession();
-  if (session?.user) {
-    authUser = session.user;
-    // Check if we saved a guest UID before the OAuth redirect
-    const pendingUid = localStorage.getItem('pr_pending_merge_uid');
-    if (pendingUid && pendingUid.startsWith('u_') && pendingUid !== authUser.id) {
-      localStorage.removeItem('pr_pending_merge_uid');
-      await onAuthSignedIn(false);
-      pendingMergeUid = pendingUid;
-      await mergeOldAccount();
-    } else {
-      await onAuthSignedIn(false);
-    }
+
+  // Read pending merge UID from URL param (most reliable) or localStorage fallback
+  function getPendingMergeUid(googleUid) {
+    const urlParams = new URLSearchParams(location.search);
+    const fromUrl = urlParams.get('pm');
+    const fromStorage = localStorage.getItem('pr_pending_merge_uid');
+    const uid = (fromUrl || fromStorage || '');
+    if (uid && uid.startsWith('u_') && uid !== googleUid) return uid;
+    return null;
   }
+  function clearPendingMerge() {
+    localStorage.removeItem('pr_pending_merge_uid');
+    // Strip the ?pm= param from the URL without reloading
+    const url = new URL(location.href);
+    url.searchParams.delete('pm');
+    history.replaceState(null, '', url.toString());
+  }
+
   sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN' && session?.user) {
+    if (session?.user) {
+      const isNew = !authUser;
       authUser = session.user;
-      await onAuthSignedIn(false);
+      if (isNew) await onAuthSignedIn();
     } else if (event === 'SIGNED_OUT') {
       authUser = null;
       updateUserDisplay();
     }
   });
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user && !authUser) {
+    authUser = session.user;
+    await onAuthSignedIn();
+  }
 }
 
-async function onAuthSignedIn(checkForMerge) {
+async function onAuthSignedIn() {
   // Auto-fill username from OAuth if not already set
   const meta = authUser.user_metadata;
   const oauthName = meta?.full_name || meta?.name || meta?.email?.split('@')[0];
@@ -1576,24 +1589,20 @@ async function onAuthSignedIn(checkForMerge) {
   updateUserDisplay();
   document.getElementById('name-modal-overlay').classList.remove('open');
 
-  if (checkForMerge) {
-    const oldUid = localStorage.getItem('pr_uid');
-    if (oldUid && oldUid !== authUser.id && oldUid.startsWith('u_')) {
-      // Check across multiple tables — user may have commented but never rated
-      const [r1, r2, r3] = await Promise.all([
-        sb.from('ratings').select('id').eq('user_id', oldUid).limit(1),
-        sb.from('comments').select('id').eq('user_id', oldUid).limit(1),
-        sb.from('hot_takes').select('id').eq('user_id', oldUid).limit(1),
-      ]);
-      const hasData = [r1, r2, r3].some(({ data }) => data && data.length > 0);
-      if (hasData) {
-        pendingMergeUid = oldUid;
-        await mergeOldAccount();
-        return;
-      } else {
-        localStorage.removeItem('pr_uid');
-      }
-    }
+  // Check URL param first, then localStorage — both set before OAuth redirect
+  const urlParams = new URLSearchParams(location.search);
+  const oldUid = urlParams.get('pm') || localStorage.getItem('pr_uid') || '';
+  if (oldUid && oldUid.startsWith('u_') && oldUid !== authUser.id) {
+    // Clear so it doesn't re-trigger on refresh
+    localStorage.removeItem('pr_uid');
+    localStorage.removeItem('pr_pending_merge_uid');
+    const url = new URL(location.href);
+    url.searchParams.delete('pm');
+    history.replaceState(null, '', url.toString());
+    // Run merge without DB read — RLS blocks reads for guest UIDs
+    pendingMergeUid = oldUid;
+    await mergeOldAccount();
+    return;
   }
 
   if (dbReady) upsertUserProfile();
@@ -1605,20 +1614,13 @@ async function mergeOldAccount() {
   try { document.getElementById('merge-banner').classList.remove('show'); } catch {}
   const oldUid = pendingMergeUid;
   const newUid = authUser.id;
-  // Migrate all user_id columns
-  const tables = ['ratings','comments','teams','drip_votes','drip_comments',
-                  'user_squads','hot_takes','hot_take_comments','hot_take_likes',
-                  'trainer_comments','trainer_comment_likes','trainer_comment_dislikes',
-                  'comment_likes','comment_dislikes','user_profiles','messages'];
-  for (const t of tables) {
-    try { await sb.from(t).update({ user_id: newUid }).eq('user_id', oldUid); } catch {}
+  // Use server-side function to bypass RLS
+  const { error } = await sb.rpc('merge_guest_account', { old_uid: oldUid, new_uid: newUid });
+  if (error) {
+    console.error('Merge failed:', error);
+    showToast('Account link failed — please try again');
+    return;
   }
-  // Migrate follows (has follower_id and following_id, not user_id)
-  try { await sb.from('follows').update({ follower_id: newUid }).eq('follower_id', oldUid); } catch {}
-  try { await sb.from('follows').update({ following_id: newUid }).eq('following_id', oldUid); } catch {}
-  // Migrate conversations (has user_a and user_b)
-  try { await sb.from('conversations').update({ user_a: newUid }).eq('user_a', oldUid); } catch {}
-  try { await sb.from('conversations').update({ user_b: newUid }).eq('user_b', oldUid); } catch {}
   pendingMergeUid = null;
   localStorage.removeItem('pr_uid');
   localStorage.removeItem('pr_pending_merge_uid');
@@ -2292,7 +2294,10 @@ function chatBackToList() {
   document.getElementById('chat-messages-wrap').style.display = 'none';
   document.getElementById('chat-input-row').style.display = 'none';
   document.getElementById('chat-back-btn').style.display = 'none';
-  document.getElementById('chat-drawer-title').textContent = 'Messages';
+  const titleEl = document.getElementById('chat-drawer-title');
+  titleEl.innerHTML = 'Messages';
+  titleEl.style.cursor = '';
+  titleEl.onclick = null;
   if (chatRealtimeChannel) { chatRealtimeChannel.unsubscribe(); chatRealtimeChannel = null; }
   loadConversationList();
 }
@@ -2430,7 +2435,19 @@ async function openConversation(convId, otherUid, otherName) {
   document.getElementById('chat-messages-wrap').style.display = 'flex';
   document.getElementById('chat-input-row').style.display = 'flex';
   document.getElementById('chat-back-btn').style.display = '';
-  document.getElementById('chat-drawer-title').textContent = otherName;
+  const titleEl = document.getElementById('chat-drawer-title');
+  const otherAv = profileAvatarCache[otherUid];
+  const otherTrainer = otherAv ? TRAINERS.find(t => t.id === otherAv) : null;
+  const otherInitial = (otherName || '?').charAt(0).toUpperCase();
+  const avHtml = otherTrainer
+    ? `<img src="${otherTrainer.img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;border-radius:50%;display:block"/>`
+    : otherInitial;
+  titleEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="closeChat();openUserProfile('${otherUid}','${esc(otherName)}')">
+    <div class="msg-avatar" style="width:28px;height:28px;font-size:0.65rem;flex-shrink:0">${avHtml}</div>
+    <span>${esc(otherName)}</span>
+  </div>`;
+  titleEl.style.cursor = '';
+  titleEl.onclick = null;
   document.getElementById('chat-messages-wrap').innerHTML = '<div class="chat-empty">Loading...</div>';
   await loadMessages(convId);
   await markConvRead(convId);
@@ -2473,8 +2490,9 @@ function renderMessages(msgs) {
     const avatarHtml = isMine
       ? (myTrainer ? `<img src="${myTrainer.img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;border-radius:50%;display:block"/>` : myInitial)
       : (otherTrainer ? `<img src="${otherTrainer.img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;border-radius:50%;display:block"/>` : otherInitial);
+    const avatarClick = !isMine ? `style="cursor:pointer" onclick="closeChat();openUserProfile('${activeChatOtherUid}','${activeChatOtherName}')"` : '';
     html += `<div class="msg-row ${isMine ? 'mine' : 'theirs'}">
-      ${isLastInGroup ? `<div class="msg-avatar">${avatarHtml}</div>` : `<div style="width:24px;flex-shrink:0"></div>`}
+      ${isLastInGroup ? `<div class="msg-avatar" ${avatarClick}>${avatarHtml}</div>` : `<div style="width:24px;flex-shrink:0"></div>`}
       <div class="msg-bubble ${isMine ? 'mine' : 'theirs'}">${esc(m.text)}</div>
     </div>`;
   });
@@ -2501,7 +2519,8 @@ function appendMessage(msg) {
   if (empty) empty.remove();
   const div = document.createElement('div');
   div.className = `msg-row ${isMine ? 'mine' : 'theirs'}`;
-  div.innerHTML = `<div class="msg-avatar">${avatarHtml}</div><div class="msg-bubble ${isMine ? 'mine' : 'theirs'}">${esc(msg.text)}</div>`;
+  const avatarClick = !isMine ? `style="cursor:pointer" onclick="closeChat();openUserProfile('${activeChatOtherUid}','${esc(activeChatOtherName)}')"` : '';
+  div.innerHTML = `<div class="msg-avatar" ${avatarClick}>${avatarHtml}</div><div class="msg-bubble ${isMine ? 'mine' : 'theirs'}">${esc(msg.text)}</div>`;
   wrap.appendChild(div);
   wrap.scrollTop = wrap.scrollHeight;
 }
@@ -3984,10 +4003,10 @@ function renderTeamsFeed() {
     const dateStr = new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     return `<div class="team-card" onclick="openTeamDetail('${t.id}')">
       <div class="team-card-header">
-        <div class="team-card-avatar">${initials}</div>
+        <div class="team-card-avatar" style="cursor:pointer" onclick="event.stopPropagation();openUserProfile('${t.user_id}','${esc(t.username || 'Anonymous')}')">${initials}</div>
         <div class="team-card-meta">
           <div class="team-card-name">${esc(t.name)}</div>
-          <div class="team-card-creator">by ${esc(t.username || 'Anonymous')} &middot; ${dateStr}</div>
+          <div class="team-card-creator">by <span style="cursor:pointer;text-decoration:underline" onclick="event.stopPropagation();openUserProfile('${t.user_id}','${esc(t.username || 'Anonymous')}')">${esc(t.username || 'Anonymous')}</span> &middot; ${dateStr}</div>
         </div>
       </div>
       <div class="team-card-sprites">${sprites}</div>
@@ -4126,7 +4145,7 @@ async function openTeamDetail(teamId) {
   modal.innerHTML = `
     <button class="modal-close" onclick="closeTeamDetail()">&#x2715;</button>
     <div class="team-detail-head">
-      <div class="team-detail-creator-row">
+      <div class="team-detail-creator-row" style="cursor:pointer" onclick="closeTeamDetail();openUserProfile('${team.user_id}','${esc(team.username || 'Anonymous')}')">
         <div class="team-detail-avatar">${initials}</div>
         <div>
           <div class="team-detail-creator-name">${esc(team.username || 'Anonymous')}</div>
