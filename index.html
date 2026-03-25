@@ -2866,15 +2866,6 @@ async function sendChatMessage() {
   appendMessage({ sender_id: uid, text, created_at: new Date().toISOString() });
   try {
     await sb.from('messages').insert({ conversation_id: activeChatConvId, sender_id: uid, text });
-    // Update conversation last_message and increment unread for the other user
-    const [ua, ub] = convKey(uid, activeChatOtherUid);
-    const isUserA = ua === uid;
-    await sb.from('conversations').update({
-      last_message: text,
-      last_at: new Date().toISOString(),
-      ...(isUserA ? { unread_b: sb.rpc ? undefined : 999 } : { unread_a: 999 }) // will be handled by trigger or client
-    }).eq('id', activeChatConvId);
-    // Simpler unread increment
     const { data: conv } = await sb.from('conversations').select('unread_a,unread_b,user_a,user_b').eq('id', activeChatConvId).single();
     if (conv) {
       const amA = conv.user_a === uid;
@@ -2932,6 +2923,9 @@ function subscribeToConv(convId) {
       if (payload.new.sender_id !== getUID()) {
         appendMessage(payload.new);
         markConvRead(convId);
+        if (!document.getElementById('chat-drawer')?.classList.contains('open')) {
+          showToast('💬 New message from ' + (activeChatOtherName || 'someone'));
+        }
       }
     })
     .subscribe();
@@ -2943,7 +2937,13 @@ function subscribeToConvUpdates() {
   chatConvChannel = sb.channel('conv-updates-' + uid)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, payload => {
       const c = payload.new;
-      if (c && (c.user_a === uid || c.user_b === uid)) updateChatBadge();
+      if (!c || !(c.user_a === uid || c.user_b === uid)) return;
+      const prevUnread = payload.old ? (c.user_a === uid ? (payload.old.unread_a || 0) : (payload.old.unread_b || 0)) : 0;
+      const newUnread = c.user_a === uid ? (c.unread_a || 0) : (c.unread_b || 0);
+      if (newUnread > prevUnread && c.id !== activeChatConvId) {
+        showToast('💬 New message received');
+      }
+      updateChatBadge();
     })
     .subscribe();
 }
@@ -2954,7 +2954,18 @@ async function updateChatBadge() {
   try {
     const { data: convs } = await sb.from('conversations').select('user_a,user_b,unread_a,unread_b').or(`user_a.eq.${uid},user_b.eq.${uid}`);
     let total = 0;
-    if (convs) convs.forEach(c => { total += c.user_a === uid ? (c.unread_a || 0) : (c.unread_b || 0); });
+    if (convs) {
+      for (const c of convs) {
+        const amA = c.user_a === uid;
+        const myUnread = amA ? (c.unread_a || 0) : (c.unread_b || 0);
+        // Fix corrupted 999 values
+        if (myUnread >= 99) {
+          await sb.from('conversations').update(amA ? { unread_a: 0 } : { unread_b: 0 }).eq('id', c.id);
+        } else {
+          total += myUnread;
+        }
+      }
+    }
     const badge = document.getElementById('chat-unread-badge');
     if (badge) {
       badge.textContent = total > 99 ? '99+' : total;
