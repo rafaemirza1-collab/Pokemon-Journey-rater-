@@ -1011,7 +1011,7 @@
   .wtp-stage { display: flex; flex-direction: column; align-items: center; gap: 12px; min-height: 280px; margin-bottom: 20px; }
   .wtp-question-text { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); }
   .wtp-pokemon-wrap { position: relative; width: 240px; height: 240px; display: flex; align-items: center; justify-content: center; }
-  .wtp-pokemon-img { width: 220px; height: 220px; object-fit: contain; transition: filter 0.5s ease; }
+  .wtp-pokemon-img { width: 220px; height: 220px; object-fit: contain; transition: filter 0.2s ease; }
   .wtp-pokemon-img.silhouette { filter: brightness(0); }
   .wtp-pokemon-img.revealed { filter: brightness(1) drop-shadow(0 0 20px rgba(199,125,255,0.5)); }
   .wtp-pokemon-wrap.reveal-glow { animation: wtp-glow 0.7s ease-out; }
@@ -6388,7 +6388,7 @@ function closeHtThreadOnBg(e) {
 // WHO'S THAT POKÉMON — MINIGAME
 // ═══════════════════════════════════════════════
 const WTP_TIME = 60; // 1 minute
-const WTP_REVEAL_DELAY = 1600;
+const WTP_REVEAL_DELAY = 600;
 const WTP_POOLS = {
   easy:   { min: 1, max: 493,  label: '🌿 Easy'   },
   medium: { min: 1, max: 905,  label: '⚡ Medium'  },
@@ -6522,6 +6522,10 @@ function wtpAnswer(chosenId) {
   nameEl.classList.add('show');
   badge.textContent = isCorrect ? '✓ Correct! +1' : `✗ It was ${wtpCurrentPokemon.name.replace(/-/g,' ')}`;
   badge.className = 'wtp-result-badge ' + (isCorrect ? 'correct' : 'wrong');
+  // Preload next pokemon image in background
+  const pool = WTP_POOLS[wtpDifficulty];
+  const preloadIds = wtpRandFromPool(1, pool.min, pool.max, new Set([...wtpUsedIds]));
+  if (preloadIds.length) { const pre = new Image(); pre.src = ART(preloadIds[0]); }
   setTimeout(() => {
     wrap.classList.remove('reveal-glow');
     if (wtpSecondsLeft > 0) wtpNextQuestion();
