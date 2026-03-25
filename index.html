@@ -864,6 +864,9 @@
 .drip-comment-delete { position: absolute; top: 8px; right: 8px; font-size: 0.75rem; color: var(--muted); cursor: pointer; background: none; border: none; padding: 2px 6px; border-radius: 4px; }
 .drip-comment-delete:hover { color: var(--accent); background: rgba(230,57,70,0.1); }
 .drip-no-comments { font-size: 0.85rem; color: var(--muted); text-align: center; padding: 20px 0; }
+.drip-comment-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.drip-reply-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-top: 6px; margin-left: 20px; position: relative; }
+.drip-reply-mention { color: var(--accent2); font-size: 0.8rem; font-weight: 700; margin-right: 4px; }
 .drip-loading { text-align: center; padding: 80px 20px; color: var(--muted); font-size: 0.9rem; }
 /* Rankings */
 .drip-rank-table { margin-top: 8px; }
@@ -5211,11 +5214,30 @@ function startDripCountdown(expiresAt) {
 }
 
 async function loadDripComments(battleId) {
-  const { data: comments } = await sb.from('drip_comments').select('*').eq('battle_id', battleId).order('created_at', { ascending: false }).limit(50);
-  renderDripComments(comments || [], battleId);
+  const { data: comments } = await sb.from('drip_comments').select('*').eq('battle_id', battleId).order('created_at', { ascending: true }).limit(100);
+  const rows = comments || [];
+  let dripLikesMap = {}, dripDislikesMap = {};
+  if (rows.length) {
+    const ids = rows.map(c => c.id);
+    const [{ data: lk }, { data: dlk }] = await Promise.all([
+      sb.from('drip_comment_likes').select('comment_id, user_id').in('comment_id', ids),
+      sb.from('drip_comment_dislikes').select('comment_id, user_id').in('comment_id', ids)
+    ]);
+    (lk||[]).forEach(l => {
+      if (!dripLikesMap[l.comment_id]) dripLikesMap[l.comment_id] = { count: 0, likedByMe: false };
+      dripLikesMap[l.comment_id].count++;
+      if (l.user_id === getUID()) dripLikesMap[l.comment_id].likedByMe = true;
+    });
+    (dlk||[]).forEach(d => {
+      if (!dripDislikesMap[d.comment_id]) dripDislikesMap[d.comment_id] = { count: 0, dislikedByMe: false };
+      dripDislikesMap[d.comment_id].count++;
+      if (d.user_id === getUID()) dripDislikesMap[d.comment_id].dislikedByMe = true;
+    });
+  }
+  renderDripComments(rows, battleId, dripLikesMap, dripDislikesMap);
 }
 
-function renderDripComments(comments, battleId) {
+function renderDripComments(comments, battleId, likesMap = {}, dislikesMap = {}) {
   const el = document.getElementById('drip-comment-list');
   if (!el) return;
   const battle = dripCurrentIndex !== null ? dripBattlesData[dripCurrentIndex] : null;
@@ -5223,26 +5245,50 @@ function renderDripComments(comments, battleId) {
   const uid = getUID();
   const pA = battle ? allPokemon.find(x => x.id === battle.pokemon_a) : null;
   const pB = battle ? allPokemon.find(x => x.id === battle.pokemon_b) : null;
-  el.innerHTML = comments.map(c => {
+
+  const topLevel = comments.filter(c => !c.parent_id);
+  const repliesMap = {};
+  comments.filter(c => c.parent_id).forEach(c => {
+    if (!repliesMap[c.parent_id]) repliesMap[c.parent_id] = [];
+    repliesMap[c.parent_id].push(c);
+  });
+
+  function buildComment(c, isReply = false, replyToName = '') {
     const initial = (c.username||'A').charAt(0).toUpperCase();
     const isOwn = c.user_id === uid;
     const dateStr = new Date(c.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    const likes = likesMap[c.id] || { count: 0, likedByMe: false };
+    const dlikes = dislikesMap[c.id] || { count: 0, dislikedByMe: false };
     let votedFor = '';
-    if (c.choice && battle) {
+    if (!isReply && c.choice && battle) {
       const p = c.choice === battle.pokemon_a ? pA : pB;
       if (p) votedFor = `<span class="drip-comment-voted">voted ${p.name.replace(/-/g,' ')}</span>`;
     }
-    return `<div class="drip-comment-item">
+    const mention = isReply && replyToName ? `<span class="drip-reply-mention">@${esc(replyToName)}</span> ` : '';
+    return `<div class="${isReply ? 'drip-reply-item' : 'drip-comment-item'}">
       <div class="drip-comment-header">
-        <div class="drip-comment-avatar" onclick="openUserProfile('${c.user_id}','${esc(resolveUsername(c.user_id || c.uid, c.username))}')">${commentAvatarHtml(c.user_id || c.uid, initial)}</div>
-        <span class="drip-comment-username" onclick="openUserProfile('${c.user_id}','${esc(resolveUsername(c.user_id || c.uid, c.username))}')">${esc(resolveUsername(c.user_id || c.uid, c.username))}</span>
+        <div class="drip-comment-avatar" onclick="openUserProfile('${c.user_id}','${esc(resolveUsername(c.user_id, c.username))}')">${commentAvatarHtml(c.user_id, initial)}</div>
+        <span class="drip-comment-username" onclick="openUserProfile('${c.user_id}','${esc(resolveUsername(c.user_id, c.username))}')">${esc(resolveUsername(c.user_id, c.username))}</span>
         ${votedFor}
         <span class="drip-comment-date">${dateStr}</span>
       </div>
-      <div class="drip-comment-text">${esc(c.text)}</div>
+      <div class="drip-comment-text">${mention}${esc(c.text)}</div>
+      <div class="drip-comment-actions">
+        <button class="comment-like ${likes.likedByMe ? 'liked' : ''}" onclick="toggleDripLike('${c.id}','${battleId}',this)">
+          <span class="like-heart">&#x2665;</span> ${likes.count > 0 ? `${likes.count} ` : ''}${likes.likedByMe ? 'Liked' : 'Like'}
+        </button>
+        <button class="comment-dislike ${dlikes.dislikedByMe ? 'disliked' : ''}" onclick="toggleDripDislike('${c.id}','${battleId}',this)">
+          &#x1F44E; ${dlikes.count > 0 ? `${dlikes.count} ` : ''}${dlikes.dislikedByMe ? 'Disliked' : 'Dislike'}
+        </button>
+        ${!isReply ? `<button class="comment-reply-btn" onclick="openDripReplyBox('${c.id}','${battleId}','${esc(resolveUsername(c.user_id, c.username))}')">Reply</button>` : ''}
+      </div>
+      <div id="drip-reply-box-${c.id}"></div>
+      ${(repliesMap[c.id]||[]).map(r => buildComment(r, true, resolveUsername(c.user_id, c.username))).join('')}
       ${(isOwn || isAdmin()) ? `<button class="drip-comment-delete" onclick="deleteDripComment('${c.id}','${battleId}')">${isAdmin()&&!isOwn?'🗑':'&#x2715;'}</button>` : ''}
     </div>`;
-  }).join('');
+  }
+
+  el.innerHTML = topLevel.map(c => buildComment(c)).join('');
 }
 
 async function submitDripComment() {
@@ -5265,6 +5311,80 @@ async function submitDripComment() {
 async function deleteDripComment(commentId, battleId) {
   await sb.from('drip_comments').delete().eq('id', commentId);
   await loadDripComments(battleId);
+}
+
+async function toggleDripLike(commentId, battleId, btn) {
+  if (!dbReady) return;
+  const uid = getUID();
+  const isLiked = btn.classList.contains('liked');
+  btn.classList.toggle('liked', !isLiked);
+  const countMatch = btn.textContent.match(/\d+/);
+  const current = countMatch ? parseInt(countMatch[0]) : 0;
+  const newCount = isLiked ? Math.max(0, current - 1) : current + 1;
+  btn.innerHTML = `<span class="like-heart">&#x2665;</span> ${newCount > 0 ? `${newCount} ` : ''}${isLiked ? 'Like' : 'Liked'}`;
+  if (isLiked) {
+    await sb.from('drip_comment_likes').delete().eq('comment_id', commentId).eq('user_id', uid);
+  } else {
+    await sb.from('drip_comment_likes').insert({ comment_id: commentId, user_id: uid });
+    await sb.from('drip_comment_dislikes').delete().eq('comment_id', commentId).eq('user_id', uid);
+  }
+  loadDripComments(battleId);
+}
+
+async function toggleDripDislike(commentId, battleId, btn) {
+  if (!dbReady) return;
+  const uid = getUID();
+  const isDisliked = btn.classList.contains('disliked');
+  btn.classList.toggle('disliked', !isDisliked);
+  const countMatch = btn.textContent.match(/\d+/);
+  const current = countMatch ? parseInt(countMatch[0]) : 0;
+  const newCount = isDisliked ? Math.max(0, current - 1) : current + 1;
+  btn.innerHTML = `&#x1F44E; ${newCount > 0 ? `${newCount} ` : ''}${isDisliked ? 'Dislike' : 'Disliked'}`;
+  if (isDisliked) {
+    await sb.from('drip_comment_dislikes').delete().eq('comment_id', commentId).eq('user_id', uid);
+  } else {
+    await sb.from('drip_comment_dislikes').insert({ comment_id: commentId, user_id: uid });
+    await sb.from('drip_comment_likes').delete().eq('comment_id', commentId).eq('user_id', uid);
+  }
+  loadDripComments(battleId);
+}
+
+function openDripReplyBox(parentId, battleId, replyToName) {
+  document.querySelectorAll('[id^="drip-reply-box-"]').forEach(el => el.innerHTML = '');
+  const box = document.getElementById(`drip-reply-box-${parentId}`);
+  if (!box) return;
+  if (box.innerHTML.trim()) { box.innerHTML = ''; return; }
+  box.innerHTML = `
+    <div class="inline-reply-wrap">
+      <textarea class="inline-reply-textarea" id="drip-reply-input-${parentId}" placeholder="Replying to ${esc(replyToName)}..." style="font-size:16px"></textarea>
+      <div class="inline-reply-actions">
+        <button class="inline-reply-cancel" onclick="document.getElementById('drip-reply-box-${parentId}').innerHTML=''">Cancel</button>
+        <button class="inline-reply-submit" onclick="submitDripReply('${parentId}','${battleId}')">Post Reply</button>
+      </div>
+    </div>`;
+  document.getElementById(`drip-reply-input-${parentId}`).focus();
+}
+
+async function submitDripReply(parentId, battleId) {
+  const input = document.getElementById(`drip-reply-input-${parentId}`);
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  const btn = input.closest('.inline-reply-wrap').querySelector('.inline-reply-submit');
+  btn.disabled = true;
+  const { error } = await sb.from('drip_comments').insert({
+    battle_id: battleId,
+    user_id: getUID(),
+    username: getUsername(),
+    text,
+    parent_id: parentId,
+    choice: null
+  });
+  btn.disabled = false;
+  if (error) { showToast('Could not post reply'); return; }
+  const box = document.getElementById(`drip-reply-box-${parentId}`);
+  if (box) box.innerHTML = '';
+  loadDripComments(battleId);
 }
 
 function switchDripTab(tab) {
