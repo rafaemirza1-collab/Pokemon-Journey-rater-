@@ -4086,7 +4086,7 @@ async function renderRankings() {
         <div class="rank-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
           <div class="rank-score">${u.count}</div>
           <div class="rank-votes">review${u.count!==1?'s':''}</div>
-          <button class="action-fwd-btn" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="reviewer" data-fwd-id="${u.user_id}" data-fwd-name="${esc(u.username)}" data-fwd-title="${esc(u.username)}" data-fwd-sub="${u.count} reviews">📤</button>
+          <button class="action-fwd-btn" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="reviewer" data-fwd-id="${u.user_id}" data-fwd-name="${esc(u.username)}" data-fwd-title="${esc(u.username)}" data-fwd-sub="${u.count} reviews">Share</button>
         </div>
       </div>`;
     }).join('');
@@ -4123,7 +4123,7 @@ async function renderRankings() {
       </div>
       <div class="rank-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
         ${scoreDisplay}
-        <button class="action-fwd-btn" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="trainer" data-fwd-id="${t.id}" data-fwd-name="${esc(t.name)}" data-fwd-title="${esc(t.name)}" data-fwd-sub="${t.region} trainer">📤</button>
+        <button class="action-fwd-btn" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="trainer" data-fwd-id="${t.id}" data-fwd-name="${esc(t.name)}" data-fwd-title="${esc(t.name)}" data-fwd-sub="${t.region} trainer">Share</button>
       </div>
     </div>`;
     }).join('');
@@ -4198,7 +4198,7 @@ function buildRankRow(r, i) {
     </div>
     <div class="rank-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
       ${scoreDisplay}
-      <button class="action-fwd-btn" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="ranking" data-fwd-id="${r.id}" data-fwd-name="${p.name}" data-fwd-title="${p.name.replace(/-/g,' ')}" data-fwd-sub="#${i+1} · ${r.avg>0?r.avg.toFixed(1)+' avg':'no ratings'}">📤</button>
+      <button class="action-fwd-btn" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="ranking" data-fwd-id="${r.id}" data-fwd-name="${p.name}" data-fwd-title="${p.name.replace(/-/g,' ')}" data-fwd-sub="#${i+1} · ${r.avg>0?r.avg.toFixed(1)+' avg':'no ratings'}">Share</button>
     </div>
   </div>`;
 }
@@ -4368,7 +4368,7 @@ function renderTeamsFeed() {
         <span class="team-card-stat">&#x2665; ${t.likeCount} like${t.likeCount !== 1 ? 's' : ''}</span>
         <span class="team-card-stat">&#x1F4AC; ${t.commentCount} comment${t.commentCount !== 1 ? 's' : ''}</span>
         ${t.ratingCount > 0 ? `<span class="team-card-stat" style="color:var(--accent)">&#9733; ${t.avgRating.toFixed(1)} (${t.ratingCount})</span>` : ''}
-        <button class="action-fwd-btn" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="team" data-fwd-id="${t.id}" data-fwd-name="${esc(t.name)}" data-fwd-title="${esc(t.name)}" data-fwd-sub="${t.ratingCount>0?'⭐ '+t.avgRating.toFixed(1)+' · ':''} ${t.likeCount} likes" data-fwd-user="${esc(t.username||'Anonymous')}" data-fwd-extra="${t.pokemon_ids.slice(0,6).join(',')}">📤</button>
+        <button class="action-fwd-btn" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="team" data-fwd-id="${t.id}" data-fwd-name="${esc(t.name)}" data-fwd-title="${esc(t.name)}" data-fwd-sub="${t.ratingCount>0?'⭐ '+t.avgRating.toFixed(1)+' · ':''} ${t.likeCount} likes" data-fwd-user="${esc(t.username||'Anonymous')}" data-fwd-extra="${t.pokemon_ids.slice(0,6).join(',')}">Share</button>
       </div>
     </div>`;
   }).join('');
@@ -6063,7 +6063,7 @@ async function renderHtFeed(reset) {
         <button class="ht-reply-btn" onclick="openHtThread('${t.id}')">
           &#x1F4AC; ${replies > 0 ? `${replies} repl${replies===1?'y':'ies'}` : 'Reply'}
         </button>
-        <button class="action-fwd-btn" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="hottake" data-fwd-id="${t.id}" data-fwd-name="" data-fwd-title="Hot Take" data-fwd-sub="${esc(t.text.slice(0,80))}${t.text.length>80?'…':''}" data-fwd-user="${esc(resolveUsername(t.user_id, t.username))}">📤</button>
+        <button class="action-fwd-btn" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="hottake" data-fwd-id="${t.id}" data-fwd-name="" data-fwd-title="Hot Take" data-fwd-sub="${esc(t.text.slice(0,80))}${t.text.length>80?'…':''}" data-fwd-user="${esc(resolveUsername(t.user_id, t.username))}">Share</button>
         ${isAdmin() ? `<button class="comment-delete" style="position:static;margin-left:auto" onclick="deleteHotTake('${t.id}')">🗑</button>` : ''}
       </div>
     </div>`;
