@@ -1586,7 +1586,12 @@ async function signUpWithEmail() {
   if (error) { errEl.textContent = error.message; return; }
   localStorage.setItem('pr_username', username);
   document.getElementById('name-modal-overlay').classList.remove('open');
-  showToast('Account created! Check your email to confirm.');
+  if (data.session) {
+    authUser = data.session.user;
+    await onAuthSignedIn();
+  } else {
+    showToast('Check your email to confirm your account, then log in.');
+  }
 }
 
 async function signInWithEmail() {
