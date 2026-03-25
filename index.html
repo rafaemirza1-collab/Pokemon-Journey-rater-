@@ -1027,12 +1027,12 @@
 <div class="merge-banner" id="merge-banner" style="display:none"></div>
 
 <!-- SHARE PICKER -->
-<div class="share-picker-overlay" id="share-picker-overlay" onclick="if(event.target===this)closeSharePicker()">
+<div class="share-picker-overlay" id="share-picker-overlay" onclick="if(event.target===this)cancelSendToFriend()">
   <div class="share-picker-modal">
     <div class="share-picker-title">Share with a friend</div>
     <div class="share-picker-preview" id="share-picker-preview"></div>
     <div class="share-picker-list" id="share-picker-list"></div>
-    <button class="share-picker-cancel" onclick="closeSharePicker()">Cancel</button>
+    <button class="share-picker-cancel" onclick="cancelSendToFriend()">Cancel</button>
   </div>
 </div>
 
@@ -1300,7 +1300,7 @@
     <button class="modal-close" onclick="closeModal()">&#x2715;</button>
     <div id="modal-hero"></div>
     <div style="padding:0 32px 16px;display:flex;justify-content:flex-end">
-      <button id="modal-action-fwd-btn" style="padding:6px 16px;font-size:0.8rem;background:var(--surface2);border:1px solid #444;border-radius:999px;color:var(--text);cursor:pointer;font-family:Inter,sans-serif;font-weight:600" onclick="openSharePicker(this)">📤 Share</button>
+      <button id="modal-action-fwd-btn" style="padding:6px 16px;font-size:0.8rem;background:var(--surface2);border:1px solid #444;border-radius:999px;color:var(--text);cursor:pointer;font-family:Inter,sans-serif;font-weight:600" onclick="sendToFriend(this)">📤 Share</button>
     </div>
     <div class="modal-tabs" id="modal-tabs">
       <button class="modal-tab active" id="modal-tab-ratings" onclick="switchModalTab('ratings')">⭐ Ratings & Reviews</button>
@@ -2459,16 +2459,16 @@ function closeChat() {
 // ── SHARE SYSTEM ──
 let _pendingShare = null;
 
-function openSharePicker(btn) {
+function sendToFriend(btn) {
   if (!dbReady) { showToast('Sign in to share'); return; }
   _pendingShare = {
-    type: btn.dataset.shareType || btn.getAttribute('data-share-type'),
-    id: btn.dataset.shareId || btn.getAttribute('data-share-id') || '',
-    name: btn.dataset.shareName || btn.getAttribute('data-share-name') || '',
-    title: btn.dataset.shareTitle || btn.getAttribute('data-share-title') || '',
-    sub: btn.dataset.shareSub || btn.getAttribute('data-share-sub') || '',
-    extra: btn.dataset.shareExtra || btn.getAttribute('data-share-extra') || '',
-    user: btn.dataset.shareUser || btn.getAttribute('data-share-user') || ''
+    type: btn.dataset.fwdType || btn.getAttribute('data-fwd-type'),
+    id: btn.dataset.fwdId || btn.getAttribute('data-fwd-id') || '',
+    name: btn.dataset.fwdName || btn.getAttribute('data-fwd-name') || '',
+    title: btn.dataset.fwdTitle || btn.getAttribute('data-fwd-title') || '',
+    sub: btn.dataset.fwdSub || btn.getAttribute('data-fwd-sub') || '',
+    extra: btn.dataset.fwdExtra || btn.getAttribute('data-fwd-extra') || '',
+    user: btn.dataset.fwdUser || btn.getAttribute('data-fwd-user') || ''
   };
   const overlay = document.getElementById('share-picker-overlay');
   const preview = document.getElementById('share-picker-preview');
@@ -2477,7 +2477,7 @@ function openSharePicker(btn) {
   _renderSharePickerList();
 }
 
-function closeSharePicker() {
+function cancelSendToFriend() {
   document.getElementById('share-picker-overlay').style.display = 'none';
   _pendingShare = null;
 }
@@ -2507,7 +2507,7 @@ async function _renderSharePickerList() {
 async function _sendShare(convId, toName) {
   if (!_pendingShare) return;
   const text = '[share]' + JSON.stringify(_pendingShare);
-  closeSharePicker();
+  cancelSendToFriend();
   const uid = getUID();
   await sb.from('messages').insert({ conversation_id: convId, sender_id: uid, text });
   await sb.from('conversations').update({ last_message: '📤 Shared something', last_at: new Date().toISOString() }).eq('id', convId);
@@ -2518,7 +2518,7 @@ function _renderShareCard(text, isMine) {
   try {
     const d = JSON.parse(text.slice(7));
     if (!d || !d.type) return `<div class="msg-bubble ${isMine?'mine':'theirs'}">📤 Shared something</div>`;
-    const idAttr = d.id ? `data-share-id="${d.id}"` : '';
+    const idAttr = d.id ? `data-fwd-id="${d.id}"` : '';
     let inner = '';
 
     if (d.type === 'ranking' || d.type === 'pokemon') {
@@ -2594,14 +2594,14 @@ function _renderShareCard(text, isMine) {
         <div class="msg-share-view">Tap to see their profile →</div>`;
     }
 
-    return `<div class="msg-share-card" data-share-type="${d.type}" ${idAttr} data-share-name="${esc(d.name||'')}" onclick="handleShareMsg(this)">${inner}</div>`;
+    return `<div class="msg-share-card" data-fwd-type="${d.type}" ${idAttr} data-fwd-name="${esc(d.name||'')}" onclick="handleShareMsg(this)">${inner}</div>`;
   } catch { return `<div class="msg-bubble ${isMine?'mine':'theirs'}">📤 Shared something</div>`; }
 }
 
 function handleShareMsg(el) {
-  const type = el.dataset.shareType;
-  const id = el.dataset.shareId;
-  const name = el.dataset.shareName;
+  const type = el.dataset.fwdType;
+  const id = el.dataset.fwdId;
+  const name = el.dataset.fwdName;
   closeChat();
   if (type === 'pokemon' || type === 'ranking') { switchView('browse'); setTimeout(() => openModal(parseInt(id), name), 300); }
   else if (type === 'team') { switchView('teams'); setTimeout(() => openTeamDetail(id), 400); }
@@ -3274,7 +3274,7 @@ function createCard(p) {
       ${reviewsNote}
     </div>
     <div style="display:flex;justify-content:flex-end;width:100%;margin-top:2px">
-      <button class="action-fwd-btn" style="padding:2px 8px;font-size:0.65rem" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="pokemon" data-share-id="${p.id}" data-share-name="${p.name}" data-share-title="${p.name.replace(/-/g,' ')}" data-share-sub="${subText}">📤</button>
+      <button class="action-fwd-btn" style="padding:2px 8px;font-size:0.65rem" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="pokemon" data-fwd-id="${p.id}" data-fwd-name="${p.name}" data-fwd-title="${p.name.replace(/-/g,' ')}" data-fwd-sub="${subText}">📤</button>
     </div>`;
   return div;
 }
@@ -3353,11 +3353,11 @@ async function openModal(id, name) {
   document.body.style.overflow = 'hidden';
   const shareBtn = document.getElementById('modal-action-fwd-btn');
   if (shareBtn) {
-    shareBtn.dataset.shareType = 'pokemon';
-    shareBtn.dataset.shareId = id;
-    shareBtn.dataset.shareName = name;
-    shareBtn.dataset.shareTitle = name.replace(/-/g,' ');
-    shareBtn.dataset.shareSub = '';
+    shareBtn.dataset.fwdType = 'pokemon';
+    shareBtn.dataset.fwdId = id;
+    shareBtn.dataset.fwdName = name;
+    shareBtn.dataset.fwdTitle = name.replace(/-/g,' ');
+    shareBtn.dataset.fwdSub = '';
   }
 
   // Reset tabs to default
@@ -3427,7 +3427,7 @@ async function openModal(id, name) {
     }
   }
   const avgDisp = stats.count ? stats.avg.toFixed(1) : '—';
-  if (shareBtn) shareBtn.dataset.shareSub = stats.count ? avgDisp + '/5 · ' + stats.count + ' votes' : 'No ratings yet';
+  if (shareBtn) shareBtn.dataset.fwdSub = stats.count ? avgDisp + '/5 · ' + stats.count + ' votes' : 'No ratings yet';
   const filledC = Math.round(stats.avg);
   const cStars = [1,2,3,4,5].map(i => `<span class="s ${i<=filledC?'filled':''}">&#9733;</span>`).join('');
 
@@ -4085,7 +4085,7 @@ async function renderRankings() {
         <div class="rank-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
           <div class="rank-score">${u.count}</div>
           <div class="rank-votes">review${u.count!==1?'s':''}</div>
-          <button class="action-fwd-btn" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="reviewer" data-share-id="${u.user_id}" data-share-name="${esc(u.username)}" data-share-title="${esc(u.username)}" data-share-sub="${u.count} reviews">📤</button>
+          <button class="action-fwd-btn" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="reviewer" data-fwd-id="${u.user_id}" data-fwd-name="${esc(u.username)}" data-fwd-title="${esc(u.username)}" data-fwd-sub="${u.count} reviews">📤</button>
         </div>
       </div>`;
     }).join('');
@@ -4122,7 +4122,7 @@ async function renderRankings() {
       </div>
       <div class="rank-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
         ${scoreDisplay}
-        <button class="action-fwd-btn" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="trainer" data-share-id="${t.id}" data-share-name="${esc(t.name)}" data-share-title="${esc(t.name)}" data-share-sub="${t.region} trainer">📤</button>
+        <button class="action-fwd-btn" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="trainer" data-fwd-id="${t.id}" data-fwd-name="${esc(t.name)}" data-fwd-title="${esc(t.name)}" data-fwd-sub="${t.region} trainer">📤</button>
       </div>
     </div>`;
     }).join('');
@@ -4197,7 +4197,7 @@ function buildRankRow(r, i) {
     </div>
     <div class="rank-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
       ${scoreDisplay}
-      <button class="action-fwd-btn" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="ranking" data-share-id="${r.id}" data-share-name="${p.name}" data-share-title="${p.name.replace(/-/g,' ')}" data-share-sub="#${i+1} · ${r.avg>0?r.avg.toFixed(1)+' avg':'no ratings'}">📤</button>
+      <button class="action-fwd-btn" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="ranking" data-fwd-id="${r.id}" data-fwd-name="${p.name}" data-fwd-title="${p.name.replace(/-/g,' ')}" data-fwd-sub="#${i+1} · ${r.avg>0?r.avg.toFixed(1)+' avg':'no ratings'}">📤</button>
     </div>
   </div>`;
 }
@@ -4367,7 +4367,7 @@ function renderTeamsFeed() {
         <span class="team-card-stat">&#x2665; ${t.likeCount} like${t.likeCount !== 1 ? 's' : ''}</span>
         <span class="team-card-stat">&#x1F4AC; ${t.commentCount} comment${t.commentCount !== 1 ? 's' : ''}</span>
         ${t.ratingCount > 0 ? `<span class="team-card-stat" style="color:var(--accent)">&#9733; ${t.avgRating.toFixed(1)} (${t.ratingCount})</span>` : ''}
-        <button class="action-fwd-btn" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="team" data-share-id="${t.id}" data-share-name="${esc(t.name)}" data-share-title="${esc(t.name)}" data-share-sub="${t.ratingCount>0?'⭐ '+t.avgRating.toFixed(1)+' · ':''} ${t.likeCount} likes" data-share-user="${esc(t.username||'Anonymous')}" data-share-extra="${t.pokemon_ids.slice(0,6).join(',')}">📤</button>
+        <button class="action-fwd-btn" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="team" data-fwd-id="${t.id}" data-fwd-name="${esc(t.name)}" data-fwd-title="${esc(t.name)}" data-fwd-sub="${t.ratingCount>0?'⭐ '+t.avgRating.toFixed(1)+' · ':''} ${t.likeCount} likes" data-fwd-user="${esc(t.username||'Anonymous')}" data-fwd-extra="${t.pokemon_ids.slice(0,6).join(',')}">📤</button>
       </div>
     </div>`;
   }).join('');
@@ -4830,7 +4830,7 @@ function renderTrainerGrid() {
         <div class="trainer-card-region">${t.region} ${t.gender}</div>
         <div class="trainer-card-stars">${stars}</div>
         <div class="trainer-card-score">${scoreText}</div>
-        <button class="action-fwd-btn" style="margin-top:6px" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="trainer" data-share-id="${t.id}" data-share-name="${esc(t.name)}" data-share-title="${esc(t.name)}" data-share-sub="${t.region} trainer">📤 Share</button>
+        <button class="action-fwd-btn" style="margin-top:6px" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="trainer" data-fwd-id="${t.id}" data-fwd-name="${esc(t.name)}" data-fwd-title="${esc(t.name)}" data-fwd-sub="${t.region} trainer">📤 Share</button>
       </div>
     </div>`;
   }).join('');
@@ -4883,13 +4883,13 @@ async function openTrainerModal(trainerId) {
             <div class="trainer-modal-avg-label">${ratingCount ? `${ratingCount} community vote${ratingCount>1?'s':''}` : 'No ratings yet'}</div>
           </div>
         </div>
-        <button style="margin-bottom:12px;padding:6px 16px;font-size:0.8rem;background:var(--surface2);border:1px solid #444;border-radius:999px;color:var(--text);cursor:pointer;font-family:Inter,sans-serif;font-weight:600" onclick="openSharePicker(this)"
-          data-share-type="trainer"
-          data-share-id="${trainer.id}"
-          data-share-name="${trainer.name}"
-          data-share-title="${trainer.name}"
-          data-share-sub="${trainer.region} · ${trainer.game}"
-          data-share-extra="${trainer.img}">📤 Share</button>
+        <button style="margin-bottom:12px;padding:6px 16px;font-size:0.8rem;background:var(--surface2);border:1px solid #444;border-radius:999px;color:var(--text);cursor:pointer;font-family:Inter,sans-serif;font-weight:600" onclick="sendToFriend(this)"
+          data-fwd-type="trainer"
+          data-fwd-id="${trainer.id}"
+          data-fwd-name="${trainer.name}"
+          data-fwd-title="${trainer.name}"
+          data-fwd-sub="${trainer.region} · ${trainer.game}"
+          data-fwd-extra="${trainer.img}">📤 Share</button>
         <div class="trainer-modal-my-rating">
           <div class="your-rating-label">Your Rating</div>
           <div class="trainer-stars-row" id="trainer-stars-input">${myStarBtns}</div>
@@ -5386,7 +5386,7 @@ function renderDripDetail() {
       ${fighterHTML(battle.pokemon_b, nameB, pctB, votesB, leadingB, myVote === battle.pokemon_b)}
     </div>
     <div style="text-align:center;margin-top:8px">
-      <button class="action-fwd-btn" onclick="openSharePicker(this)" data-share-type="drip" data-share-id="${battle.id}" data-share-name="" data-share-title="${nameA} vs ${nameB}" data-share-sub="Who has better drip?" data-share-extra="${battle.pokemon_a},${battle.pokemon_b}">📤 Share Battle</button>
+      <button class="action-fwd-btn" onclick="sendToFriend(this)" data-fwd-type="drip" data-fwd-id="${battle.id}" data-fwd-name="" data-fwd-title="${nameA} vs ${nameB}" data-fwd-sub="Who has better drip?" data-fwd-extra="${battle.pokemon_a},${battle.pokemon_b}">📤 Share Battle</button>
     </div>
     ${nextPromptHTML}`;
 
@@ -6062,7 +6062,7 @@ async function renderHtFeed(reset) {
         <button class="ht-reply-btn" onclick="openHtThread('${t.id}')">
           &#x1F4AC; ${replies > 0 ? `${replies} repl${replies===1?'y':'ies'}` : 'Reply'}
         </button>
-        <button class="action-fwd-btn" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="hottake" data-share-id="${t.id}" data-share-name="" data-share-title="Hot Take" data-share-sub="${esc(t.text.slice(0,80))}${t.text.length>80?'…':''}" data-share-user="${esc(resolveUsername(t.user_id, t.username))}">📤</button>
+        <button class="action-fwd-btn" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="hottake" data-fwd-id="${t.id}" data-fwd-name="" data-fwd-title="Hot Take" data-fwd-sub="${esc(t.text.slice(0,80))}${t.text.length>80?'…':''}" data-fwd-user="${esc(resolveUsername(t.user_id, t.username))}">📤</button>
         ${isAdmin() ? `<button class="comment-delete" style="position:static;margin-left:auto" onclick="deleteHotTake('${t.id}')">🗑</button>` : ''}
       </div>
     </div>`;
