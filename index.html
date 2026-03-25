@@ -963,6 +963,77 @@
   @media (max-width: 640px) {
     .chat-drawer { right: 0; width: 100%; border-radius: 0; top: 0; bottom: 0; height: 100%; }
   }
+
+  /* ═══════════════════════════════════════════════
+     WHO'S THAT POKÉMON? MINIGAME
+     ═══════════════════════════════════════════════ */
+  #view-wtp { max-width: 680px; margin: 0 auto; padding: 28px 20px 60px; }
+  .wtp-header { text-align: center; margin-bottom: 28px; }
+  .wtp-header h1 { font-size: 2rem; font-weight: 900; letter-spacing: -1px; }
+  .wtp-subtitle { color: var(--muted); font-size: 0.88rem; margin-top: 4px; }
+  .wtp-lobby { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .wtp-lobby-title { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.5px; }
+  .wtp-lobby-desc { color: var(--muted); font-size: 0.88rem; text-align: center; max-width: 420px; line-height: 1.6; }
+  .wtp-start-btn { padding: 14px 40px; border-radius: 999px; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; font-size: 1rem; font-weight: 800; border: none; cursor: pointer; transition: all 0.25s; box-shadow: 0 4px 20px rgba(230,57,70,0.3); }
+  .wtp-start-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(230,57,70,0.45); }
+  .wtp-lb-btn { padding: 14px 40px; border-radius: 999px; background: var(--surface2); color: var(--text); font-size: 1rem; font-weight: 700; border: 1px solid var(--border); cursor: pointer; transition: all 0.25s; }
+  .wtp-lb-btn:hover { border-color: #555; }
+  .wtp-lb-section { width: 100%; max-width: 460px; margin-top: 8px; }
+  .wtp-lb-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 10px; text-align: center; }
+  .wtp-lb-list { display: flex; flex-direction: column; gap: 8px; }
+  .wtp-lb-loading { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 20px 0; }
+  .wtp-lb-row { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 16px; }
+  .wtp-lb-rank { width: 28px; height: 28px; border-radius: 50%; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800; color: var(--muted); flex-shrink: 0; }
+  .wtp-lb-rank.gold { background: rgba(230,57,70,0.15); color: var(--accent); }
+  .wtp-lb-rank.silver { background: rgba(199,125,255,0.15); color: var(--accent2); }
+  .wtp-lb-rank.bronze { background: rgba(205,127,50,0.1); color: #cd7f32; }
+  .wtp-lb-name { flex: 1; font-size: 0.88rem; font-weight: 600; }
+  .wtp-lb-score { font-size: 1.1rem; font-weight: 900; color: var(--accent); }
+  .wtp-lb-you { font-size: 0.65rem; background: rgba(199,125,255,0.2); color: var(--accent2); border-radius: 999px; padding: 2px 7px; font-weight: 600; }
+  .wtp-hud { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 12px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+  .wtp-hud-score { font-size: 1rem; font-weight: 700; }
+  .wtp-hud-score span { color: var(--accent); font-size: 1.3rem; }
+  .wtp-hud-timer { font-size: 1.5rem; font-weight: 900; letter-spacing: 2px; color: var(--text); font-variant-numeric: tabular-nums; transition: color 0.3s; }
+  .wtp-hud-timer.urgent { color: var(--accent); animation: wtp-pulse 0.5s ease infinite alternate; }
+  .wtp-hud-streak { font-size: 0.9rem; font-weight: 700; color: var(--muted); }
+  .wtp-hud-streak span { color: var(--text); }
+  @keyframes wtp-pulse { from { opacity: 1; } to { opacity: 0.4; } }
+  .wtp-stage { display: flex; flex-direction: column; align-items: center; gap: 12px; min-height: 280px; margin-bottom: 20px; }
+  .wtp-question-text { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); }
+  .wtp-pokemon-wrap { position: relative; width: 240px; height: 240px; display: flex; align-items: center; justify-content: center; }
+  .wtp-pokemon-img { width: 220px; height: 220px; object-fit: contain; transition: filter 0.5s ease; }
+  .wtp-pokemon-img.silhouette { filter: brightness(0); }
+  .wtp-pokemon-img.revealed { filter: brightness(1) drop-shadow(0 0 20px rgba(199,125,255,0.5)); }
+  .wtp-pokemon-wrap.reveal-glow { animation: wtp-glow 0.7s ease-out; }
+  @keyframes wtp-glow { 0% { filter: drop-shadow(0 0 0px rgba(230,57,70,0)); } 50% { filter: drop-shadow(0 0 28px rgba(230,57,70,0.8)); } 100% { filter: drop-shadow(0 0 0px rgba(230,57,70,0)); } }
+  .wtp-reveal-name { font-size: 1.6rem; font-weight: 900; text-transform: capitalize; letter-spacing: -0.5px; opacity: 0; transition: opacity 0.4s ease 0.2s; }
+  .wtp-reveal-name.show { opacity: 1; }
+  .wtp-result-badge { font-size: 0.85rem; font-weight: 700; padding: 5px 18px; border-radius: 999px; min-height: 28px; }
+  .wtp-result-badge.correct { background: rgba(100,220,100,0.15); color: #6fdc6f; border: 1px solid rgba(100,220,100,0.3); }
+  .wtp-result-badge.wrong { background: rgba(230,57,70,0.12); color: var(--accent); border: 1px solid rgba(230,57,70,0.3); }
+  .wtp-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .wtp-choice-btn { padding: 14px 10px; border-radius: 12px; font-size: 0.9rem; font-weight: 700; text-transform: capitalize; cursor: pointer; border: 2px solid var(--border); background: var(--surface); color: var(--text); transition: all 0.2s; font-family: 'Inter', sans-serif; }
+  .wtp-choice-btn:hover:not(:disabled) { border-color: var(--accent2); background: var(--surface2); transform: translateY(-2px); }
+  .wtp-choice-btn:disabled { cursor: default; }
+  .wtp-choice-btn.correct-ans { border-color: #6fdc6f; background: rgba(100,220,100,0.1); color: #6fdc6f; }
+  .wtp-choice-btn.wrong-ans { border-color: var(--accent); background: rgba(230,57,70,0.1); color: var(--accent); }
+  .wtp-choice-btn.dimmed { opacity: 0.35; }
+  .wtp-gameover { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; padding: 20px 0 40px; }
+  .wtp-go-title { font-size: 2.2rem; font-weight: 900; letter-spacing: -1px; }
+  .wtp-go-score { font-size: 1.1rem; color: var(--muted); }
+  .wtp-go-score span { font-size: 3rem; font-weight: 900; color: var(--accent); display: block; line-height: 1.1; }
+  .wtp-go-streak { font-size: 0.9rem; color: var(--muted); }
+  .wtp-go-rank { font-size: 0.88rem; color: var(--accent2); font-weight: 600; min-height: 24px; }
+  .wtp-go-btns { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+  @media (max-width: 640px) {
+    #view-wtp { padding: 16px 12px 60px; }
+    .wtp-header h1 { font-size: 1.5rem; }
+    .wtp-pokemon-img { width: 160px; height: 160px; }
+    .wtp-pokemon-wrap { width: 180px; height: 180px; }
+    .wtp-choice-btn { padding: 11px 8px; font-size: 0.8rem; }
+    .wtp-hud-timer { font-size: 1.2rem; }
+    .wtp-go-score span { font-size: 2.2rem; }
+  }
   </style>
 </head>
 <body>
@@ -1051,6 +1122,7 @@
     <button class="nav-tab" data-view="trainers" onclick="switchView('trainers')">🏆 Trainers</button>
     <button class="nav-tab" data-view="hottakes" onclick="switchView('hottakes')">🔥 Hot Takes</button>
       <button class="nav-tab" data-view="dripbattle" onclick="switchView('dripbattle')">⚡ Drip Battle</button>
+      <button class="nav-tab" data-view="wtp" onclick="switchView('wtp')">🎮 Minigames</button>
   </div>
   <div class="nav-right">
     <div class="nav-search">
@@ -1154,6 +1226,46 @@
   </div>
   <div class="ht-load-more" id="ht-load-more" style="display:none">
     <button class="ht-load-more-btn" onclick="loadMoreHotTakes()">Load more</button>
+  </div>
+</div>
+
+<!-- WHO'S THAT POKÉMON MINIGAME -->
+<div id="view-wtp" class="view">
+  <div class="wtp-header">
+    <h1>🎮 Minigames</h1>
+    <p class="wtp-subtitle">Test your Pokémon knowledge</p>
+  </div>
+  <div id="wtp-lobby">
+    <div class="wtp-lobby" id="wtp-lobby-inner">
+      <div class="wtp-lobby-title">Who's That Pokémon?</div>
+      <div class="wtp-lobby-desc">Identify Pokémon from their silhouette. You have 5 minutes — how many can you get right?</div>
+      <button class="wtp-start-btn" onclick="wtpStart()">▶ Start Game</button>
+      <div class="wtp-lb-section">
+        <div class="wtp-lb-title">🏆 All-Time Top 10</div>
+        <div class="wtp-lb-list" id="wtp-lb-list"><div class="wtp-lb-loading">Loading...</div></div>
+      </div>
+    </div>
+  </div>
+  <div id="wtp-game" style="display:none">
+    <div class="wtp-hud">
+      <div class="wtp-hud-score">Score: <span id="wtp-score">0</span></div>
+      <div class="wtp-hud-timer" id="wtp-timer">5:00</div>
+      <div class="wtp-hud-streak">Streak: <span id="wtp-streak">0</span> 🔥</div>
+    </div>
+    <div class="wtp-stage" id="wtp-stage"></div>
+    <div class="wtp-choices" id="wtp-choices"></div>
+  </div>
+  <div id="wtp-gameover" style="display:none">
+    <div class="wtp-gameover">
+      <div class="wtp-go-title">⏰ Time's Up!</div>
+      <div class="wtp-go-score">You scored <span id="wtp-go-score">0</span></div>
+      <div class="wtp-go-streak">Best streak: <span id="wtp-go-streak">0</span> 🔥</div>
+      <div class="wtp-go-rank" id="wtp-go-rank"></div>
+      <div class="wtp-go-btns">
+        <button class="wtp-start-btn" onclick="wtpStart()">▶ Play Again</button>
+        <button class="wtp-lb-btn" onclick="wtpShowLobby()">Leaderboard</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -4226,6 +4338,7 @@ function switchView(view) {
   if (view === 'trainers') initTrainersView();
   if (view === 'hottakes') loadHotTakes();
   if (view === 'dripbattle') loadDripRound();
+  if (view === 'wtp') initWTP();
 }
 
 // ═══════════════════════════════════════════════
@@ -6226,6 +6339,169 @@ function closeHtThread() {
 
 function closeHtThreadOnBg(e) {
   if (e.target === document.getElementById('ht-thread-overlay')) closeHtThread();
+}
+
+// ═══════════════════════════════════════════════
+// WHO'S THAT POKÉMON — MINIGAME
+// ═══════════════════════════════════════════════
+const WTP_TIME = 5 * 60;
+const WTP_REVEAL_DELAY = 1800;
+let wtpScore = 0, wtpStreak = 0, wtpBestStreak = 0;
+let wtpCurrentPokemon = null;
+let wtpTimerInterval = null;
+let wtpSecondsLeft = WTP_TIME;
+let wtpAnswered = false;
+let wtpUsedIds = new Set();
+
+function wtpRandIds(count, min, max, exclude = new Set()) {
+  const pool = [];
+  for (let i = min; i <= max; i++) { if (!exclude.has(i)) pool.push(i); }
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, count);
+}
+
+function wtpPokemonName(id) {
+  const p = allPokemon.find(x => x.id === id);
+  return p ? p.name : `#${id}`;
+}
+
+function wtpFormatTime(secs) {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function initWTP() {
+  wtpLoadLeaderboard();
+  wtpShowLobby();
+}
+
+function wtpShowLobby() {
+  clearInterval(wtpTimerInterval);
+  document.getElementById('wtp-lobby').style.display    = '';
+  document.getElementById('wtp-game').style.display     = 'none';
+  document.getElementById('wtp-gameover').style.display = 'none';
+  wtpLoadLeaderboard();
+}
+
+function wtpStart() {
+  wtpScore = 0; wtpStreak = 0; wtpBestStreak = 0;
+  wtpSecondsLeft = WTP_TIME;
+  wtpUsedIds = new Set();
+  document.getElementById('wtp-lobby').style.display    = 'none';
+  document.getElementById('wtp-gameover').style.display = 'none';
+  document.getElementById('wtp-game').style.display     = '';
+  document.getElementById('wtp-score').textContent  = '0';
+  document.getElementById('wtp-streak').textContent = '0';
+  document.getElementById('wtp-timer').textContent  = wtpFormatTime(WTP_TIME);
+  document.getElementById('wtp-timer').classList.remove('urgent');
+  clearInterval(wtpTimerInterval);
+  wtpTimerInterval = setInterval(() => {
+    wtpSecondsLeft--;
+    document.getElementById('wtp-timer').textContent = wtpFormatTime(wtpSecondsLeft);
+    if (wtpSecondsLeft <= 30) document.getElementById('wtp-timer').classList.add('urgent');
+    if (wtpSecondsLeft <= 0) { clearInterval(wtpTimerInterval); wtpEndGame(); }
+  }, 1000);
+  wtpNextQuestion();
+}
+
+function wtpNextQuestion() {
+  wtpAnswered = false;
+  let ids = wtpRandIds(1, 1, 151, wtpUsedIds);
+  if (!ids.length) { wtpUsedIds = new Set(); ids = wtpRandIds(1, 1, 151, new Set()); }
+  const correctId = ids[0];
+  wtpUsedIds.add(correctId);
+  const wrongIds = wtpRandIds(3, 1, 151, new Set([correctId]));
+  const options  = [correctId, ...wrongIds].sort(() => Math.random() - 0.5);
+  wtpCurrentPokemon = { id: correctId, name: wtpPokemonName(correctId) };
+  document.getElementById('wtp-stage').innerHTML = `
+    <div class="wtp-question-text">Who's That Pokémon?</div>
+    <div class="wtp-pokemon-wrap" id="wtp-poke-wrap">
+      <img class="wtp-pokemon-img silhouette" id="wtp-poke-img"
+           src="${ART(correctId)}" alt="???" draggable="false"
+           onerror="this.src='${SPRITE(correctId)}'"/>
+    </div>
+    <div class="wtp-reveal-name" id="wtp-reveal-name"></div>
+    <div id="wtp-result-badge" class="wtp-result-badge"></div>`;
+  document.getElementById('wtp-choices').innerHTML = options.map(id =>
+    `<button class="wtp-choice-btn" id="wtp-btn-${id}" onclick="wtpAnswer(${id})">${wtpPokemonName(id).replace(/-/g,' ')}</button>`
+  ).join('');
+}
+
+function wtpAnswer(chosenId) {
+  if (wtpAnswered) return;
+  wtpAnswered = true;
+  const isCorrect = chosenId === wtpCurrentPokemon.id;
+  const correctId = wtpCurrentPokemon.id;
+  if (isCorrect) { wtpScore++; wtpStreak++; if (wtpStreak > wtpBestStreak) wtpBestStreak = wtpStreak; }
+  else { wtpStreak = 0; }
+  document.getElementById('wtp-score').textContent  = wtpScore;
+  document.getElementById('wtp-streak').textContent = wtpStreak;
+  document.querySelectorAll('.wtp-choice-btn').forEach(btn => {
+    btn.disabled = true;
+    const btnId = parseInt(btn.id.replace('wtp-btn-', ''));
+    if (btnId === correctId) btn.classList.add('correct-ans');
+    else if (btnId === chosenId) btn.classList.add('wrong-ans');
+    else btn.classList.add('dimmed');
+  });
+  const img    = document.getElementById('wtp-poke-img');
+  const wrap   = document.getElementById('wtp-poke-wrap');
+  const nameEl = document.getElementById('wtp-reveal-name');
+  const badge  = document.getElementById('wtp-result-badge');
+  img.classList.remove('silhouette');
+  img.classList.add('revealed');
+  wrap.classList.add('reveal-glow');
+  nameEl.textContent = wtpCurrentPokemon.name.replace(/-/g, ' ');
+  nameEl.classList.add('show');
+  badge.textContent = isCorrect ? '✓ Correct! +1' : `✗ It was ${wtpCurrentPokemon.name.replace(/-/g,' ')}`;
+  badge.className = 'wtp-result-badge ' + (isCorrect ? 'correct' : 'wrong');
+  setTimeout(() => {
+    wrap.classList.remove('reveal-glow');
+    if (wtpSecondsLeft > 0) wtpNextQuestion();
+  }, WTP_REVEAL_DELAY);
+}
+
+async function wtpEndGame() {
+  clearInterval(wtpTimerInterval);
+  document.getElementById('wtp-game').style.display     = 'none';
+  document.getElementById('wtp-gameover').style.display = '';
+  document.getElementById('wtp-go-score').textContent  = wtpScore;
+  document.getElementById('wtp-go-streak').textContent = wtpBestStreak;
+  document.getElementById('wtp-go-rank').textContent   = '';
+  if (dbReady && wtpScore > 0) {
+    try {
+      await sb.from('minigame_scores').insert({ user_id: getUID(), username: getUsername(), score: wtpScore });
+      const { count } = await sb.from('minigame_scores').select('*', { count: 'exact', head: true }).gt('score', wtpScore);
+      const rank = (count ?? 0) + 1;
+      document.getElementById('wtp-go-rank').textContent = rank <= 10 ? `🏆 You ranked #${rank} all-time!` : `You ranked #${rank} all-time`;
+      wtpLoadLeaderboard();
+    } catch(e) {}
+  } else if (!dbReady) {
+    document.getElementById('wtp-go-rank').textContent = 'Sign in to save your score!';
+  }
+}
+
+async function wtpLoadLeaderboard() {
+  const listEl = document.getElementById('wtp-lb-list');
+  if (!listEl) return;
+  if (!dbReady) { listEl.innerHTML = '<div class="wtp-lb-loading">Sign in to see the leaderboard</div>'; return; }
+  listEl.innerHTML = '<div class="wtp-lb-loading">Loading...</div>';
+  try {
+    const { data: rows } = await sb.from('minigame_scores').select('username,score,user_id').order('score', { ascending: false }).limit(10);
+    if (!rows || !rows.length) { listEl.innerHTML = '<div class="wtp-lb-loading">No scores yet — be the first!</div>'; return; }
+    const myUid = getUID();
+    const rankClasses = ['gold','silver','bronze'];
+    listEl.innerHTML = rows.map((row, i) =>
+      `<div class="wtp-lb-row">
+        <div class="wtp-lb-rank ${rankClasses[i]||''}">${i+1}</div>
+        <div class="wtp-lb-name">${esc(row.username||'Anonymous')} ${row.user_id===myUid?'<span class="wtp-lb-you">you</span>':''}</div>
+        <div class="wtp-lb-score">${row.score}</div>
+      </div>`
+    ).join('');
+  } catch(e) { listEl.innerHTML = '<div class="wtp-lb-loading">Could not load scores</div>'; }
 }
 </script>
 </body>
