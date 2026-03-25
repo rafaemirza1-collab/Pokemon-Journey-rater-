@@ -1238,12 +1238,8 @@
   <div id="wtp-lobby">
     <div class="wtp-lobby" id="wtp-lobby-inner">
       <div class="wtp-lobby-title">Who's That Pokémon?</div>
-      <div class="wtp-lobby-desc">Identify Pokémon from their silhouette. You have 5 minutes — how many can you get right?</div>
+      <div class="wtp-lobby-desc">Identify Pokémon from their silhouette. You have 1 minute — how many can you get right?</div>
       <button class="wtp-start-btn" onclick="wtpStart()">▶ Start Game</button>
-      <div class="wtp-lb-section">
-        <div class="wtp-lb-title">🏆 All-Time Top 10</div>
-        <div class="wtp-lb-list" id="wtp-lb-list"><div class="wtp-lb-loading">Loading...</div></div>
-      </div>
     </div>
   </div>
   <div id="wtp-game" style="display:none">
@@ -1263,7 +1259,7 @@
       <div class="wtp-go-rank" id="wtp-go-rank"></div>
       <div class="wtp-go-btns">
         <button class="wtp-start-btn" onclick="wtpStart()">▶ Play Again</button>
-        <button class="wtp-lb-btn" onclick="wtpShowLobby()">Leaderboard</button>
+        <button class="wtp-lb-btn" onclick="wtpShowLobby()">Back</button>
       </div>
     </div>
   </div>
@@ -6344,7 +6340,7 @@ function closeHtThreadOnBg(e) {
 // ═══════════════════════════════════════════════
 // WHO'S THAT POKÉMON — MINIGAME
 // ═══════════════════════════════════════════════
-const WTP_TIME = 5 * 60;
+const WTP_TIME = 1 * 60;
 const WTP_REVEAL_DELAY = 1800;
 let wtpScore = 0, wtpStreak = 0, wtpBestStreak = 0;
 let wtpCurrentPokemon = null;
@@ -6375,7 +6371,6 @@ function wtpFormatTime(secs) {
 }
 
 function initWTP() {
-  wtpLoadLeaderboard();
   wtpShowLobby();
 }
 
@@ -6384,7 +6379,6 @@ function wtpShowLobby() {
   document.getElementById('wtp-lobby').style.display    = '';
   document.getElementById('wtp-game').style.display     = 'none';
   document.getElementById('wtp-gameover').style.display = 'none';
-  wtpLoadLeaderboard();
 }
 
 function wtpStart() {
@@ -6402,7 +6396,7 @@ function wtpStart() {
   wtpTimerInterval = setInterval(() => {
     wtpSecondsLeft--;
     document.getElementById('wtp-timer').textContent = wtpFormatTime(wtpSecondsLeft);
-    if (wtpSecondsLeft <= 30) document.getElementById('wtp-timer').classList.add('urgent');
+    if (wtpSecondsLeft <= 10) document.getElementById('wtp-timer').classList.add('urgent');
     if (wtpSecondsLeft <= 0) { clearInterval(wtpTimerInterval); wtpEndGame(); }
   }, 1000);
   wtpNextQuestion();
