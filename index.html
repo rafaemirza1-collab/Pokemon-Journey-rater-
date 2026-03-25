@@ -1520,15 +1520,17 @@ async function signInWithGoogle() {
   if (!dbReady) { showToast('Database not connected'); return; }
   document.getElementById('name-modal-overlay').classList.remove('open');
   const guestUid = localStorage.getItem('pr_uid');
-  // Build redirect URL — embed guest UID directly so it survives the OAuth round-trip
-  const redirectUrl = new URL(location.origin + location.pathname);
   if (guestUid && guestUid.startsWith('u_')) {
-    redirectUrl.searchParams.set('pm', guestUid);
-    localStorage.setItem('pr_pending_merge_uid', guestUid);
+    // Store merge intent in DB — survives OAuth redirect regardless of localStorage/URL
+    const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    try {
+      await sb.from('pending_merges').insert({ token, guest_uid: guestUid });
+      localStorage.setItem('pr_merge_token', token);
+    } catch(e) {}
   }
   await sb.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: redirectUrl.toString() }
+    options: { redirectTo: location.origin + location.pathname }
   });
 }
 async function signOut() {
@@ -1589,20 +1591,21 @@ async function onAuthSignedIn() {
   updateUserDisplay();
   document.getElementById('name-modal-overlay').classList.remove('open');
 
-  // Check URL param first, then localStorage — both set before OAuth redirect
-  const urlParams = new URLSearchParams(location.search);
-  const oldUid = urlParams.get('pm') || localStorage.getItem('pr_uid') || '';
-  if (oldUid && oldUid.startsWith('u_') && oldUid !== authUser.id) {
-    // Clear so it doesn't re-trigger on refresh
-    localStorage.removeItem('pr_uid');
-    localStorage.removeItem('pr_pending_merge_uid');
-    const url = new URL(location.href);
-    url.searchParams.delete('pm');
-    history.replaceState(null, '', url.toString());
-    // Run merge without DB read — RLS blocks reads for guest UIDs
-    pendingMergeUid = oldUid;
-    await mergeOldAccount();
-    return;
+  // Check DB for pending merge token (most reliable — survives OAuth redirect)
+  const mergeToken = localStorage.getItem('pr_merge_token');
+  if (mergeToken) {
+    try {
+      const { data: pm } = await sb.from('pending_merges').select('guest_uid').eq('token', mergeToken).maybeSingle();
+      if (pm?.guest_uid && pm.guest_uid.startsWith('u_') && pm.guest_uid !== authUser.id) {
+        localStorage.removeItem('pr_merge_token');
+        localStorage.removeItem('pr_uid');
+        await sb.from('pending_merges').delete().eq('token', mergeToken);
+        pendingMergeUid = pm.guest_uid;
+        await mergeOldAccount();
+        return;
+      }
+    } catch(e) {}
+    localStorage.removeItem('pr_merge_token');
   }
 
   if (dbReady) upsertUserProfile();
