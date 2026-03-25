@@ -3261,7 +3261,6 @@ function createCard(p) {
   const subText = avg > 0 ? `⭐ ${avg} avg · ${votes} vote${votes!==1?'s':''}` : 'No ratings yet';
   div.innerHTML = `
     <span class="poke-card-num">#${String(p.id).padStart(4,'0')}</span>
-    <button class="share-btn" style="position:absolute;top:6px;right:6px;z-index:2;padding:2px 7px;font-size:0.65rem" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="pokemon" data-share-id="${p.id}" data-share-name="${p.name}" data-share-title="${p.name.replace(/-/g,' ')}" data-share-sub="${subText}">📤</button>
     <img class="poke-card-img loading" src="${p.id > TOTAL ? ART(p.id) : SPRITE(p.id)}" alt="${p.name}"
          onload="this.classList.remove('loading')"
          onerror="this.onerror=null;this.style.imageRendering='auto';this.src='${ART(p.id)}'"/>
@@ -3270,6 +3269,9 @@ function createCard(p) {
     <div class="poke-card-rating">
       <div class="poke-card-stars" data-stars-id="${p.id}">${stars}</div>
       ${reviewsNote}
+    </div>
+    <div style="display:flex;justify-content:flex-end;width:100%;margin-top:2px">
+      <button class="share-btn" style="padding:2px 8px;font-size:0.65rem" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="pokemon" data-share-id="${p.id}" data-share-name="${p.name}" data-share-title="${p.name.replace(/-/g,' ')}" data-share-sub="${subText}">📤</button>
     </div>`;
   return div;
 }
