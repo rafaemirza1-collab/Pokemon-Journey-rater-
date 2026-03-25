@@ -967,6 +967,7 @@
       <input class="auth-form-input" id="login-password" type="password" placeholder="Password..."/>
       <div class="auth-error" id="login-error"></div>
       <button class="name-save-btn" onclick="signInWithEmail()">Log In</button>
+      <div class="name-skip" onclick="forgotPassword()" style="margin-top:10px">Forgot password?</div>
     </div>
     <div class="auth-divider"><span>or</span></div>
     <button class="oauth-btn oauth-btn-google" onclick="signInWithGoogle()">
@@ -1604,8 +1605,23 @@ async function signInWithEmail() {
   btn.textContent = 'Logging in...'; btn.disabled = true;
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   btn.textContent = 'Log In'; btn.disabled = false;
-  if (error) { errEl.textContent = error.message; return; }
+  if (error) {
+    if (error.message.toLowerCase().includes('email') && error.message.toLowerCase().includes('confirm')) {
+      errEl.textContent = 'Please confirm your email first — check your inbox.';
+    } else {
+      errEl.textContent = error.message;
+    }
+    return;
+  }
   document.getElementById('name-modal-overlay').classList.remove('open');
+}
+
+async function forgotPassword() {
+  const email = document.getElementById('login-email').value.trim();
+  if (!email) { document.getElementById('login-error').textContent = 'Enter your email above first.'; return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+  if (error) { document.getElementById('login-error').textContent = error.message; return; }
+  showToast('Password reset email sent — check your inbox.');
 }
 
 function showAuthRequired(action) {
