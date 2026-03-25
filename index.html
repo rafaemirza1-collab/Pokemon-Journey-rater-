@@ -2459,11 +2459,11 @@ let _pendingShare = null;
 function openSharePicker(btn) {
   if (!dbReady) { showToast('Sign in to share'); return; }
   _pendingShare = {
-    type: btn.dataset.shareType,
-    id: btn.dataset.shareId || '',
-    name: btn.dataset.shareName || '',
-    title: btn.dataset.shareTitle || '',
-    sub: btn.dataset.shareSub || ''
+    type: btn.dataset.shareType || btn.getAttribute('data-share-type'),
+    id: btn.dataset.shareId || btn.getAttribute('data-share-id') || '',
+    name: btn.dataset.shareName || btn.getAttribute('data-share-name') || '',
+    title: btn.dataset.shareTitle || btn.getAttribute('data-share-title') || '',
+    sub: btn.dataset.shareSub || btn.getAttribute('data-share-sub') || ''
   };
   const overlay = document.getElementById('share-picker-overlay');
   const preview = document.getElementById('share-picker-preview');
@@ -2512,6 +2512,7 @@ async function _sendShare(convId, toName) {
 function _renderShareCard(text, isMine) {
   try {
     const d = JSON.parse(text.slice(7));
+    if (!d || !d.type) return `<div class="msg-bubble ${isMine?'mine':'theirs'}">📤 Shared something</div>`;
     const icons = { pokemon:'🎮', ranking:'🏆', team:'🛡️', trainer:'⚡', hottake:'🔥', drip:'💧', reviewer:'📝' };
     const icon = icons[d.type] || '📤';
     const idAttr = d.id ? `data-share-id="${d.id}"` : '';
@@ -2521,7 +2522,7 @@ function _renderShareCard(text, isMine) {
       ${d.sub ? `<div class="msg-share-sub">${esc(d.sub)}</div>` : ''}
       <div class="msg-share-view">Tap to view →</div>
     </div>`;
-  } catch { return `<div class="msg-bubble ${isMine?'mine':'theirs'}">${esc(text)}</div>`; }
+  } catch { return `<div class="msg-bubble ${isMine?'mine':'theirs'}">📤 Shared something</div>`; }
 }
 
 function handleShareMsg(el) {
