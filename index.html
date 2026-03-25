@@ -2463,7 +2463,7 @@ async function loadConversationList() {
   try {
     // Load in parallel: conversations + people I follow
     const [{ data: convs }, { data: followRows }] = await Promise.all([
-      sb.from('conversations').select('*').or(`user_a.eq.${uid},user_b.eq.${uid}`).order('last_at', { ascending: false }).limit(50),
+      sb.from('conversations').select('*').or(`user_a.eq.${uid},user_b.eq.${uid}`).order('last_at', { ascending: false }),
       sb.from('follows').select('following_id').eq('follower_id', uid).limit(20)
     ]);
 
