@@ -1594,18 +1594,23 @@ async function onAuthSignedIn() {
   // Check DB for pending merge token (most reliable — survives OAuth redirect)
   const mergeToken = localStorage.getItem('pr_merge_token');
   if (mergeToken) {
-    try {
-      const { data: pm } = await sb.from('pending_merges').select('guest_uid').eq('token', mergeToken).maybeSingle();
-      if (pm?.guest_uid && pm.guest_uid.startsWith('u_') && pm.guest_uid !== authUser.id) {
-        localStorage.removeItem('pr_merge_token');
-        localStorage.removeItem('pr_uid');
-        await sb.from('pending_merges').delete().eq('token', mergeToken);
-        pendingMergeUid = pm.guest_uid;
-        await mergeOldAccount();
-        return;
-      }
-    } catch(e) {}
+    showToast('Step 1: Found merge token');
+    const { data: pm, error: pmErr } = await sb.from('pending_merges').select('guest_uid').eq('token', mergeToken).maybeSingle();
+    if (pmErr) { showToast('Step 1 error: ' + pmErr.message); }
+    if (pm?.guest_uid && pm.guest_uid.startsWith('u_') && pm.guest_uid !== authUser.id) {
+      showToast('Step 2: Found guest UID, merging...');
+      localStorage.removeItem('pr_merge_token');
+      localStorage.removeItem('pr_uid');
+      await sb.from('pending_merges').delete().eq('token', mergeToken);
+      pendingMergeUid = pm.guest_uid;
+      await mergeOldAccount();
+      return;
+    } else {
+      showToast('Step 1 fail: no guest UID found. pm=' + JSON.stringify(pm));
+    }
     localStorage.removeItem('pr_merge_token');
+  } else {
+    showToast('No merge token in localStorage');
   }
 
   if (dbReady) upsertUserProfile();
