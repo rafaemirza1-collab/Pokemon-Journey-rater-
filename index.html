@@ -4496,21 +4496,29 @@ document.addEventListener('focusout', e => {
   if (e.target.matches('input, textarea, [contenteditable]')) {
     document.getElementById('merge-banner').style.visibility = '';
     checkSaveDataBanner();
-    // Reset chat drawer position when keyboard closes on mobile
+    // Reset chat drawer position and height when keyboard closes on mobile
     if (window.innerWidth <= 640) {
-      document.getElementById('chat-drawer').style.bottom = '';
+      const drawer = document.getElementById('chat-drawer');
+      drawer.style.bottom = '';
+      drawer.style.height = '';
     }
   }
 });
 
-// On mobile, shift chat drawer up when keyboard opens so send button stays visible
+// On mobile, resize chat drawer to fit visible area above keyboard
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', () => {
     if (window.innerWidth > 640) return;
     const drawer = document.getElementById('chat-drawer');
     if (!drawer.classList.contains('open')) return;
     const keyboardHeight = window.innerHeight - window.visualViewport.height;
-    drawer.style.bottom = keyboardHeight > 50 ? keyboardHeight + 'px' : '';
+    if (keyboardHeight > 50) {
+      drawer.style.bottom = keyboardHeight + 'px';
+      drawer.style.height = window.visualViewport.height + 'px';
+    } else {
+      drawer.style.bottom = '';
+      drawer.style.height = '';
+    }
   });
 }
 
