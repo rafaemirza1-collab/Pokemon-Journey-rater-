@@ -1580,6 +1580,14 @@ async function signUpWithEmail() {
   if (!username) { errEl.textContent = 'Please enter a trainer name.'; return; }
   if (!email) { errEl.textContent = 'Please enter your email.'; return; }
   if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+  // Save guest UID to DB before signup so it survives email confirmation redirect
+  const guestUid = localStorage.getItem('pr_uid');
+  let mergeToken = null;
+  if (guestUid && guestUid.startsWith('u_')) {
+    mergeToken = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    try { await sb.from('pending_merges').insert({ token: mergeToken, guest_uid: guestUid }); } catch(e) {}
+    localStorage.setItem('pr_merge_token', mergeToken);
+  }
   const btn = document.querySelector('#auth-signup-form .name-save-btn');
   btn.textContent = 'Creating...'; btn.disabled = true;
   const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: username, username } } });
@@ -1591,7 +1599,7 @@ async function signUpWithEmail() {
     authUser = data.session.user;
     await onAuthSignedIn();
   } else {
-    showToast('Check your email to confirm your account, then log in.');
+    showToast('Check your email to confirm your account — your data will be saved when you do.');
   }
 }
 
@@ -1714,26 +1722,19 @@ async function onAuthSignedIn() {
   updateUserDisplay();
   document.getElementById('name-modal-overlay').classList.remove('open');
 
-  // Check DB for pending merge token (most reliable — survives OAuth redirect)
+  // Check DB for pending merge token
   const mergeToken = localStorage.getItem('pr_merge_token');
   if (mergeToken) {
-    showToast('Step 1: Found merge token');
-    const { data: pm, error: pmErr } = await sb.from('pending_merges').select('guest_uid').eq('token', mergeToken).maybeSingle();
-    if (pmErr) { showToast('Step 1 error: ' + pmErr.message); }
+    const { data: pm } = await sb.from('pending_merges').select('guest_uid').eq('token', mergeToken).maybeSingle();
     if (pm?.guest_uid && pm.guest_uid.startsWith('u_') && pm.guest_uid !== authUser.id) {
-      showToast('Step 2: Found guest UID, merging...');
       localStorage.removeItem('pr_merge_token');
       localStorage.removeItem('pr_uid');
       await sb.from('pending_merges').delete().eq('token', mergeToken);
       pendingMergeUid = pm.guest_uid;
       await mergeOldAccount();
       return;
-    } else {
-      showToast('Step 1 fail: no guest UID found. pm=' + JSON.stringify(pm));
     }
     localStorage.removeItem('pr_merge_token');
-  } else {
-    showToast('No merge token in localStorage');
   }
 
   if (dbReady) upsertUserProfile();
