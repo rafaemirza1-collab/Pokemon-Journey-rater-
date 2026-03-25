@@ -2261,10 +2261,10 @@ async function openUserProfile(uid, username) {
           <button class="profile-edit-btn" onclick="closeProfile();openEditUsernameModal()">✏️ Edit Username</button>
           ${authUser
             ? `<button class="auth-sign-out-btn" onclick="signOut()">Sign Out</button>`
-            : `<button class="auth-link-btn" onclick="closeProfile();document.getElementById('name-modal-overlay').classList.add('open')">🔗 Create Account</button>
+            : `<button class="auth-link-btn" onclick="closeProfile();signInWithGoogle()">Continue with Google</button>
                <button class="auth-sign-out-btn" onclick="signOutGuest()">Sign Out</button>`}
         </div>
-        ${authUser ? `<div style="font-size:0.72rem;color:var(--muted);margin-top:8px">✓ Signed in · ${esc(authUser.email||'')}</div>` : '<div style="font-size:0.72rem;color:var(--muted);margin-top:8px">Guest mode — sign in to sync across devices</div>'}
+        ${authUser ? `<div style="font-size:0.72rem;color:var(--muted);margin-top:8px">✓ Signed in · ${esc(authUser.email||'')}</div>` : '<div style="font-size:0.72rem;color:var(--muted);margin-top:8px">Sign in with Google and your data will be saved everywhere ✓</div>'}
       ` : `<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px">
           <button class="follow-btn ${isFollowing ? 'is-following' : 'not-following'}" id="follow-btn-${uid}" onclick="${isFollowing ? `unfollowUser('${uid}')` : `followUser('${uid}')`}">${isFollowing ? 'Following' : 'Follow'}</button>
           <button class="profile-edit-btn" onclick="closeProfile();startConversation('${uid}','${esc(username||'Anonymous')}')">💬 Message</button>
