@@ -1664,6 +1664,18 @@ async function signInWithGoogle() {
     options: { redirectTo: location.origin + location.pathname }
   });
 }
+function signOutGuest() {
+  if (!confirm('Sign out of guest account? Your data stays in this browser but you\'ll appear as Anonymous.')) return;
+  localStorage.removeItem('pr_uid');
+  localStorage.removeItem('pr_username');
+  localStorage.removeItem('pr_trainer_avatar');
+  localStorage.removeItem('pr_merge_token');
+  localStorage.removeItem('pr_pending_merge_uid');
+  closeProfile();
+  updateUserDisplay();
+  showToast('Signed out');
+  setTimeout(() => location.reload(), 800);
+}
 async function signOut() {
   if (!dbReady) return;
   await sb.auth.signOut();
@@ -2273,7 +2285,8 @@ async function openUserProfile(uid, username) {
           <button class="profile-edit-btn" onclick="closeProfile();openEditUsernameModal()">✏️ Edit Username</button>
           ${authUser
             ? `<button class="auth-sign-out-btn" onclick="signOut()">Sign Out</button>`
-            : `<button class="auth-link-btn" onclick="closeProfile();document.getElementById('name-modal-overlay').classList.add('open')">🔗 Link Account</button>`}
+            : `<button class="auth-link-btn" onclick="closeProfile();document.getElementById('name-modal-overlay').classList.add('open')">🔗 Create Account</button>
+               <button class="auth-sign-out-btn" onclick="signOutGuest()">Sign Out</button>`}
         </div>
         ${authUser ? `<div style="font-size:0.72rem;color:var(--muted);margin-top:8px">✓ Signed in · ${esc(authUser.email||'')}</div>` : '<div style="font-size:0.72rem;color:var(--muted);margin-top:8px">Guest mode — sign in to sync across devices</div>'}
       ` : `<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px">
