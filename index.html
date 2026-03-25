@@ -4883,6 +4883,13 @@ async function openTrainerModal(trainerId) {
             <div class="trainer-modal-avg-label">${ratingCount ? `${ratingCount} community vote${ratingCount>1?'s':''}` : 'No ratings yet'}</div>
           </div>
         </div>
+        <button style="margin-bottom:12px;padding:6px 16px;font-size:0.8rem;background:var(--surface2);border:1px solid #444;border-radius:999px;color:var(--text);cursor:pointer;font-family:Inter,sans-serif;font-weight:600" onclick="openSharePicker(this)"
+          data-share-type="trainer"
+          data-share-id="${trainer.id}"
+          data-share-name="${trainer.name}"
+          data-share-title="${trainer.name}"
+          data-share-sub="${trainer.region} · ${trainer.game}"
+          data-share-extra="${trainer.img}">📤 Share</button>
         <div class="trainer-modal-my-rating">
           <div class="your-rating-label">Your Rating</div>
           <div class="trainer-stars-row" id="trainer-stars-input">${myStarBtns}</div>
