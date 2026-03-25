@@ -193,7 +193,26 @@
     .comment-dislike.disliked { border-color: #818cf8; color: #818cf8; background: rgba(129,140,248,0.1); }
     .comment-reply-btn { background: none; border: none; font-size: 0.75rem; font-weight: 600; color: var(--muted); cursor: pointer; padding: 4px 0; margin-top: 6px; margin-left: 2px; transition: color 0.15s; }
     .comment-reply-btn:hover { color: var(--accent2); }
-    .comment-actions { display: flex; align-items: center; gap: 10px; }
+    .comment-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .share-btn { background: none; border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; font-size: 0.72rem; font-weight: 600; color: var(--muted); cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif; flex-shrink: 0; }
+    .share-btn:hover { border-color: #555; color: var(--text); }
+    .share-picker-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 700; display: none; align-items: flex-end; justify-content: center; }
+    .share-picker-modal { background: var(--surface); border-radius: 20px 20px 0 0; width: 100%; max-width: 480px; padding: 20px 20px 32px; max-height: 65vh; display: flex; flex-direction: column; }
+    .share-picker-title { font-size: 0.95rem; font-weight: 800; margin-bottom: 4px; text-align: center; }
+    .share-picker-preview { font-size: 0.78rem; color: var(--muted); text-align: center; margin-bottom: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .share-picker-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+    .share-picker-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; cursor: pointer; transition: background 0.15s; }
+    .share-picker-item:hover { background: var(--surface2); }
+    .share-picker-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--accent2), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 800; color: white; flex-shrink: 0; overflow: hidden; }
+    .share-picker-name { font-size: 0.9rem; font-weight: 600; }
+    .share-picker-cancel { margin-top: 14px; width: 100%; padding: 12px; border: none; background: var(--surface2); border-radius: 12px; color: var(--muted); font-size: 0.88rem; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; }
+    .share-picker-cancel:hover { color: var(--text); }
+    .msg-share-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; max-width: 230px; cursor: pointer; transition: border-color 0.15s; }
+    .msg-share-card:hover { border-color: #555; }
+    .msg-share-type { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 5px; }
+    .msg-share-title { font-size: 0.88rem; font-weight: 800; margin-bottom: 3px; line-height: 1.3; }
+    .msg-share-sub { font-size: 0.75rem; color: var(--muted); margin-bottom: 8px; line-height: 1.4; }
+    .msg-share-view { font-size: 0.72rem; font-weight: 700; color: var(--accent2); }
     .replies-list { margin-top: 10px; padding-left: 16px; border-left: 2px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
     .reply-item { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; position: relative; font-size: 0.85rem; }
     .reply-mention { font-weight: 700; color: var(--accent2); margin-right: 4px; }
@@ -1006,6 +1025,16 @@
 
 <!-- MERGE BANNER -->
 <div class="merge-banner" id="merge-banner" style="display:none"></div>
+
+<!-- SHARE PICKER -->
+<div class="share-picker-overlay" id="share-picker-overlay" onclick="if(event.target===this)closeSharePicker()">
+  <div class="share-picker-modal">
+    <div class="share-picker-title">Share with a friend</div>
+    <div class="share-picker-preview" id="share-picker-preview"></div>
+    <div class="share-picker-list" id="share-picker-list"></div>
+    <button class="share-picker-cancel" onclick="closeSharePicker()">Cancel</button>
+  </div>
+</div>
 
 
 <!-- NAV -->
@@ -2424,6 +2453,90 @@ function closeChat() {
   if (chatRealtimeChannel) { chatRealtimeChannel.unsubscribe(); chatRealtimeChannel = null; }
 }
 
+// ── SHARE SYSTEM ──
+let _pendingShare = null;
+
+function openSharePicker(btn) {
+  if (!dbReady) { showToast('Sign in to share'); return; }
+  _pendingShare = {
+    type: btn.dataset.shareType,
+    id: btn.dataset.shareId || '',
+    name: btn.dataset.shareName || '',
+    title: btn.dataset.shareTitle || '',
+    sub: btn.dataset.shareSub || ''
+  };
+  const overlay = document.getElementById('share-picker-overlay');
+  const preview = document.getElementById('share-picker-preview');
+  preview.textContent = _pendingShare.title + (_pendingShare.sub ? ' · ' + _pendingShare.sub : '');
+  overlay.style.display = 'flex';
+  _renderSharePickerList();
+}
+
+function closeSharePicker() {
+  document.getElementById('share-picker-overlay').style.display = 'none';
+  _pendingShare = null;
+}
+
+async function _renderSharePickerList() {
+  const list = document.getElementById('share-picker-list');
+  list.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:0.85rem">Loading...</div>';
+  const uid = getUID();
+  const { data: convs } = await sb.from('conversations').select('*').or(`user_a.eq.${uid},user_b.eq.${uid}`).order('last_at', { ascending: false }).limit(30);
+  const people = (convs || []).map(c => {
+    const isA = c.user_a === uid;
+    return { uid: isA ? c.user_b : c.user_a, name: isA ? (c.name_b || 'Anonymous') : (c.name_a || 'Anonymous'), convId: c.id };
+  });
+  if (!people.length) {
+    list.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:0.85rem;line-height:1.6">No conversations yet.<br>Message someone first to share with them.</div>';
+    return;
+  }
+  list.innerHTML = people.map(p => {
+    const initial = (p.name || 'A').charAt(0).toUpperCase();
+    return `<div class="share-picker-item" onclick="_sendShare('${p.convId}','${esc(p.name)}')">
+      <div class="share-picker-avatar">${commentAvatarHtml(p.uid, initial)}</div>
+      <div class="share-picker-name">${esc(p.name)}</div>
+    </div>`;
+  }).join('');
+}
+
+async function _sendShare(convId, toName) {
+  if (!_pendingShare) return;
+  closeSharePicker();
+  const text = '[share]' + JSON.stringify(_pendingShare);
+  const uid = getUID();
+  await sb.from('messages').insert({ conversation_id: convId, sender_id: uid, text });
+  await sb.from('conversations').update({ last_message: '📤 Shared something', last_at: new Date().toISOString() }).eq('id', convId);
+  showToast('Shared with ' + toName + '! 📤');
+}
+
+function _renderShareCard(text, isMine) {
+  try {
+    const d = JSON.parse(text.slice(7));
+    const icons = { pokemon:'🎮', ranking:'🏆', team:'🛡️', trainer:'⚡', hottake:'🔥', drip:'💧', reviewer:'📝' };
+    const icon = icons[d.type] || '📤';
+    const idAttr = d.id ? `data-share-id="${d.id}"` : '';
+    return `<div class="msg-share-card" data-share-type="${d.type}" ${idAttr} data-share-name="${esc(d.name||'')}" onclick="handleShareMsg(this)">
+      <div class="msg-share-type">${icon} ${d.type}</div>
+      <div class="msg-share-title">${esc(d.title||'')}</div>
+      ${d.sub ? `<div class="msg-share-sub">${esc(d.sub)}</div>` : ''}
+      <div class="msg-share-view">Tap to view →</div>
+    </div>`;
+  } catch { return `<div class="msg-bubble ${isMine?'mine':'theirs'}">${esc(text)}</div>`; }
+}
+
+function handleShareMsg(el) {
+  const type = el.dataset.shareType;
+  const id = el.dataset.shareId;
+  const name = el.dataset.shareName;
+  closeChat();
+  if (type === 'pokemon' || type === 'ranking') { switchView('browse'); setTimeout(() => openModal(parseInt(id), name), 300); }
+  else if (type === 'team') { switchView('teams'); setTimeout(() => openTeamDetail(id), 400); }
+  else if (type === 'trainer') { switchView('trainers'); setTimeout(() => openTrainerModal(id), 400); }
+  else if (type === 'hottake') { switchView('hottakes'); }
+  else if (type === 'drip') { switchView('dripbattle'); }
+  else if (type === 'reviewer') { openUserProfile(id, name); }
+}
+
 function chatBackToList() {
   activeChatConvId = null;
   activeChatOtherUid = null;
@@ -2630,9 +2743,11 @@ function renderMessages(msgs) {
       ? (myTrainer ? `<img src="${myTrainer.img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;border-radius:50%;display:block"/>` : myInitial)
       : (otherTrainer ? `<img src="${otherTrainer.img}" style="width:100%;height:100%;object-fit:cover;object-position:top center;border-radius:50%;display:block"/>` : otherInitial);
     const avatarClick = !isMine ? `style="cursor:pointer" onclick="closeChat();openUserProfile('${activeChatOtherUid}','${activeChatOtherName}')"` : '';
+    const isShare = m.text && m.text.startsWith('[share]');
+    const bubbleHtml = isShare ? _renderShareCard(m.text, isMine) : `<div class="msg-bubble ${isMine ? 'mine' : 'theirs'}">${esc(m.text)}</div>`;
     html += `<div class="msg-row ${isMine ? 'mine' : 'theirs'}">
       ${isLastInGroup ? `<div class="msg-avatar" ${avatarClick}>${avatarHtml}</div>` : `<div style="width:24px;flex-shrink:0"></div>`}
-      <div class="msg-bubble ${isMine ? 'mine' : 'theirs'}">${esc(m.text)}</div>
+      ${bubbleHtml}
     </div>`;
   });
   wrap.innerHTML = html;
@@ -2659,7 +2774,9 @@ function appendMessage(msg) {
   const div = document.createElement('div');
   div.className = `msg-row ${isMine ? 'mine' : 'theirs'}`;
   const avatarClick = !isMine ? `style="cursor:pointer" onclick="closeChat();openUserProfile('${activeChatOtherUid}','${esc(activeChatOtherName)}')"` : '';
-  div.innerHTML = `<div class="msg-avatar" ${avatarClick}>${avatarHtml}</div><div class="msg-bubble ${isMine ? 'mine' : 'theirs'}">${esc(msg.text)}</div>`;
+  const isShare = msg.text && msg.text.startsWith('[share]');
+  const bubbleHtml = isShare ? _renderShareCard(msg.text, isMine) : `<div class="msg-bubble ${isMine ? 'mine' : 'theirs'}">${esc(msg.text)}</div>`;
+  div.innerHTML = `<div class="msg-avatar" ${avatarClick}>${avatarHtml}</div>${bubbleHtml}`;
   wrap.appendChild(div);
   wrap.scrollTop = wrap.scrollHeight;
 }
@@ -3878,9 +3995,10 @@ async function renderRankings() {
           <div class="rank-name">${esc(u.username)}</div>
           <div style="margin-top:4px">${badgePip}</div>
         </div>
-        <div class="rank-right">
+        <div class="rank-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
           <div class="rank-score">${u.count}</div>
           <div class="rank-votes">review${u.count!==1?'s':''}</div>
+          <button class="share-btn" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="reviewer" data-share-id="${u.user_id}" data-share-name="${esc(u.username)}" data-share-title="${esc(u.username)}" data-share-sub="${u.count} reviews">📤</button>
         </div>
       </div>`;
     }).join('');
@@ -3915,7 +4033,10 @@ async function renderRankings() {
         <div class="rank-sub">${t.region} · ${t.game}</div>
         <div class="rank-stars">${stars}</div>
       </div>
-      <div class="rank-right">${scoreDisplay}</div>
+      <div class="rank-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        ${scoreDisplay}
+        <button class="share-btn" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="trainer" data-share-id="${t.id}" data-share-name="${esc(t.name)}" data-share-title="${esc(t.name)}" data-share-sub="${t.region} trainer">📤</button>
+      </div>
     </div>`;
     }).join('');
     return;
@@ -3987,7 +4108,10 @@ function buildRankRow(r, i) {
       <div class="rank-sub">#${String(r.id).padStart(4,'0')} &middot; ${genLabel(r.id)} ${types}</div>
       <div class="rank-stars">${stars}</div>
     </div>
-    <div class="rank-right">${scoreDisplay}</div>
+    <div class="rank-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+      ${scoreDisplay}
+      <button class="share-btn" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="ranking" data-share-id="${r.id}" data-share-name="${p.name}" data-share-title="${p.name.replace(/-/g,' ')}" data-share-sub="#${i+1} · ${r.avg>0?r.avg.toFixed(1)+' avg':'no ratings'}">📤</button>
+    </div>
   </div>`;
 }
 
@@ -4156,6 +4280,7 @@ function renderTeamsFeed() {
         <span class="team-card-stat">&#x2665; ${t.likeCount} like${t.likeCount !== 1 ? 's' : ''}</span>
         <span class="team-card-stat">&#x1F4AC; ${t.commentCount} comment${t.commentCount !== 1 ? 's' : ''}</span>
         ${t.ratingCount > 0 ? `<span class="team-card-stat" style="color:var(--accent)">&#9733; ${t.avgRating.toFixed(1)} (${t.ratingCount})</span>` : ''}
+        <button class="share-btn" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="team" data-share-id="${t.id}" data-share-name="${esc(t.name)}" data-share-title="${esc(t.name)}" data-share-sub="by ${esc(t.username||'Anonymous')}">📤</button>
       </div>
     </div>`;
   }).join('');
@@ -4618,6 +4743,7 @@ function renderTrainerGrid() {
         <div class="trainer-card-region">${t.region} ${t.gender}</div>
         <div class="trainer-card-stars">${stars}</div>
         <div class="trainer-card-score">${scoreText}</div>
+        <button class="share-btn" style="margin-top:6px" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="trainer" data-share-id="${t.id}" data-share-name="${esc(t.name)}" data-share-title="${esc(t.name)}" data-share-sub="${t.region} trainer">📤 Share</button>
       </div>
     </div>`;
   }).join('');
@@ -5164,6 +5290,9 @@ function renderDripDetail() {
       ${fighterHTML(battle.pokemon_a, nameA, pctA, votesA, leadingA, myVote === battle.pokemon_a)}
       <div class="drip-vs">VS</div>
       ${fighterHTML(battle.pokemon_b, nameB, pctB, votesB, leadingB, myVote === battle.pokemon_b)}
+    </div>
+    <div style="text-align:center;margin-top:8px">
+      <button class="share-btn" onclick="openSharePicker(this)" data-share-type="drip" data-share-id="${battle.id}" data-share-name="" data-share-title="${nameA} vs ${nameB}" data-share-sub="Who has better drip? Vote now!">📤 Share Battle</button>
     </div>
     ${nextPromptHTML}`;
 
@@ -5839,6 +5968,7 @@ async function renderHtFeed(reset) {
         <button class="ht-reply-btn" onclick="openHtThread('${t.id}')">
           &#x1F4AC; ${replies > 0 ? `${replies} repl${replies===1?'y':'ies'}` : 'Reply'}
         </button>
+        <button class="share-btn" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="hottake" data-share-id="${t.id}" data-share-name="" data-share-title="Hot Take" data-share-sub="${esc(t.text.slice(0,60))}${t.text.length>60?'…':''}">📤</button>
         ${isAdmin() ? `<button class="comment-delete" style="position:static;margin-left:auto" onclick="deleteHotTake('${t.id}')">🗑</button>` : ''}
       </div>
     </div>`;
