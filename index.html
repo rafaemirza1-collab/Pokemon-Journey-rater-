@@ -927,7 +927,7 @@
   .msg-spacer { height: 6px; }
   .chat-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 0.85rem; padding: 20px; text-align: center; }
   .chat-input-row { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border); flex-shrink: 0; background: var(--surface); }
-  .chat-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 8px 14px; font-size: 0.85rem; color: var(--text); outline: none; font-family: 'Inter', sans-serif; }
+  .chat-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 8px 14px; font-size: 16px; color: var(--text); outline: none; font-family: 'Inter', sans-serif; }
   .chat-input:focus { border-color: #555; }
   .chat-send-btn { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #c0392b); border: none; color: white; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
   .chat-send-btn:hover { transform: scale(1.1); }
@@ -938,7 +938,7 @@
   .user-result-item { display: flex; align-items: center; gap: 12px; padding: 10px 16px; cursor: pointer; transition: background 0.15s; }
   .user-result-item:hover { background: var(--surface2); }
   @media (max-width: 640px) {
-    .chat-drawer { right: 0; width: 100%; border-radius: 16px 16px 0 0; }
+    .chat-drawer { right: 0; width: 100%; border-radius: 16px 16px 0 0; transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), bottom 0.15s ease; }
   }
   </style>
 </head>
@@ -4496,8 +4496,23 @@ document.addEventListener('focusout', e => {
   if (e.target.matches('input, textarea, [contenteditable]')) {
     document.getElementById('merge-banner').style.visibility = '';
     checkSaveDataBanner();
+    // Reset chat drawer position when keyboard closes on mobile
+    if (window.innerWidth <= 640) {
+      document.getElementById('chat-drawer').style.bottom = '';
+    }
   }
 });
+
+// On mobile, shift chat drawer up when keyboard opens so send button stays visible
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => {
+    if (window.innerWidth > 640) return;
+    const drawer = document.getElementById('chat-drawer');
+    if (!drawer.classList.contains('open')) return;
+    const keyboardHeight = window.innerHeight - window.visualViewport.height;
+    drawer.style.bottom = keyboardHeight > 50 ? keyboardHeight + 'px' : '';
+  });
+}
 
 // ═══════════════════════════════════════════════
 // TRAINER RANKINGS
