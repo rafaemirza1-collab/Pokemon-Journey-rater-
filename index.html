@@ -978,6 +978,16 @@
   .wtp-start-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(230,57,70,0.45); }
   .wtp-lb-btn { padding: 14px 40px; border-radius: 999px; background: var(--surface2); color: var(--text); font-size: 1rem; font-weight: 700; border: 1px solid var(--border); cursor: pointer; transition: all 0.25s; }
   .wtp-lb-btn:hover { border-color: #555; }
+  .wtp-diff-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; width: 100%; max-width: 460px; }
+  .wtp-diff-card { background: var(--surface); border: 2px solid var(--border); border-radius: 16px; padding: 20px 12px; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .wtp-diff-card:hover { border-color: var(--accent2); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(199,125,255,0.2); }
+  .wtp-diff-icon { font-size: 2rem; margin-bottom: 8px; }
+  .wtp-diff-name { font-size: 1rem; font-weight: 800; margin-bottom: 4px; }
+  .wtp-diff-sub { font-size: 0.7rem; color: var(--muted); line-height: 1.4; }
+  .wtp-lb-tabs { display: flex; gap: 8px; margin-top: 8px; }
+  .wtp-lb-tab { padding: 6px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: 'Inter',sans-serif; }
+  .wtp-lb-tab.active { background: var(--accent2); color: white; border-color: var(--accent2); }
+  .wtp-diff-badge { text-align: center; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 12px; }
   .wtp-lb-section { width: 100%; max-width: 460px; margin-top: 8px; }
   .wtp-lb-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 10px; text-align: center; }
   .wtp-lb-list { display: flex; flex-direction: column; gap: 8px; }
@@ -1033,6 +1043,10 @@
     .wtp-choice-btn { padding: 11px 8px; font-size: 0.8rem; }
     .wtp-hud-timer { font-size: 1.2rem; }
     .wtp-go-score span { font-size: 2.2rem; }
+    .wtp-diff-grid { grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .wtp-diff-card { padding: 14px 8px; }
+    .wtp-diff-name { font-size: 0.85rem; }
+    .wtp-diff-sub { font-size: 0.62rem; }
   }
   </style>
 </head>
@@ -1235,22 +1249,55 @@
     <h1>🎮 Minigames</h1>
     <p class="wtp-subtitle">Test your Pokémon knowledge</p>
   </div>
+
+  <!-- LOBBY -->
   <div id="wtp-lobby">
-    <div class="wtp-lobby" id="wtp-lobby-inner">
+    <div class="wtp-lobby">
       <div class="wtp-lobby-title">Who's That Pokémon?</div>
-      <div class="wtp-lobby-desc">Identify Pokémon from their silhouette. You have 1 minute — how many can you get right?</div>
-      <button class="wtp-start-btn" onclick="wtpStart()">▶ Start Game</button>
+      <div class="wtp-lobby-desc">1 minute — identify as many Pokémon silhouettes as you can. Choose your difficulty:</div>
+      <div class="wtp-diff-grid">
+        <div class="wtp-diff-card" onclick="wtpStart('easy')">
+          <div class="wtp-diff-icon">🌿</div>
+          <div class="wtp-diff-name">Easy</div>
+          <div class="wtp-diff-sub">Gen I – IV · 493 Pokémon</div>
+        </div>
+        <div class="wtp-diff-card" onclick="wtpStart('medium')">
+          <div class="wtp-diff-icon">⚡</div>
+          <div class="wtp-diff-name">Medium</div>
+          <div class="wtp-diff-sub">Gen I – VIII · 905 Pokémon</div>
+        </div>
+        <div class="wtp-diff-card" onclick="wtpStart('hard')">
+          <div class="wtp-diff-icon">🔥</div>
+          <div class="wtp-diff-name">Hard</div>
+          <div class="wtp-diff-sub">All Gens · 1025 Pokémon</div>
+        </div>
+      </div>
+      <!-- Leaderboards -->
+      <div class="wtp-lb-tabs">
+        <button class="wtp-lb-tab active" onclick="wtpSwitchLbTab('easy',this)">🌿 Easy</button>
+        <button class="wtp-lb-tab" onclick="wtpSwitchLbTab('medium',this)">⚡ Medium</button>
+        <button class="wtp-lb-tab" onclick="wtpSwitchLbTab('hard',this)">🔥 Hard</button>
+      </div>
+      <div class="wtp-lb-section">
+        <div class="wtp-lb-title">🏆 Top 10 — <span id="wtp-lb-diff-label">Easy</span></div>
+        <div class="wtp-lb-list" id="wtp-lb-list"><div class="wtp-lb-loading">Loading...</div></div>
+      </div>
     </div>
   </div>
+
+  <!-- GAME -->
   <div id="wtp-game" style="display:none">
     <div class="wtp-hud">
       <div class="wtp-hud-score">Score: <span id="wtp-score">0</span></div>
-      <div class="wtp-hud-timer" id="wtp-timer">5:00</div>
+      <div class="wtp-hud-timer" id="wtp-timer">1:00</div>
       <div class="wtp-hud-streak">Streak: <span id="wtp-streak">0</span> 🔥</div>
     </div>
+    <div class="wtp-diff-badge" id="wtp-diff-badge"></div>
     <div class="wtp-stage" id="wtp-stage"></div>
     <div class="wtp-choices" id="wtp-choices"></div>
   </div>
+
+  <!-- GAME OVER -->
   <div id="wtp-gameover" style="display:none">
     <div class="wtp-gameover">
       <div class="wtp-go-title">⏰ Time's Up!</div>
@@ -1258,7 +1305,7 @@
       <div class="wtp-go-streak">Best streak: <span id="wtp-go-streak">0</span> 🔥</div>
       <div class="wtp-go-rank" id="wtp-go-rank"></div>
       <div class="wtp-go-btns">
-        <button class="wtp-start-btn" onclick="wtpStart()">▶ Play Again</button>
+        <button class="wtp-start-btn" id="wtp-replay-btn" onclick="wtpReplay()">▶ Play Again</button>
         <button class="wtp-lb-btn" onclick="wtpShowLobby()">Back</button>
       </div>
     </div>
@@ -6340,18 +6387,26 @@ function closeHtThreadOnBg(e) {
 // ═══════════════════════════════════════════════
 // WHO'S THAT POKÉMON — MINIGAME
 // ═══════════════════════════════════════════════
-const WTP_TIME = 1 * 60;
-const WTP_REVEAL_DELAY = 1800;
+const WTP_TIME = 60; // 1 minute
+const WTP_REVEAL_DELAY = 1600;
+const WTP_POOLS = {
+  easy:   { min: 1, max: 493,  label: '🌿 Easy'   },
+  medium: { min: 1, max: 905,  label: '⚡ Medium'  },
+  hard:   { min: 1, max: 1025, label: '🔥 Hard'    }
+};
+
 let wtpScore = 0, wtpStreak = 0, wtpBestStreak = 0;
 let wtpCurrentPokemon = null;
 let wtpTimerInterval = null;
 let wtpSecondsLeft = WTP_TIME;
 let wtpAnswered = false;
 let wtpUsedIds = new Set();
+let wtpDifficulty = 'easy';
+let wtpActiveLbTab = 'easy';
 
-function wtpRandIds(count, min, max, exclude = new Set()) {
-  const pool = [];
-  for (let i = min; i <= max; i++) { if (!exclude.has(i)) pool.push(i); }
+function wtpRandFromPool(count, min, max, exclude = new Set()) {
+  // Build pool from allPokemon IDs in range
+  const pool = allPokemon.filter(p => p.id >= min && p.id <= max && !exclude.has(p.id)).map(p => p.id);
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -6372,6 +6427,7 @@ function wtpFormatTime(secs) {
 
 function initWTP() {
   wtpShowLobby();
+  wtpLoadLeaderboard('easy');
 }
 
 function wtpShowLobby() {
@@ -6381,7 +6437,17 @@ function wtpShowLobby() {
   document.getElementById('wtp-gameover').style.display = 'none';
 }
 
-function wtpStart() {
+function wtpSwitchLbTab(diff, btn) {
+  wtpActiveLbTab = diff;
+  document.querySelectorAll('.wtp-lb-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const labels = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+  document.getElementById('wtp-lb-diff-label').textContent = labels[diff];
+  wtpLoadLeaderboard(diff);
+}
+
+function wtpStart(diff) {
+  wtpDifficulty = diff;
   wtpScore = 0; wtpStreak = 0; wtpBestStreak = 0;
   wtpSecondsLeft = WTP_TIME;
   wtpUsedIds = new Set();
@@ -6392,6 +6458,7 @@ function wtpStart() {
   document.getElementById('wtp-streak').textContent = '0';
   document.getElementById('wtp-timer').textContent  = wtpFormatTime(WTP_TIME);
   document.getElementById('wtp-timer').classList.remove('urgent');
+  document.getElementById('wtp-diff-badge').textContent = WTP_POOLS[diff].label;
   clearInterval(wtpTimerInterval);
   wtpTimerInterval = setInterval(() => {
     wtpSecondsLeft--;
@@ -6402,13 +6469,16 @@ function wtpStart() {
   wtpNextQuestion();
 }
 
+function wtpReplay() { wtpStart(wtpDifficulty); }
+
 function wtpNextQuestion() {
   wtpAnswered = false;
-  let ids = wtpRandIds(1, 1, 151, wtpUsedIds);
-  if (!ids.length) { wtpUsedIds = new Set(); ids = wtpRandIds(1, 1, 151, new Set()); }
+  const pool = WTP_POOLS[wtpDifficulty];
+  let ids = wtpRandFromPool(1, pool.min, pool.max, wtpUsedIds);
+  if (!ids.length) { wtpUsedIds = new Set(); ids = wtpRandFromPool(1, pool.min, pool.max, new Set()); }
   const correctId = ids[0];
   wtpUsedIds.add(correctId);
-  const wrongIds = wtpRandIds(3, 1, 151, new Set([correctId]));
+  const wrongIds = wtpRandFromPool(3, pool.min, pool.max, new Set([correctId]));
   const options  = [correctId, ...wrongIds].sort(() => Math.random() - 0.5);
   wtpCurrentPokemon = { id: correctId, name: wtpPokemonName(correctId) };
   document.getElementById('wtp-stage').innerHTML = `
@@ -6467,24 +6537,24 @@ async function wtpEndGame() {
   document.getElementById('wtp-go-rank').textContent   = '';
   if (dbReady && wtpScore > 0) {
     try {
-      await sb.from('minigame_scores').insert({ user_id: getUID(), username: getUsername(), score: wtpScore });
-      const { count } = await sb.from('minigame_scores').select('*', { count: 'exact', head: true }).gt('score', wtpScore);
+      await sb.from('minigame_scores').insert({ user_id: getUID(), username: getUsername(), score: wtpScore, difficulty: wtpDifficulty });
+      const { count } = await sb.from('minigame_scores').select('*', { count: 'exact', head: true }).eq('difficulty', wtpDifficulty).gt('score', wtpScore);
       const rank = (count ?? 0) + 1;
-      document.getElementById('wtp-go-rank').textContent = rank <= 10 ? `🏆 You ranked #${rank} all-time!` : `You ranked #${rank} all-time`;
-      wtpLoadLeaderboard();
+      const diffLabel = WTP_POOLS[wtpDifficulty].label;
+      document.getElementById('wtp-go-rank').textContent = rank <= 10 ? `🏆 #${rank} on ${diffLabel} leaderboard!` : `#${rank} on ${diffLabel} leaderboard`;
     } catch(e) {}
   } else if (!dbReady) {
     document.getElementById('wtp-go-rank').textContent = 'Sign in to save your score!';
   }
 }
 
-async function wtpLoadLeaderboard() {
+async function wtpLoadLeaderboard(diff) {
   const listEl = document.getElementById('wtp-lb-list');
   if (!listEl) return;
   if (!dbReady) { listEl.innerHTML = '<div class="wtp-lb-loading">Sign in to see the leaderboard</div>'; return; }
   listEl.innerHTML = '<div class="wtp-lb-loading">Loading...</div>';
   try {
-    const { data: rows } = await sb.from('minigame_scores').select('username,score,user_id').order('score', { ascending: false }).limit(10);
+    const { data: rows } = await sb.from('minigame_scores').select('username,score,user_id').eq('difficulty', diff).order('score', { ascending: false }).limit(10);
     if (!rows || !rows.length) { listEl.innerHTML = '<div class="wtp-lb-loading">No scores yet — be the first!</div>'; return; }
     const myUid = getUID();
     const rankClasses = ['gold','silver','bronze'];
