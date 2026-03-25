@@ -2463,7 +2463,9 @@ function openSharePicker(btn) {
     id: btn.dataset.shareId || btn.getAttribute('data-share-id') || '',
     name: btn.dataset.shareName || btn.getAttribute('data-share-name') || '',
     title: btn.dataset.shareTitle || btn.getAttribute('data-share-title') || '',
-    sub: btn.dataset.shareSub || btn.getAttribute('data-share-sub') || ''
+    sub: btn.dataset.shareSub || btn.getAttribute('data-share-sub') || '',
+    extra: btn.dataset.shareExtra || btn.getAttribute('data-share-extra') || '',
+    user: btn.dataset.shareUser || btn.getAttribute('data-share-user') || ''
   };
   const overlay = document.getElementById('share-picker-overlay');
   const preview = document.getElementById('share-picker-preview');
@@ -2513,15 +2515,76 @@ function _renderShareCard(text, isMine) {
   try {
     const d = JSON.parse(text.slice(7));
     if (!d || !d.type) return `<div class="msg-bubble ${isMine?'mine':'theirs'}">📤 Shared something</div>`;
-    const icons = { pokemon:'🎮', ranking:'🏆', team:'🛡️', trainer:'⚡', hottake:'🔥', drip:'💧', reviewer:'📝' };
-    const icon = icons[d.type] || '📤';
     const idAttr = d.id ? `data-share-id="${d.id}"` : '';
-    return `<div class="msg-share-card" data-share-type="${d.type}" ${idAttr} data-share-name="${esc(d.name||'')}" onclick="handleShareMsg(this)">
-      <div class="msg-share-type">${icon} ${d.type}</div>
-      <div class="msg-share-title">${esc(d.title||'')}</div>
-      ${d.sub ? `<div class="msg-share-sub">${esc(d.sub)}</div>` : ''}
-      <div class="msg-share-view">Tap to view →</div>
-    </div>`;
+    let inner = '';
+
+    if (d.type === 'ranking' || d.type === 'pokemon') {
+      const pid = parseInt(d.id);
+      const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pid}.png`;
+      inner = `
+        <div class="msg-share-type">🏆 Pokémon Ranking</div>
+        <div style="display:flex;align-items:center;gap:10px;margin:8px 0">
+          <img src="${sprite}" style="width:56px;height:56px;object-fit:contain" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pid}.png'"/>
+          <div>
+            <div class="msg-share-title">${esc(d.title)}</div>
+            <div class="msg-share-sub">${esc(d.sub)}</div>
+          </div>
+        </div>
+        <div class="msg-share-view">Tap to see its ratings →</div>`;
+
+    } else if (d.type === 'team') {
+      const ids = (d.extra || '').split(',').filter(Boolean);
+      const sprites = ids.slice(0,6).map(id => `<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png" style="width:28px;height:28px;object-fit:contain"/>`).join('');
+      inner = `
+        <div class="msg-share-type">🛡️ Team Build</div>
+        <div class="msg-share-title" style="margin:6px 0 4px">${esc(d.title)}</div>
+        ${d.user ? `<div class="msg-share-sub">built by ${esc(d.user)}</div>` : ''}
+        ${sprites ? `<div style="display:flex;gap:2px;flex-wrap:wrap;margin:6px 0">${sprites}</div>` : ''}
+        <div class="msg-share-sub">${esc(d.sub)}</div>
+        <div class="msg-share-view">Tap to check out this team →</div>`;
+
+    } else if (d.type === 'trainer') {
+      const trainer = typeof TRAINERS !== 'undefined' ? TRAINERS.find(t => t.id === d.id) : null;
+      const img = trainer ? `<img src="${trainer.img}" style="width:52px;height:52px;object-fit:cover;object-position:top;border-radius:8px"/>` : '';
+      inner = `
+        <div class="msg-share-type">⚡ Trainer</div>
+        <div style="display:flex;align-items:center;gap:10px;margin:8px 0">
+          ${img}
+          <div>
+            <div class="msg-share-title">${esc(d.title)}</div>
+            <div class="msg-share-sub">${esc(d.sub)}</div>
+          </div>
+        </div>
+        <div class="msg-share-view">Tap to rate this trainer →</div>`;
+
+    } else if (d.type === 'hottake') {
+      inner = `
+        <div class="msg-share-type">🔥 Hot Take</div>
+        <div class="msg-share-title" style="font-style:italic;font-weight:600;margin:8px 0;line-height:1.4">"${esc(d.sub)}"</div>
+        ${d.user ? `<div class="msg-share-sub">— ${esc(d.user)}</div>` : ''}
+        <div class="msg-share-view">Tap to like, dislike or reply →</div>`;
+
+    } else if (d.type === 'drip') {
+      const ids = (d.extra || '').split(',').filter(Boolean);
+      const spriteA = ids[0] ? `<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${ids[0]}.png" style="width:44px;height:44px;object-fit:contain"/>` : '';
+      const spriteB = ids[1] ? `<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${ids[1]}.png" style="width:44px;height:44px;object-fit:contain"/>` : '';
+      inner = `
+        <div class="msg-share-type">💧 Drip Battle</div>
+        <div style="display:flex;align-items:center;gap:8px;margin:8px 0;justify-content:center">
+          ${spriteA}<div style="font-weight:900;font-size:0.85rem;color:var(--muted)">VS</div>${spriteB}
+        </div>
+        <div class="msg-share-title" style="text-align:center">${esc(d.title)}</div>
+        <div class="msg-share-view" style="text-align:center">Tap to vote →</div>`;
+
+    } else if (d.type === 'reviewer') {
+      inner = `
+        <div class="msg-share-type">📝 Top Reviewer</div>
+        <div class="msg-share-title" style="margin:6px 0 2px">${esc(d.title)}</div>
+        <div class="msg-share-sub">${esc(d.sub)}</div>
+        <div class="msg-share-view">Tap to see their profile →</div>`;
+    }
+
+    return `<div class="msg-share-card" data-share-type="${d.type}" ${idAttr} data-share-name="${esc(d.name||'')}" onclick="handleShareMsg(this)">${inner}</div>`;
   } catch { return `<div class="msg-bubble ${isMine?'mine':'theirs'}">📤 Shared something</div>`; }
 }
 
@@ -4281,7 +4344,7 @@ function renderTeamsFeed() {
         <span class="team-card-stat">&#x2665; ${t.likeCount} like${t.likeCount !== 1 ? 's' : ''}</span>
         <span class="team-card-stat">&#x1F4AC; ${t.commentCount} comment${t.commentCount !== 1 ? 's' : ''}</span>
         ${t.ratingCount > 0 ? `<span class="team-card-stat" style="color:var(--accent)">&#9733; ${t.avgRating.toFixed(1)} (${t.ratingCount})</span>` : ''}
-        <button class="share-btn" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="team" data-share-id="${t.id}" data-share-name="${esc(t.name)}" data-share-title="${esc(t.name)}" data-share-sub="by ${esc(t.username||'Anonymous')}">📤</button>
+        <button class="share-btn" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="team" data-share-id="${t.id}" data-share-name="${esc(t.name)}" data-share-title="${esc(t.name)}" data-share-sub="${t.ratingCount>0?'⭐ '+t.avgRating.toFixed(1)+' · ':''} ${t.likeCount} likes" data-share-user="${esc(t.username||'Anonymous')}" data-share-extra="${t.pokemon_ids.slice(0,6).join(',')}">📤</button>
       </div>
     </div>`;
   }).join('');
@@ -5293,7 +5356,7 @@ function renderDripDetail() {
       ${fighterHTML(battle.pokemon_b, nameB, pctB, votesB, leadingB, myVote === battle.pokemon_b)}
     </div>
     <div style="text-align:center;margin-top:8px">
-      <button class="share-btn" onclick="openSharePicker(this)" data-share-type="drip" data-share-id="${battle.id}" data-share-name="" data-share-title="${nameA} vs ${nameB}" data-share-sub="Who has better drip? Vote now!">📤 Share Battle</button>
+      <button class="share-btn" onclick="openSharePicker(this)" data-share-type="drip" data-share-id="${battle.id}" data-share-name="" data-share-title="${nameA} vs ${nameB}" data-share-sub="Who has better drip?" data-share-extra="${battle.pokemon_a},${battle.pokemon_b}">📤 Share Battle</button>
     </div>
     ${nextPromptHTML}`;
 
@@ -5969,7 +6032,7 @@ async function renderHtFeed(reset) {
         <button class="ht-reply-btn" onclick="openHtThread('${t.id}')">
           &#x1F4AC; ${replies > 0 ? `${replies} repl${replies===1?'y':'ies'}` : 'Reply'}
         </button>
-        <button class="share-btn" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="hottake" data-share-id="${t.id}" data-share-name="" data-share-title="Hot Take" data-share-sub="${esc(t.text.slice(0,60))}${t.text.length>60?'…':''}">📤</button>
+        <button class="share-btn" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="hottake" data-share-id="${t.id}" data-share-name="" data-share-title="Hot Take" data-share-sub="${esc(t.text.slice(0,80))}${t.text.length>80?'…':''}" data-share-user="${esc(resolveUsername(t.user_id, t.username))}">📤</button>
         ${isAdmin() ? `<button class="comment-delete" style="position:static;margin-left:auto" onclick="deleteHotTake('${t.id}')">🗑</button>` : ''}
       </div>
     </div>`;
