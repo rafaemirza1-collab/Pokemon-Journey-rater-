@@ -2501,8 +2501,8 @@ async function _renderSharePickerList() {
 
 async function _sendShare(convId, toName) {
   if (!_pendingShare) return;
-  closeSharePicker();
   const text = '[share]' + JSON.stringify(_pendingShare);
+  closeSharePicker();
   const uid = getUID();
   await sb.from('messages').insert({ conversation_id: convId, sender_id: uid, text });
   await sb.from('conversations').update({ last_message: '📤 Shared something', last_at: new Date().toISOString() }).eq('id', convId);
