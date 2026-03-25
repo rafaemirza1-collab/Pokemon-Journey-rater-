@@ -4485,6 +4485,20 @@ async function deleteTeamComment(commentId, teamId) {
 
 init();
 
+// Hide floating banners while user is typing so they don't block the keyboard on mobile
+document.addEventListener('focusin', e => {
+  if (e.target.matches('input, textarea, [contenteditable]')) {
+    document.getElementById('save-banner').style.setProperty('display', 'none', 'important');
+    document.getElementById('merge-banner').style.visibility = 'hidden';
+  }
+});
+document.addEventListener('focusout', e => {
+  if (e.target.matches('input, textarea, [contenteditable]')) {
+    document.getElementById('merge-banner').style.visibility = '';
+    checkSaveDataBanner();
+  }
+});
+
 // ═══════════════════════════════════════════════
 // TRAINER RANKINGS
 // ═══════════════════════════════════════════════
