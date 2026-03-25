@@ -2599,7 +2599,7 @@ async function loadMessages(convId) {
   try {
     const { data: msgs } = await sb.from('messages')
       .select('*').eq('conversation_id', convId)
-      .order('created_at', { ascending: true }).limit(100);
+      .order('created_at', { ascending: true });
     renderMessages(msgs || []);
   } catch {
     wrap.innerHTML = '<div class="chat-empty">Could not load messages.</div>';
