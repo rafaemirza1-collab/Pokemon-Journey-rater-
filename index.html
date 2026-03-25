@@ -3258,8 +3258,10 @@ function createCard(p) {
     ? `<span class="poke-card-comments" data-comments-id="${p.id}">&#x1F4AC; ${commentCount} review${commentCount>1?'s':''}</span>`
     : `<span class="poke-card-votes" data-votes-id="${p.id}">${votes > 0 ? `${avg} (${votes} vote${votes>1?'s':''})` : 'No ratings yet'}</span>`;
 
+  const subText = avg > 0 ? `⭐ ${avg} avg · ${votes} vote${votes!==1?'s':''}` : 'No ratings yet';
   div.innerHTML = `
     <span class="poke-card-num">#${String(p.id).padStart(4,'0')}</span>
+    <button class="share-btn" style="position:absolute;top:6px;right:6px;z-index:2;padding:2px 7px;font-size:0.65rem" onclick="event.stopPropagation();openSharePicker(this)" data-share-type="pokemon" data-share-id="${p.id}" data-share-name="${p.name}" data-share-title="${p.name.replace(/-/g,' ')}" data-share-sub="${subText}">📤</button>
     <img class="poke-card-img loading" src="${p.id > TOTAL ? ART(p.id) : SPRITE(p.id)}" alt="${p.name}"
          onload="this.classList.remove('loading')"
          onerror="this.onerror=null;this.style.imageRendering='auto';this.src='${ART(p.id)}'"/>
