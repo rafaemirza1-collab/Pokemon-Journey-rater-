@@ -194,8 +194,9 @@
     .comment-reply-btn { background: none; border: none; font-size: 0.75rem; font-weight: 600; color: var(--muted); cursor: pointer; padding: 4px 0; margin-top: 6px; margin-left: 2px; transition: color 0.15s; }
     .comment-reply-btn:hover { color: var(--accent2); }
     .comment-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .action-fwd-btn { background: none; border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; font-size: 0.72rem; font-weight: 600; color: var(--muted); cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif; flex-shrink: 0; }
-    .action-fwd-btn:hover { border-color: #555; color: var(--text); }
+    .action-fwd-btn { background: #1a1a1a; border: none; border-radius: 8px; padding: 5px 10px 5px 8px; font-size: 0.72rem; font-weight: 700; color: #fff; cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif; flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .action-fwd-btn::before { content: '➤'; font-size: 0.7rem; }
+    .action-fwd-btn:hover { background: #2a2a2a; transform: translateY(-1px); }
     .share-picker-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 700; display: none; align-items: flex-end; justify-content: center; }
     .share-picker-modal { background: var(--surface); border-radius: 20px 20px 0 0; width: 100%; max-width: 480px; padding: 20px 20px 32px; max-height: 65vh; display: flex; flex-direction: column; }
     .share-picker-title { font-size: 0.95rem; font-weight: 800; margin-bottom: 4px; text-align: center; }
@@ -1300,7 +1301,7 @@
     <button class="modal-close" onclick="closeModal()">&#x2715;</button>
     <div id="modal-hero"></div>
     <div style="padding:0 32px 16px;display:flex;justify-content:flex-end">
-      <button id="modal-action-fwd-btn" style="padding:6px 16px;font-size:0.8rem;background:var(--surface2);border:1px solid #444;border-radius:999px;color:var(--text);cursor:pointer;font-family:Inter,sans-serif;font-weight:600" onclick="sendToFriend(this)">📤 Share</button>
+      <button id="modal-action-fwd-btn" class="action-fwd-btn" onclick="sendToFriend(this)">Share</button>
     </div>
     <div class="modal-tabs" id="modal-tabs">
       <button class="modal-tab active" id="modal-tab-ratings" onclick="switchModalTab('ratings')">⭐ Ratings & Reviews</button>
@@ -3274,7 +3275,7 @@ function createCard(p) {
       ${reviewsNote}
     </div>
     <div style="display:flex;justify-content:flex-end;width:100%;margin-top:2px">
-      <button class="action-fwd-btn" style="padding:2px 8px;font-size:0.65rem" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="pokemon" data-fwd-id="${p.id}" data-fwd-name="${p.name}" data-fwd-title="${p.name.replace(/-/g,' ')}" data-fwd-sub="${subText}">📤</button>
+      <button class="action-fwd-btn" style="font-size:0.6rem;padding:3px 7px" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="pokemon" data-fwd-id="${p.id}" data-fwd-name="${p.name}" data-fwd-title="${p.name.replace(/-/g,' ')}" data-fwd-sub="${subText}">Share</button>
     </div>`;
   return div;
 }
@@ -4830,7 +4831,7 @@ function renderTrainerGrid() {
         <div class="trainer-card-region">${t.region} ${t.gender}</div>
         <div class="trainer-card-stars">${stars}</div>
         <div class="trainer-card-score">${scoreText}</div>
-        <button class="action-fwd-btn" style="margin-top:6px" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="trainer" data-fwd-id="${t.id}" data-fwd-name="${esc(t.name)}" data-fwd-title="${esc(t.name)}" data-fwd-sub="${t.region} trainer">📤 Share</button>
+        <button class="action-fwd-btn" style="margin-top:6px" onclick="event.stopPropagation();sendToFriend(this)" data-fwd-type="trainer" data-fwd-id="${t.id}" data-fwd-name="${esc(t.name)}" data-fwd-title="${esc(t.name)}" data-fwd-sub="${t.region} trainer">Share</button>
       </div>
     </div>`;
   }).join('');
@@ -4883,13 +4884,13 @@ async function openTrainerModal(trainerId) {
             <div class="trainer-modal-avg-label">${ratingCount ? `${ratingCount} community vote${ratingCount>1?'s':''}` : 'No ratings yet'}</div>
           </div>
         </div>
-        <button style="margin-bottom:12px;padding:6px 16px;font-size:0.8rem;background:var(--surface2);border:1px solid #444;border-radius:999px;color:var(--text);cursor:pointer;font-family:Inter,sans-serif;font-weight:600" onclick="sendToFriend(this)"
+        <button class="action-fwd-btn" style="margin-bottom:12px" onclick="sendToFriend(this)"
           data-fwd-type="trainer"
           data-fwd-id="${trainer.id}"
           data-fwd-name="${trainer.name}"
           data-fwd-title="${trainer.name}"
           data-fwd-sub="${trainer.region} · ${trainer.game}"
-          data-fwd-extra="${trainer.img}">📤 Share</button>
+          data-fwd-extra="${trainer.img}">Share</button>
         <div class="trainer-modal-my-rating">
           <div class="your-rating-label">Your Rating</div>
           <div class="trainer-stars-row" id="trainer-stars-input">${myStarBtns}</div>
@@ -5386,7 +5387,7 @@ function renderDripDetail() {
       ${fighterHTML(battle.pokemon_b, nameB, pctB, votesB, leadingB, myVote === battle.pokemon_b)}
     </div>
     <div style="text-align:center;margin-top:8px">
-      <button class="action-fwd-btn" onclick="sendToFriend(this)" data-fwd-type="drip" data-fwd-id="${battle.id}" data-fwd-name="" data-fwd-title="${nameA} vs ${nameB}" data-fwd-sub="Who has better drip?" data-fwd-extra="${battle.pokemon_a},${battle.pokemon_b}">📤 Share Battle</button>
+      <button class="action-fwd-btn" onclick="sendToFriend(this)" data-fwd-type="drip" data-fwd-id="${battle.id}" data-fwd-name="" data-fwd-title="${nameA} vs ${nameB}" data-fwd-sub="Who has better drip?" data-fwd-extra="${battle.pokemon_a},${battle.pokemon_b}">Share Battle</button>
     </div>
     ${nextPromptHTML}`;
 
