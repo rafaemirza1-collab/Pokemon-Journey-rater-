@@ -1751,6 +1751,10 @@ const TYPE_COLORS = {
   rock:'#C5B78C', ghost:'#5269AC', dragon:'#0A6DC4', dark:'#595761',
   steel:'#5A8EA2', fairy:'#EC8FE6'
 };
+function getTypeColor(t){return TYPE_COLORS[t]||'#888';}
+function getPokemonTypes(id){return (typeof POKE_TYPES!=='undefined'&&POKE_TYPES[id])||['normal',null];}
+function getTypeBadgeHTML(id){return getPokemonTypes(id).filter(Boolean).map(t=>`<span style="background:${getTypeColor(t)};color:#fff;font-size:0.5rem;font-weight:700;padding:1px 5px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px">${t}</span>`).join(' ');}
+function getTypeGradient(id){const types=getPokemonTypes(id);const c1=getTypeColor(types[0]);const c2=types[1]?getTypeColor(types[1]):c1;return types[1]?`linear-gradient(135deg,${c1}33,${c2}33)`:`${c1}22`;}
 
 // ═══════════════════════════════════════════════
 // USER & AUTH
@@ -6335,8 +6339,6 @@ async function loadHotTakes() {
   renderHtFeed(true);
 }
 
-</script>
-<script>
 async function renderHtFeed(reset) {
   const feed = document.getElementById('ht-feed');
   if (!htAllTakes.length) {
