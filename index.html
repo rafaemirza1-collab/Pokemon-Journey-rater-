@@ -6406,10 +6406,19 @@ function actOnDiscovery() {
 // ═══════════════════════════════════════════════
 let squadPickerSlot = null;
 let squadPickerResults = [];
+let myCollectionIds = [];
 
-function openSquadPicker(slotIndex) {
+async function openSquadPicker(slotIndex) {
   squadPickerSlot = slotIndex;
   document.getElementById('squad-picker-search').value = '';
+  // Load collection IDs from DB
+  const uid = getUID();
+  if (dbReady && uid) {
+    const { data } = await sb.from('user_collection').select('pokemon_id').eq('user_id', uid);
+    myCollectionIds = data ? [...new Set(data.map(r => r.pokemon_id))] : [];
+  } else {
+    myCollectionIds = [];
+  }
   filterSquadPicker('');
   document.getElementById('squad-picker-overlay').classList.add('open');
   setTimeout(() => document.getElementById('squad-picker-search').focus(), 50);
@@ -6427,9 +6436,14 @@ function closeSquadPickerOnBg(e) {
 function filterSquadPicker(query) {
   const q = query.trim().toLowerCase();
   const grid = document.getElementById('squad-picker-grid');
-  const results = allPokemon.filter(p =>
+  if (myCollectionIds.length === 0) {
+    grid.innerHTML = `<div style="color:var(--muted);font-size:0.85rem;padding:20px;text-align:center">Earn Pokemon by unlocking achievements first!</div>`;
+    return;
+  }
+  const collectionPokemon = allPokemon.filter(p => myCollectionIds.includes(p.id));
+  const results = collectionPokemon.filter(p =>
     !q || p.name.includes(q) || String(p.id).startsWith(q)
-  ).slice(0, 40);
+  );
   grid.innerHTML = results.map(p =>
     `<div class="squad-picker-card" onclick="selectSquadPokemon(${p.id})">
       <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png" alt="${p.name}"/>
