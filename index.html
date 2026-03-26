@@ -362,6 +362,8 @@
     .squad-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; max-height: 280px; overflow-y: auto; }
     .squad-picker-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 4px 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; transition: all 0.15s; }
     .squad-picker-card:hover { border-color: var(--accent2); transform: translateY(-2px); }
+    .col-type-tooltip { display: none !important; }
+    div:hover > div > .col-type-tooltip { display: block !important; }
     .squad-picker-card img { width: 52px; height: 52px; object-fit: contain; image-rendering: pixelated; }
     .squad-picker-card-name { font-size: 0.62rem; font-weight: 600; text-transform: capitalize; color: var(--muted); text-align: center; }
     @media (max-width: 640px) {
@@ -2822,8 +2824,28 @@ async function openUserProfile(uid, username) {
         ${squadHTML}
       </div>
       <div>
-        <div class="profile-section-title">${isOwn ? 'My Teams' : `${esc(username||'Their')}'s Teams`}</div>
-        <div class="profile-reviews-list">${teamsHTML}</div>
+        <div class="profile-section-title">Pokémon Collection <span style="color:var(--muted);font-size:0.75rem;font-weight:400">(${profileCollection.length})</span></div>
+        ${profileCollection.length ? `
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+            ${profileCollection.slice(0,60).map(c=>{
+              const p = allPokemon.find(x=>x.id===c.pokemon_id);
+              const name = p ? p.name.replace(/-/g,' ') : `#${c.pokemon_id}`;
+              const types = typeof getPokemonTypes==='function' ? getPokemonTypes(c.pokemon_id) : ['normal',null];
+              const typesLabel = types.filter(Boolean).join('/');
+              const bg = typeof getTypeGradient==='function' ? getTypeGradient(c.pokemon_id) : 'var(--surface2)';
+              const badge = typeof getTypeBadgeHTML==='function' ? getTypeBadgeHTML(c.pokemon_id) : '';
+              return `<div style="position:relative;display:inline-flex;flex-direction:column;align-items:center;gap:2px;cursor:default" title="${name} (${typesLabel})">
+                <div style="background:${bg};border-radius:8px;padding:2px;position:relative;group:hover">
+                  <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${c.pokemon_id}.png" style="width:48px;height:48px;object-fit:contain;image-rendering:pixelated;display:block" onerror="this.style.display='none'"/>
+                  <div class="col-type-tooltip" style="display:none;position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:4px 6px;white-space:nowrap;z-index:10;margin-bottom:4px;pointer-events:none">
+                    <div style="font-size:0.7rem;font-weight:700;text-transform:capitalize;margin-bottom:3px">${name}</div>
+                    <div style="display:flex;gap:3px">${badge}</div>
+                  </div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+        ` : `<div class="profile-empty">No Pokémon earned yet. Unlock achievements to build your collection!</div>`}
       </div>
       <div>
         <div class="profile-section-title">${isOwn ? 'My' : `${esc(username||'Their')}'s`} Rated Pokémon</div>
@@ -2832,18 +2854,6 @@ async function openUserProfile(uid, username) {
       <div>
         <div class="profile-section-title">${isOwn ? 'My' : `${esc(username||'Their')}'s`} Reviews</div>
         <div class="profile-reviews-list">${reviewsList}</div>
-      </div>
-      <div>
-        <div class="profile-section-title">Pokémon Collection <span style="color:var(--muted);font-size:0.75rem;font-weight:400">(${profileCollection.length})</span></div>
-        ${profileCollection.length ? `
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
-            ${profileCollection.slice(0,60).map(c=>{
-              const p = allPokemon.find(x=>x.id===c.pokemon_id);
-              const name = p ? p.name.replace(/-/g,' ') : `#${c.pokemon_id}`;
-              return `<div title="${name}" style="position:relative"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${c.pokemon_id}.png" style="width:48px;height:48px;object-fit:contain;image-rendering:pixelated;background:var(--surface2);border-radius:8px;padding:2px" title="${name}" onerror="this.style.display='none'"/></div>`;
-            }).join('')}
-          </div>
-        ` : `<div class="profile-empty">No Pokémon earned yet. Unlock achievements to build your collection!</div>`}
       </div>
       <div>
         <div class="profile-section-title">Achievements</div>
@@ -6445,9 +6455,10 @@ function filterSquadPicker(query) {
     !q || p.name.includes(q) || String(p.id).startsWith(q)
   );
   grid.innerHTML = results.map(p =>
-    `<div class="squad-picker-card" onclick="selectSquadPokemon(${p.id})">
+    `<div class="squad-picker-card" onclick="selectSquadPokemon(${p.id})" style="background:${typeof getTypeGradient==='function'?getTypeGradient(p.id):'var(--surface2)'}">
       <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png" alt="${p.name}"/>
       <div class="squad-picker-card-name">${p.name.replace(/-/g,' ')}</div>
+      <div style="display:flex;gap:2px;justify-content:center;flex-wrap:wrap;margin-top:2px">${typeof getTypeBadgeHTML==='function'?getTypeBadgeHTML(p.id):''}</div>
     </div>`
   ).join('') || `<div style="color:var(--muted);font-size:0.85rem;padding:20px;text-align:center">No results</div>`;
 }
