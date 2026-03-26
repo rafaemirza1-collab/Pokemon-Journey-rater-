@@ -344,12 +344,14 @@
     .profile-reviews-list { display: flex; flex-direction: column; gap: 10px; }
     /* Squad */
     .squad-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
-    .squad-slot { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; transition: border-color 0.2s; }
+    .squad-slot { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; transition: border-color 0.2s; padding: 6px 4px 5px; min-height: 0; }
     .squad-slot.filled { cursor: default; }
-    .squad-slot.empty { cursor: pointer; border-style: dashed; }
+    .squad-slot.empty { cursor: pointer; border-style: dashed; aspect-ratio: 1; }
     .squad-slot.empty:hover { border-color: var(--accent2); }
-    .squad-slot img { width: 52px; height: 52px; object-fit: contain; image-rendering: pixelated; }
-    .squad-slot-name { font-size: 0.55rem; font-weight: 600; color: var(--muted); text-transform: capitalize; text-align: center; margin-top: 2px; }
+    .squad-slot img { width: 48px; height: 48px; object-fit: contain; image-rendering: pixelated; flex-shrink: 0; }
+    .squad-slot-name { font-size: 0.5rem; font-weight: 600; color: var(--muted); text-transform: capitalize; text-align: center; margin-top: 1px; line-height: 1.2; }
+    .squad-type-badges { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 2px; }
+    .squad-type-badge { color: #fff; font-size: 0.42rem; font-weight: 700; padding: 1px 4px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.4px; line-height: 1.4; }
     .squad-slot-plus { font-size: 1.4rem; color: var(--muted); line-height: 1; }
     .squad-slot-remove { position: absolute; top: 3px; right: 3px; width: 16px; height: 16px; background: rgba(230,57,70,0.15); border: none; border-radius: 50%; color: var(--red); font-size: 0.6rem; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.15s; }
     .squad-slot:hover .squad-slot-remove { opacity: 1; }
@@ -2475,14 +2477,15 @@ async function openUserProfile(uid, username) {
     if (id) {
       const p = allPokemon.find(x => x.id === id);
       const name = p ? p.name.replace(/-/g,' ') : `#${id}`;
-      const bg = typeof getTypeGradient==='function' ? getTypeGradient(id) : 'var(--surface2)';
-      const badge = typeof getTypeBadgeHTML==='function' ? getTypeBadgeHTML(id) : '';
-      const types = typeof getPokemonTypes==='function' ? getPokemonTypes(id).filter(Boolean).join('/') : '';
-      return `<div class="squad-slot filled" style="background:${bg};position:relative" title="${name}${types?' ('+types+')':''}">
+      const bg = getTypeGradient(id);
+      const types = getPokemonTypes(id).filter(Boolean);
+      const badgesHTML = types.map(t=>`<div class="squad-type-badge" style="background:${getTypeColor(t)}">${t}</div>`).join('');
+      const badge = getTypeBadgeHTML(id);
+      return `<div class="squad-slot filled" style="background:${bg}" title="${name} (${types.join('/')})">
         ${isOwn ? `<button class="squad-slot-remove" onclick="removeFromSquad(${i})">&#x2715;</button>` : ''}
         <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png" alt="${name}"/>
-        <div class="squad-slot-name" style="text-transform:capitalize">${name}</div>
-        <div style="display:flex;gap:2px;justify-content:center;flex-wrap:wrap;margin-top:2px">${badge}</div>
+        <div class="squad-slot-name">${name}</div>
+        <div class="squad-type-badges">${badgesHTML}</div>
         <div class="col-type-tooltip" style="position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 8px;white-space:nowrap;z-index:20;pointer-events:none;text-align:center">
           <div style="font-size:0.72rem;font-weight:700;text-transform:capitalize;margin-bottom:3px">${name}</div>
           <div style="display:flex;gap:3px;justify-content:center">${badge}</div>
@@ -2598,11 +2601,13 @@ async function openUserProfile(uid, username) {
             ${profileCollection.slice(0,60).map(c=>{
               const p = allPokemon.find(x=>x.id===c.pokemon_id);
               const name = p ? p.name.replace(/-/g,' ') : `#${c.pokemon_id}`;
-              const bg = typeof getTypeGradient==='function' ? getTypeGradient(c.pokemon_id) : 'var(--surface2)';
-              const badge = typeof getTypeBadgeHTML==='function' ? getTypeBadgeHTML(c.pokemon_id) : '';
-              return `<div class="col-item" style="position:relative;display:inline-flex;flex-direction:column;align-items:center;cursor:default;background:${bg};border-radius:10px;padding:4px 4px 5px;gap:2px">
-                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${c.pokemon_id}.png" style="width:48px;height:48px;object-fit:contain;image-rendering:pixelated;display:block" onerror="this.style.display='none'"/>
-                <div style="display:flex;gap:2px;justify-content:center;flex-wrap:wrap">${badge}</div>
+              const bg = getTypeGradient(c.pokemon_id);
+              const types = getPokemonTypes(c.pokemon_id).filter(Boolean);
+              const badgesHTML = types.map(t=>`<div class="squad-type-badge" style="background:${getTypeColor(t)}">${t}</div>`).join('');
+              const badge = getTypeBadgeHTML(c.pokemon_id);
+              return `<div class="col-item" style="position:relative;display:inline-flex;flex-direction:column;align-items:center;cursor:default;background:${bg};border-radius:10px;padding:4px 4px 5px;gap:1px;width:60px">
+                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${c.pokemon_id}.png" style="width:48px;height:48px;object-fit:contain;image-rendering:pixelated;display:block;flex-shrink:0" onerror="this.style.display='none'"/>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:2px">${badgesHTML}</div>
                 <div class="col-type-tooltip" style="position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 8px;white-space:nowrap;z-index:20;pointer-events:none;text-align:center">
                   <div style="font-size:0.72rem;font-weight:700;text-transform:capitalize;margin-bottom:3px">${name}</div>
                   <div style="display:flex;gap:3px;justify-content:center">${badge}</div>
