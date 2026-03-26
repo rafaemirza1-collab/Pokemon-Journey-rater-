@@ -965,6 +965,39 @@
   }
 
   /* ═══════════════════════════════════════════════
+     STARTER SELECTION
+     ═══════════════════════════════════════════════ */
+  .starter-overlay { display: none; position: fixed; inset: 0; z-index: 900; background: #080808; align-items: center; justify-content: center; flex-direction: column; }
+  .starter-overlay.open { display: flex; }
+  .starter-intro { text-align: center; opacity: 0; transition: opacity 0.6s ease; margin-bottom: 40px; }
+  .starter-intro.show { opacity: 1; }
+  .starter-intro-line1 { font-size: clamp(1.2rem, 4vw, 1.8rem); font-weight: 300; color: var(--muted); letter-spacing: 2px; margin-bottom: 10px; }
+  .starter-intro-line2 { font-size: clamp(1.8rem, 6vw, 3rem); font-weight: 900; color: var(--text); letter-spacing: -1px; }
+  .starter-grid { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; opacity: 0; transition: opacity 0.5s ease; }
+  .starter-grid.show { opacity: 1; }
+  .starter-card { background: var(--surface); border: 2px solid var(--border); border-radius: 20px; padding: 28px 20px 20px; width: 150px; text-align: center; cursor: pointer; transition: all 0.25s; position: relative; }
+  .starter-card:hover { transform: translateY(-6px); border-color: var(--accent2); box-shadow: 0 12px 32px rgba(199,125,255,0.2); }
+  .starter-card.selected { border-color: var(--accent); box-shadow: 0 0 40px rgba(230,57,70,0.4); transform: scale(1.08); }
+  .starter-card.dimmed { opacity: 0.3; transform: scale(0.95); }
+  .starter-card img { width: 100px; height: 100px; object-fit: contain; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5)); transition: filter 0.3s; }
+  .starter-card:hover img { filter: drop-shadow(0 8px 20px rgba(199,125,255,0.4)); }
+  .starter-card-name { font-size: 1rem; font-weight: 800; text-transform: capitalize; margin-top: 10px; margin-bottom: 4px; }
+  .starter-card-vibe { font-size: 0.75rem; color: var(--muted); font-weight: 500; }
+  .starter-confirm { opacity: 0; transition: opacity 0.4s ease; text-align: center; margin-top: 32px; }
+  .starter-confirm.show { opacity: 1; }
+  .starter-confirm-text { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
+  .starter-confirm-sub { font-size: 0.88rem; color: var(--muted); margin-bottom: 20px; }
+  .starter-confirm-btn { padding: 14px 40px; border-radius: 999px; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; font-size: 1rem; font-weight: 800; border: none; cursor: pointer; transition: all 0.25s; box-shadow: 0 4px 20px rgba(230,57,70,0.3); }
+  .starter-confirm-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(230,57,70,0.5); }
+  .starter-region-tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 24px; opacity: 0; transition: opacity 0.5s ease; }
+  .starter-region-tabs.show { opacity: 1; }
+  .starter-region-tab { padding: 5px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: 'Inter',sans-serif; }
+  .starter-region-tab.active { background: var(--accent2); color: white; border-color: var(--accent2); }
+  .starter-profile-pick { display: inline-flex; align-items: center; gap: 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 8px 14px; cursor: pointer; transition: all 0.2s; margin-top: 8px; font-size: 0.82rem; font-weight: 600; color: var(--muted); }
+  .starter-profile-pick:hover { border-color: #555; color: var(--text); }
+  .starter-profile-pick img { width: 28px; height: 28px; object-fit: contain; }
+
+  /* ═══════════════════════════════════════════════
      WHO'S THAT POKÉMON? MINIGAME
      ═══════════════════════════════════════════════ */
   #view-wtp { max-width: 680px; margin: 0 auto; padding: 28px 20px 60px; }
@@ -1066,6 +1099,31 @@
       Browsing anonymously? Your data is saved to this device only. Sign in with Google to keep it across all devices.
     </div>
     <div class="name-skip" onclick="browseAsAnonymous()">Browse as Anonymous</div>
+  </div>
+</div>
+
+<!-- STARTER SELECTION OVERLAY -->
+<div class="starter-overlay" id="starter-overlay">
+  <div class="starter-intro" id="starter-intro">
+    <div class="starter-intro-line1">Every trainer starts somewhere…</div>
+    <div class="starter-intro-line2">What's yours?</div>
+  </div>
+  <div class="starter-region-tabs" id="starter-region-tabs">
+    <button class="starter-region-tab active" onclick="starterSetRegion('kanto',this)">Kanto</button>
+    <button class="starter-region-tab" onclick="starterSetRegion('johto',this)">Johto</button>
+    <button class="starter-region-tab" onclick="starterSetRegion('hoenn',this)">Hoenn</button>
+    <button class="starter-region-tab" onclick="starterSetRegion('sinnoh',this)">Sinnoh</button>
+    <button class="starter-region-tab" onclick="starterSetRegion('unova',this)">Unova</button>
+    <button class="starter-region-tab" onclick="starterSetRegion('kalos',this)">Kalos</button>
+    <button class="starter-region-tab" onclick="starterSetRegion('alola',this)">Alola</button>
+    <button class="starter-region-tab" onclick="starterSetRegion('galar',this)">Galar</button>
+    <button class="starter-region-tab" onclick="starterSetRegion('paldea',this)">Paldea</button>
+  </div>
+  <div class="starter-grid" id="starter-grid"></div>
+  <div class="starter-confirm" id="starter-confirm">
+    <div class="starter-confirm-text" id="starter-confirm-text"></div>
+    <div class="starter-confirm-sub">Your starter will appear on your profile.</div>
+    <button class="starter-confirm-btn" onclick="starterConfirm()">Let's go! →</button>
   </div>
 </div>
 
@@ -1933,6 +1991,7 @@ async function onAuthSignedIn() {
 
   if (dbReady) upsertUserProfile();
   showToast('Signed in ✓');
+  checkShowStarterScreen();
 }
 
 async function mergeOldAccount() {
@@ -2319,10 +2378,12 @@ async function openUserProfile(uid, username) {
     sb.from('comments').select('id').eq('user_id', uid),
     sb.from('teams').select('id, name, slots, description, created_at').eq('user_id', uid).order('created_at', { ascending: false }).limit(10),
     sb.from('user_squads').select('slots').eq('user_id', uid).maybeSingle(),
-    sb.from('user_profiles').select('trainer_avatar').eq('user_id', uid).maybeSingle()
+    sb.from('user_profiles').select('trainer_avatar,starter_pokemon_id,starter_pokemon_name').eq('user_id', uid).maybeSingle()
   ]);
   // Cache this user's trainer avatar for use in comments
   if (profileRow?.trainer_avatar) profileAvatarCache[uid] = profileRow.trainer_avatar;
+  const profileStarterId = profileRow?.starter_pokemon_id || null;
+  const profileStarterName = profileRow?.starter_pokemon_name || null;
 
   const commentIds = myCommentIds ? myCommentIds.map(c => c.id) : [];
   let likesReceived = 0;
@@ -2447,6 +2508,16 @@ async function openUserProfile(uid, username) {
           <div class="profile-social-label">Posts</div>
         </div>
       </div>
+      ${isOwn && getMyStarter() ? `
+        <div style="margin:8px auto;display:flex;align-items:center;gap:10px;justify-content:center">
+          <img src="${ART(getMyStarter())}" style="width:52px;height:52px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5))" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${getMyStarter()}.png'"/>
+          <div style="text-align:left">
+            <div style="font-size:0.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Starter</div>
+            <div style="font-size:0.9rem;font-weight:800;text-transform:capitalize">${getMyStarterName()}</div>
+          </div>
+          <button onclick="closeProfile();openChangeStarter()" style="background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:0.7rem;padding:4px 8px;cursor:pointer;font-family:Inter,sans-serif">Change</button>
+        </div>` : isOwn ? `
+        <button onclick="closeProfile();openChangeStarter()" style="margin:8px auto;display:block;background:var(--surface2);border:1px dashed var(--border);border-radius:12px;color:var(--muted);font-size:0.8rem;padding:8px 20px;cursor:pointer;font-family:Inter,sans-serif;font-weight:600">+ Pick your starter</button>` : ''}
       ${isOwn ? `
         <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px">
           <button class="profile-edit-btn" onclick="closeProfile();openEditUsernameModal()">✏️ Edit Username</button>
@@ -2460,6 +2531,14 @@ async function openUserProfile(uid, username) {
           <button class="follow-btn ${isFollowing ? 'is-following' : 'not-following'}" id="follow-btn-${uid}" onclick="${isFollowing ? `unfollowUser('${uid}')` : `followUser('${uid}')`}">${isFollowing ? 'Following' : 'Follow'}</button>
           <button class="profile-edit-btn" onclick="closeProfile();startConversation('${uid}','${esc(username||'Anonymous')}')">💬 Message</button>
         </div>`}
+      ${!isOwn && profileStarterId ? `
+        <div style="margin:8px auto;display:flex;align-items:center;gap:10px;justify-content:center">
+          <img src="${ART(profileStarterId)}" style="width:44px;height:44px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5))"/>
+          <div style="text-align:left">
+            <div style="font-size:0.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Starter</div>
+            <div style="font-size:0.88rem;font-weight:800;text-transform:capitalize">${esc(profileStarterName||'')}</div>
+          </div>
+        </div>` : ''}
     </div>
     <div class="profile-stats">
       <div class="profile-stat-box">
@@ -3214,6 +3293,10 @@ async function init() {
   }
   initHotTake();
   initDiscovery();
+  // Show starter screen for existing users who haven't picked yet
+  if (authUser || (getUID() && !getUID().startsWith('u_'))) {
+    checkShowStarterScreen();
+  }
 }
 
 async function loadAllPokemon() {
@@ -6382,6 +6465,110 @@ function closeHtThread() {
 
 function closeHtThreadOnBg(e) {
   if (e.target === document.getElementById('ht-thread-overlay')) closeHtThread();
+}
+
+// ═══════════════════════════════════════════════
+// STARTER SELECTION
+// ═══════════════════════════════════════════════
+const STARTER_REGIONS = {
+  kanto:  { starters: [{ id:1,  name:'Bulbasaur',   vibe:'Patient 🌱' }, { id:4,  name:'Charmander', vibe:'Aggressive 🔥' }, { id:7,  name:'Squirtle',   vibe:'Calm 🌊' }] },
+  johto:  { starters: [{ id:152, name:'Chikorita',  vibe:'Gentle 🍃' }, { id:155, name:'Cyndaquil',  vibe:'Fierce 🔥' },   { id:158, name:'Totodile',   vibe:'Bold 💧' }] },
+  hoenn:  { starters: [{ id:252, name:'Treecko',    vibe:'Cunning 🌿' }, { id:255, name:'Torchic',   vibe:'Brave 🔥' },    { id:258, name:'Mudkip',     vibe:'Hardy 💦' }] },
+  sinnoh: { starters: [{ id:387, name:'Turtwig',    vibe:'Steadfast 🌾' }, { id:390, name:'Chimchar', vibe:'Wild 🔥' },    { id:393, name:'Piplup',     vibe:'Proud 🌊' }] },
+  unova:  { starters: [{ id:495, name:'Snivy',      vibe:'Cool 🌿' }, { id:498, name:'Tepig',       vibe:'Gutsy 🔥' },    { id:501, name:'Oshawott',   vibe:'Quirky 💧' }] },
+  kalos:  { starters: [{ id:650, name:'Chespin',    vibe:'Cheerful 🌰' }, { id:653, name:'Fennekin', vibe:'Clever 🔥' },   { id:656, name:'Froakie',    vibe:'Serious 💧' }] },
+  alola:  { starters: [{ id:722, name:'Rowlet',     vibe:'Mellow 🍃' }, { id:725, name:'Litten',    vibe:'Independent 🔥' }, { id:728, name:'Popplio',  vibe:'Determined 💧' }] },
+  galar:  { starters: [{ id:810, name:'Grookey',    vibe:'Playful 🌿' }, { id:813, name:'Scorbunny', vibe:'Energetic 🔥' }, { id:816, name:'Sobble',   vibe:'Shy 💧' }] },
+  paldea: { starters: [{ id:906, name:'Sprigatito',  vibe:'Charming 🌿' }, { id:909, name:'Fuecoco', vibe:'Laid-back 🔥' }, { id:912, name:'Quaxly',  vibe:'Diligent 💧' }] }
+};
+
+let _starterSelected = null;
+let _starterRegion = 'kanto';
+
+function getMyStarter() { return localStorage.getItem('pr_starter_id') ? parseInt(localStorage.getItem('pr_starter_id')) : null; }
+function getMyStarterName() { return localStorage.getItem('pr_starter_name') || null; }
+
+async function checkShowStarterScreen() {
+  if (getMyStarter()) return; // already picked
+  if (!authUser && !getUID()) return; // not signed in at all
+  // Small delay so site loads first
+  setTimeout(() => openStarterScreen(), 800);
+}
+
+function openStarterScreen() {
+  document.getElementById('starter-overlay').classList.add('open');
+  // Animate intro text
+  setTimeout(() => {
+    document.getElementById('starter-intro').classList.add('show');
+  }, 100);
+  setTimeout(() => {
+    document.getElementById('starter-region-tabs').classList.add('show');
+    document.getElementById('starter-grid').classList.add('show');
+    starterSetRegion('kanto', document.querySelector('.starter-region-tab'));
+  }, 900);
+}
+
+function starterSetRegion(region, btn) {
+  _starterRegion = region;
+  _starterSelected = null;
+  document.querySelectorAll('.starter-region-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('starter-confirm').classList.remove('show');
+  const grid = document.getElementById('starter-grid');
+  const starters = STARTER_REGIONS[region].starters;
+  grid.innerHTML = starters.map(s => `
+    <div class="starter-card" id="sc-${s.id}" onclick="starterSelect(${s.id},'${s.name}','${s.vibe}')">
+      <img src="${ART(s.id)}" alt="${s.name}" onerror="this.src='${SPRITE(s.id)}'"/>
+      <div class="starter-card-name">${s.name}</div>
+      <div class="starter-card-vibe">${s.vibe}</div>
+    </div>
+  `).join('');
+}
+
+function starterSelect(id, name, vibe) {
+  _starterSelected = { id, name, vibe };
+  document.querySelectorAll('.starter-card').forEach(c => {
+    c.classList.remove('selected', 'dimmed');
+    if (c.id === `sc-${id}`) c.classList.add('selected');
+    else c.classList.add('dimmed');
+  });
+  const confirmEl = document.getElementById('starter-confirm');
+  document.getElementById('starter-confirm-text').textContent = `You chose ${name}! ${vibe}`;
+  confirmEl.classList.add('show');
+  // Haptic on mobile
+  if (navigator.vibrate) navigator.vibrate(40);
+}
+
+async function starterConfirm() {
+  if (!_starterSelected) return;
+  const { id, name } = _starterSelected;
+  localStorage.setItem('pr_starter_id', id);
+  localStorage.setItem('pr_starter_name', name);
+  // Save to Supabase
+  if (dbReady) {
+    try { await sb.from('user_profiles').upsert({ user_id: getUID(), username: getUsername(), starter_pokemon_id: id, starter_pokemon_name: name }, { onConflict: 'user_id' }); } catch {}
+  }
+  // Close with a nice transition
+  const overlay = document.getElementById('starter-overlay');
+  overlay.style.opacity = '0';
+  overlay.style.transition = 'opacity 0.5s ease';
+  setTimeout(() => {
+    overlay.classList.remove('open');
+    overlay.style.opacity = '';
+    overlay.style.transition = '';
+  }, 500);
+  showToast(`${name} added to your profile! ✓`);
+}
+
+function openChangeStarter() {
+  _starterSelected = null;
+  const overlay = document.getElementById('starter-overlay');
+  overlay.classList.add('open');
+  document.getElementById('starter-intro').classList.add('show');
+  document.getElementById('starter-region-tabs').classList.add('show');
+  document.getElementById('starter-grid').classList.add('show');
+  document.getElementById('starter-confirm').classList.remove('show');
+  starterSetRegion('kanto', document.querySelector('.starter-region-tab'));
 }
 
 // ═══════════════════════════════════════════════
