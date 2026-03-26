@@ -2777,7 +2777,7 @@ async function openUserProfile(uid, username) {
             <div style="font-size:0.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Starter</div>
             <div style="font-size:0.9rem;font-weight:800;text-transform:capitalize">${getMyStarterName()}</div>
           </div>
-          <button onclick="closeProfile();openChangeStarter()" style="background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:0.7rem;padding:4px 8px;cursor:pointer;font-family:Inter,sans-serif">Change</button>
+          <span style="font-size:0.65rem;color:var(--muted);font-style:italic">Your partner</span>
         </div>` : isOwn ? `
         <button onclick="closeProfile();openChangeStarter()" style="margin:8px auto;display:block;background:var(--surface2);border:1px dashed var(--border);border-radius:12px;color:var(--muted);font-size:0.8rem;padding:8px 20px;cursor:pointer;font-family:Inter,sans-serif;font-weight:600">+ Pick your starter</button>` : ''}
       ${isOwn ? `
@@ -6855,7 +6855,13 @@ async function starterConfirm() {
   localStorage.setItem('pr_starter_name', name);
   // Save to Supabase
   if (dbReady) {
-    try { await sb.from('user_profiles').upsert({ user_id: getUID(), username: getUsername(), starter_pokemon_id: id, starter_pokemon_name: name }, { onConflict: 'user_id' }); } catch {}
+    const uid = getUID();
+    try { await sb.from('user_profiles').upsert({ user_id: uid, username: getUsername(), starter_pokemon_id: id, starter_pokemon_name: name }, { onConflict: 'user_id' }); } catch {}
+    // Add starter to collection (check not already there)
+    try {
+      const { data: ex } = await sb.from('user_collection').select('id').eq('user_id', uid).eq('pokemon_id', id).maybeSingle();
+      if (!ex) await sb.from('user_collection').insert({ user_id: uid, pokemon_id: id, achievement_id: 'starter_chosen' });
+    } catch {}
   }
   // Close with a nice transition
   const overlay = document.getElementById('starter-overlay');
