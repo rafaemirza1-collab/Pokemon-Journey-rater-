@@ -3374,6 +3374,19 @@ async function init() {
 
 async function loadAllPokemon() {
   try {
+    const CACHE_KEY = 'pr_pokemon_list_v2';
+    const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 1 week
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      try {
+        const { ts, data } = JSON.parse(cached);
+        if (Date.now() - ts < CACHE_TTL) {
+          allPokemon = data;
+          return;
+        }
+      } catch {}
+    }
+
     // Fetch full list including alternate forms (2000 covers all current entries)
     const res = await fetch('https://pokeapi.co/api/v2/pokemon?limit=2000&offset=0');
     const data = await res.json();
@@ -3394,13 +3407,15 @@ async function loadAllPokemon() {
       const baseId = baseByName[baseName] || null;
       p.baseId = baseId;
       p.gen = baseId ? getPokemonGen(baseId) : null;
-      // Sort right after base species; ties broken by raw ID
       p.sortKey = baseId ? baseId + 0.5 : 99999 + p.id * 0.0001;
     });
 
     allPokemon = [...base, ...forms].sort((a, b) =>
       a.sortKey !== b.sortKey ? a.sortKey - b.sortKey : a.id - b.id
     );
+
+    // Cache for next visit
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: allPokemon })); } catch {}
   } catch {
     document.getElementById('pokemon-grid').innerHTML =
       `<div class="global-loader"><p>Failed to load. Check connection and refresh.</p></div>`;
