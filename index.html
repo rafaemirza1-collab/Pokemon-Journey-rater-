@@ -3435,7 +3435,8 @@ async function init() {
 
   // Load community stats in background after Pokemon are visible
   if (dbReady) {
-    prefetchAllTabs().catch(() => {});
+    // Delay prefetch so it doesn't compete with initial page render on mobile
+    setTimeout(() => prefetchAllTabs().catch(() => {}), 3000);
     loadCommunityStats().then(() => applyFilters()).catch(() => {});
     loadMyTrainerAvatarFromDB();
     updateChatBadge();
@@ -4663,9 +4664,10 @@ async function prefetchProfile(uid) {
 
 async function prefetchAllTabs() {
   if (!dbReady) return;
-  // Kick off profile prefetch for current user in parallel with tab data
   const uid = getUID();
   if (uid) prefetchProfile(uid).catch(() => {});
+  // Drip runs independently (sequential fetches) — don't let it block tab data
+  prefetchDrip().catch(() => {});
   try {
     const [
       { data: teams }, { data: teamLikes }, { data: teamComments }, { data: teamRatings },
@@ -4681,13 +4683,14 @@ async function prefetchAllTabs() {
       sb.from('hot_takes').select('*').order('created_at', { ascending: false }).limit(200)
     ]);
     _prefetch.teams = { teams, likes: teamLikes, comments: teamComments, ratings: teamRatings };
-    // rankings reuses same teams/ratings/likes data (user_id not needed there)
     _prefetch.rankings = { teams, ratings: teamRatings, likes: teamLikes };
     _prefetch.trainers = { ratings: trainerRatings, comments: trainerComments };
     _prefetch.hottakes = hotTakes;
   } catch (e) {}
+}
 
-  // Drip battle needs sequential fetches (battles depend on round ID) — run after tab data
+async function prefetchDrip() {
+  if (!dbReady) return;
   try {
     const { data: rounds } = await sb.from('drip_rounds').select('*').order('created_at', { ascending: false }).limit(1);
     const round = rounds && rounds[0];
