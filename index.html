@@ -2476,53 +2476,45 @@ async function openUserProfile(uid, username) {
   const isOwn = uid === getUID();
 
   try {
-  const [{ data: myRatings }, { data: myComments }, { data: myCommentIds }, { data: myTeams }, { data: squadRow }, { data: profileRow }] = await Promise.all([
-    sb.from('ratings').select('pokemon_id, stars, updated_at').eq('user_id', uid).order('updated_at', { ascending: false }).limit(100),
-    sb.from('comments').select('id, pokemon_id, text, stars, created_at').eq('user_id', uid).is('parent_id', null).order('created_at', { ascending: false }).limit(50),
-    sb.from('comments').select('id').eq('user_id', uid),
-    sb.from('teams').select('id, name, slots, description, created_at').eq('user_id', uid).order('created_at', { ascending: false }).limit(10),
-    sb.from('user_squads').select('slots').eq('user_id', uid).maybeSingle(),
-    sb.from('user_profiles').select('trainer_avatar,starter_pokemon_id,starter_pokemon_name').eq('user_id', uid).maybeSingle()
-  ]);
-  // Cache this user's trainer avatar for use in comments
-  if (profileRow?.trainer_avatar) profileAvatarCache[uid] = profileRow.trainer_avatar;
-  const profileStarterId = profileRow?.starter_pokemon_id || null;
-  const profileStarterName = profileRow?.starter_pokemon_name || null;
-
-  const commentIds = myCommentIds ? myCommentIds.map(c => c.id) : [];
-  let likesReceived = 0;
-  if (commentIds.length) {
-    const { count } = await sb.from('comment_likes').select('*', { count: 'exact', head: true }).in('comment_id', commentIds);
-    likesReceived = count || 0;
-  }
-
-  // Social stats (followers/following/posts) — wrapped so missing table doesn't break profile
-  let followers = 0, following = 0, isFollowing = false, htCount = 0, tcCount = 0;
-  try {
-    const [fc, fgc, fRow, ht, tc] = await Promise.all([
+  // Use prefetched data if available, otherwise fire all queries in one round trip
+  let profileResults;
+  if (_prefetch[`profile_${uid}`]) {
+    profileResults = _prefetch[`profile_${uid}`];
+    delete _prefetch[`profile_${uid}`];
+  } else {
+    profileResults = await Promise.all([
+      sb.from('ratings').select('pokemon_id, stars, updated_at').eq('user_id', uid).order('updated_at', { ascending: false }).limit(100),
+      sb.from('comments').select('id, pokemon_id, text, stars, created_at').eq('user_id', uid).is('parent_id', null).order('created_at', { ascending: false }).limit(50),
+      sb.from('teams').select('id, name, slots, description, created_at').eq('user_id', uid).order('created_at', { ascending: false }).limit(10),
+      sb.from('user_squads').select('slots').eq('user_id', uid).maybeSingle(),
+      sb.from('user_profiles').select('trainer_avatar,starter_pokemon_id,starter_pokemon_name').eq('user_id', uid).maybeSingle(),
       sb.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', uid),
       sb.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', uid),
       isOwn ? Promise.resolve({ data: null }) : sb.from('follows').select('id').eq('follower_id', getUID()).eq('following_id', uid).maybeSingle(),
       sb.from('hot_takes').select('*', { count: 'exact', head: true }).eq('user_id', uid),
-      sb.from('trainer_comments').select('*', { count: 'exact', head: true }).eq('user_id', uid)
-    ]);
-    followers = fc.count || 0;
-    following = fgc.count || 0;
-    isFollowing = !!fRow.data;
-    htCount = ht.count || 0;
-    tcCount = tc.count || 0;
-  } catch {}
-
-  // Fetch collection and achievements for profile display
-  let profileCollection = [], profileEarnedAchs = new Map();
-  try {
-    const [colRes, achRes] = await Promise.all([
+      sb.from('trainer_comments').select('*', { count: 'exact', head: true }).eq('user_id', uid),
       sb.from('user_collection').select('pokemon_id, earned_at, achievement_id').eq('user_id', uid).order('earned_at', { ascending: false }),
       sb.from('user_achievements').select('achievement_id, earned_at').eq('user_id', uid).order('earned_at', { ascending: false })
     ]);
-    profileCollection = colRes.data || [];
-    profileEarnedAchs = new Map(achRes.data ? achRes.data.map(r=>[r.achievement_id, r.earned_at]) : []);
-  } catch {}
+  }
+  const [
+    { data: myRatings }, { data: myComments }, { data: myTeams },
+    { data: squadRow }, { data: profileRow },
+    fc, fgc, fRow, ht, tc,
+    colRes, achRes
+  ] = profileResults;
+
+  if (profileRow?.trainer_avatar) profileAvatarCache[uid] = profileRow.trainer_avatar;
+  const profileStarterId = profileRow?.starter_pokemon_id || null;
+  const profileStarterName = profileRow?.starter_pokemon_name || null;
+  const likesReceived = 0; // skipped — was a sequential round trip for a minor stat
+  const followers = fc?.count || 0;
+  const following = fgc?.count || 0;
+  const isFollowing = !!fRow?.data;
+  const htCount = ht?.count || 0;
+  const tcCount = tc?.count || 0;
+  const profileCollection = colRes?.data || [];
+  const profileEarnedAchs = new Map(achRes?.data ? achRes.data.map(r=>[r.achievement_id, r.earned_at]) : []);
 
   const reviewCount = myComments ? myComments.length : 0;
   const ratingCount = myRatings ? myRatings.length : 0;
@@ -4649,8 +4641,31 @@ const _TAB_TTL = 60000; // 60 seconds
 function _tabStale(key) { return !_tabCache[key] || Date.now() - _tabCache[key] > _TAB_TTL; }
 const _prefetch = {}; // stores prefetched raw query results keyed by tab
 
+async function prefetchProfile(uid) {
+  if (!dbReady || !uid) return;
+  const isOwn = uid === getUID();
+  const results = await Promise.all([
+    sb.from('ratings').select('pokemon_id, stars, updated_at').eq('user_id', uid).order('updated_at', { ascending: false }).limit(100),
+    sb.from('comments').select('id, pokemon_id, text, stars, created_at').eq('user_id', uid).is('parent_id', null).order('created_at', { ascending: false }).limit(50),
+    sb.from('teams').select('id, name, slots, description, created_at').eq('user_id', uid).order('created_at', { ascending: false }).limit(10),
+    sb.from('user_squads').select('slots').eq('user_id', uid).maybeSingle(),
+    sb.from('user_profiles').select('trainer_avatar,starter_pokemon_id,starter_pokemon_name').eq('user_id', uid).maybeSingle(),
+    sb.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', uid),
+    sb.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', uid),
+    isOwn ? Promise.resolve({ data: null }) : sb.from('follows').select('id').eq('follower_id', getUID()).eq('following_id', uid).maybeSingle(),
+    sb.from('hot_takes').select('*', { count: 'exact', head: true }).eq('user_id', uid),
+    sb.from('trainer_comments').select('*', { count: 'exact', head: true }).eq('user_id', uid),
+    sb.from('user_collection').select('pokemon_id, earned_at, achievement_id').eq('user_id', uid).order('earned_at', { ascending: false }),
+    sb.from('user_achievements').select('achievement_id, earned_at').eq('user_id', uid).order('earned_at', { ascending: false })
+  ]);
+  _prefetch[`profile_${uid}`] = results;
+}
+
 async function prefetchAllTabs() {
   if (!dbReady) return;
+  // Kick off profile prefetch for current user in parallel with tab data
+  const uid = getUID();
+  if (uid) prefetchProfile(uid).catch(() => {});
   try {
     const [
       { data: teams }, { data: teamLikes }, { data: teamComments }, { data: teamRatings },
