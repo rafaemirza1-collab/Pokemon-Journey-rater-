@@ -4670,7 +4670,6 @@ async function prefetchAllTabs() {
     _prefetch.rankings = { teams, ratings: teamRatings, likes: teamLikes };
     _prefetch.trainers = { ratings: trainerRatings, comments: trainerComments };
     _prefetch.hottakes = hotTakes;
-    _tabTouch('teams'); _tabTouch('rankings'); _tabTouch('trainers'); _tabTouch('hottakes');
   } catch (e) {}
 }
 function _tabTouch(key) { _tabCache[key] = Date.now(); }
