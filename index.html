@@ -4417,9 +4417,13 @@ function setRankTab(tab) {
   renderRankings();
 }
 
+function _skeletonRows(n, h='56px') {
+  return Array.from({length:n}, ()=>`<div class="skeleton" style="height:${h};border-radius:16px"></div>`).join('');
+}
+
 async function renderRankings() {
   const list = document.getElementById('rankings-list');
-  list.innerHTML = `<div class="empty-rankings"><p>Loading...</p></div>`;
+  list.innerHTML = _skeletonRows(8);
 
   if (!dbReady) {
     list.innerHTML = `<div class="empty-rankings"><p>Connect Supabase to see community rankings.</p></div>`;
@@ -4633,15 +4637,20 @@ function buildRankRow(r, i) {
 // ═══════════════════════════════════════════════
 // VIEW SWITCH
 // ═══════════════════════════════════════════════
+const _tabCache = {};
+const _TAB_TTL = 60000; // 60 seconds
+function _tabStale(key) { return !_tabCache[key] || Date.now() - _tabCache[key] > _TAB_TTL; }
+function _tabTouch(key) { _tabCache[key] = Date.now(); }
+
 function switchView(view) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById(`view-${view}`).classList.add('active');
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.view===view));
-  if (view === 'rankings') renderRankings();
-  if (view === 'teams') loadTeams();
-  if (view === 'trainers') initTrainersView();
-  if (view === 'hottakes') loadHotTakes();
-  if (view === 'dripbattle') loadDripRound();
+  if (view === 'rankings' && _tabStale('rankings')) { _tabTouch('rankings'); renderRankings(); }
+  if (view === 'teams' && _tabStale('teams')) { _tabTouch('teams'); loadTeams(); }
+  if (view === 'trainers' && _tabStale('trainers')) { _tabTouch('trainers'); initTrainersView(); }
+  if (view === 'hottakes' && _tabStale('hottakes')) { _tabTouch('hottakes'); loadHotTakes(); }
+  if (view === 'dripbattle') loadDripRound(); // always fresh — it's a live battle
   if (view === 'wtp') initWTP();
 }
 
@@ -4731,6 +4740,7 @@ let builderSearchQuery = '';
 // ─── Feed ───
 async function loadTeams() {
   if (!dbReady) return;
+  document.getElementById('teams-feed').innerHTML = _skeletonRows(6, '120px');
   const { data: teams } = await sb.from('teams').select('*').order('created_at', { ascending: false }).limit(200);
   if (!teams) return;
   const [{ data: likes }, { data: comments }, { data: ratings }] = await Promise.all([
@@ -5224,6 +5234,7 @@ function setTrainerSort(sort) {
 
 async function initTrainersView() {
   initTrainerRegionBar();
+  document.getElementById('trainer-grid').innerHTML = _skeletonRows(12, '200px');
   await loadTrainerStats();
   renderTrainerGrid();
 }
@@ -6443,6 +6454,7 @@ async function loadHotTakes() {
     document.getElementById('ht-feed').innerHTML = `<div class="ht-empty">Connect Supabase to see hot takes.</div>`;
     return;
   }
+  document.getElementById('ht-feed').innerHTML = _skeletonRows(8, '80px');
   const { data: takes } = await sb.from('hot_takes').select('*').order('created_at', { ascending: false }).limit(200);
   htAllTakes = takes || [];
   htDisplayed = 0;
