@@ -6804,9 +6804,23 @@ function getMyStarter() { return localStorage.getItem('pr_starter_id') ? parseIn
 function getMyStarterName() { return localStorage.getItem('pr_starter_name') || null; }
 
 async function checkShowStarterScreen() {
-  if (getMyStarter()) return; // already picked
+  if (getMyStarter()) return; // already picked — localStorage hit
   if (!authUser && !getUID()) return; // not signed in at all
-  // Small delay so site loads first
+  // localStorage may have been cleared on mobile — check DB before showing screen
+  if (dbReady) {
+    const uid = getUID();
+    if (uid) {
+      try {
+        const { data } = await sb.from('user_profiles').select('starter_pokemon_id, starter_pokemon_name').eq('user_id', uid).maybeSingle();
+        if (data?.starter_pokemon_id) {
+          // Restore to localStorage so future checks are instant
+          localStorage.setItem('pr_starter_id', data.starter_pokemon_id);
+          if (data.starter_pokemon_name) localStorage.setItem('pr_starter_name', data.starter_pokemon_name);
+          return; // already picked — don't show screen
+        }
+      } catch {}
+    }
+  }
   setTimeout(() => openStarterScreen(), 800);
 }
 
