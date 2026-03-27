@@ -3552,6 +3552,14 @@ function getPokemonGen(id) {
 
 async function loadCommunityStats() {
   if (!dbReady) return;
+  // Use sessionStorage cache — avoids re-fetching 100k rows on every refresh
+  try {
+    const cached = sessionStorage.getItem('pr_community_stats');
+    if (cached) {
+      communityStats = JSON.parse(cached);
+      return;
+    }
+  } catch {}
   try {
     const [{ data: rows }, { data: commentRows }] = await Promise.all([
       sb.from('ratings').select('pokemon_id, stars').limit(100000),
@@ -3574,6 +3582,7 @@ async function loadCommunityStats() {
     Object.entries(map).forEach(([id, v]) => {
       communityStats[id] = { avg: v.count ? v.total / v.count : 0, count: v.count, comments: v.comments || 0 };
     });
+    try { sessionStorage.setItem('pr_community_stats', JSON.stringify(communityStats)); } catch {}
   } catch {
     // silently fail — stats will load per-card
   }
