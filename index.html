@@ -6399,19 +6399,25 @@ function actOnDiscovery() {
 // SQUAD
 // ═══════════════════════════════════════════════
 let squadPickerSlot = null;
+let squadPickerCurrentSlots = [];
 let squadPickerResults = [];
 let myCollectionIds = [];
 
 async function openSquadPicker(slotIndex) {
   squadPickerSlot = slotIndex;
   document.getElementById('squad-picker-search').value = '';
-  // Load collection IDs from DB
   const uid = getUID();
   if (dbReady && uid) {
-    const { data } = await sb.from('user_collection').select('pokemon_id').eq('user_id', uid);
-    myCollectionIds = data ? [...new Set(data.map(r => r.pokemon_id))] : [];
+    const [colRes, squadRes] = await Promise.all([
+      sb.from('user_collection').select('pokemon_id').eq('user_id', uid),
+      sb.from('user_squads').select('slots').eq('user_id', uid).maybeSingle()
+    ]);
+    myCollectionIds = colRes.data ? [...new Set(colRes.data.map(r => r.pokemon_id))] : [];
+    const slots = squadRes.data?.slots;
+    squadPickerCurrentSlots = Array.isArray(slots) ? slots.filter(Boolean) : [];
   } else {
     myCollectionIds = [];
+    squadPickerCurrentSlots = [];
   }
   filterSquadPicker('');
   document.getElementById('squad-picker-overlay').classList.add('open');
@@ -6434,7 +6440,7 @@ function filterSquadPicker(query) {
     grid.innerHTML = `<div style="color:var(--muted);font-size:0.85rem;padding:20px;text-align:center">Earn Pokemon by unlocking achievements first!</div>`;
     return;
   }
-  const collectionPokemon = allPokemon.filter(p => myCollectionIds.includes(p.id));
+  const collectionPokemon = allPokemon.filter(p => myCollectionIds.includes(p.id) && !squadPickerCurrentSlots.includes(p.id));
   const results = collectionPokemon.filter(p =>
     !q || p.name.includes(q) || String(p.id).startsWith(q)
   );
