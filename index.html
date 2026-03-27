@@ -28,7 +28,8 @@
     .nav-brand img { width: 32px; height: 32px; }
     .nav-brand span { background: linear-gradient(135deg, var(--accent), #FF9500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .nav-tabs { display: flex; gap: 4px; }
-    .nav-tab { padding: 8px 18px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--muted); transition: all 0.2s; }
+    .nav-tab { padding: 8px 18px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--muted); transition: all 0.18s ease; }
+    .nav-tab:active { transform: scale(0.95); }
     .nav-tab:hover { color: var(--text); background: var(--surface2); }
     .nav-tab.active { background: var(--accent2); color: white; }
     .nav-right { display: flex; align-items: center; gap: 10px; flex: 1; justify-content: flex-end; }
@@ -39,7 +40,8 @@
     .user-btn:hover { border-color: #555; }
     .user-avatar { width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(135deg, var(--accent2), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; color: white; flex-shrink: 0; overflow: hidden; }
 
-    .view { display: none; } .view.active { display: block; }
+    .view { display: none; } .view.active { display: block; animation: viewFadeUp 0.22s ease; }
+    @keyframes viewFadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
     .gen-bar { display: flex; gap: 8px; overflow-x: auto; padding: 20px 32px 0; scrollbar-width: none; }
     .gen-bar::-webkit-scrollbar { display: none; }
@@ -57,7 +59,8 @@
 
     .pokemon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; padding: 0 32px 40px; }
 
-    .poke-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 6px; position: relative; overflow: hidden; }
+    .poke-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px 12px 14px; cursor: pointer; transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; display: flex; flex-direction: column; align-items: center; gap: 6px; position: relative; overflow: hidden; }
+    .poke-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
     .poke-card:hover { border-color: #444; transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
     .poke-card-num { font-size: 0.7rem; color: var(--muted); font-weight: 600; align-self: flex-start; }
     .poke-card-img { width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; }
@@ -81,7 +84,10 @@
     .load-more-btn:hover { border-color: var(--accent); color: var(--accent); }
 
     .modal-overlay { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); align-items: center; justify-content: center; padding: 20px; }
-    .modal-overlay.open { display: flex; }
+    .modal-overlay.open { display: flex; animation: modalIn 0.2s ease; }
+    @keyframes modalIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal-overlay.open > * { animation: modalSlideUp 0.22s ease; }
+    @keyframes modalSlideUp { from { opacity: 0; transform: translateY(16px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
     .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; width: 100%; max-width: 620px; max-height: 90vh; overflow-y: auto; position: relative; }
     .modal-close { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); font-size: 1rem; transition: all 0.2s; z-index: 10; }
     .modal-close:hover { color: var(--text); }
@@ -236,7 +242,8 @@
     .rank-tab:hover { color: var(--text); border-color: #555; }
     .rank-tab.active { background: var(--accent2); color: white; border-color: var(--accent2); }
     .rankings-list { display: flex; flex-direction: column; gap: 12px; max-width: 720px; }
-    .rank-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s; }
+    .rank-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: transform 0.18s ease, box-shadow 0.18s ease; }
+    .rank-item:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
     .rank-item:hover { border-color: #444; transform: translateX(4px); }
     .rank-num { width: 36px; height: 36px; border-radius: 50%; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 800; color: var(--muted); flex-shrink: 0; }
     .rank-num.gold { background: rgba(255,203,5,0.15); color: var(--accent); }
