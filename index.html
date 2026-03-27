@@ -4686,6 +4686,23 @@ async function prefetchAllTabs() {
     _prefetch.trainers = { ratings: trainerRatings, comments: trainerComments };
     _prefetch.hottakes = hotTakes;
   } catch (e) {}
+
+  // Drip battle needs sequential fetches (battles depend on round ID) — run after tab data
+  try {
+    const { data: rounds } = await sb.from('drip_rounds').select('*').order('created_at', { ascending: false }).limit(1);
+    const round = rounds && rounds[0];
+    if (round && new Date(round.expires_at) > new Date()) {
+      const { data: battles } = await sb.from('drip_battles').select('*').eq('round_id', round.id).order('battle_index', { ascending: true });
+      if (battles && battles.length) {
+        const ids = battles.map(b => b.id);
+        const [vAll, vMine] = await Promise.all([
+          sb.from('drip_votes').select('battle_id, choice').in('battle_id', ids),
+          sb.from('drip_votes').select('battle_id, choice').in('battle_id', ids).eq('user_id', getUID())
+        ]);
+        _prefetch.drip = { round, battles, allVotes: vAll.data, myVoteRows: vMine.data };
+      }
+    }
+  } catch (e) {}
 }
 function _tabTouch(key) { _tabCache[key] = Date.now(); }
 
@@ -4697,7 +4714,7 @@ function switchView(view) {
   if (view === 'teams' && _tabStale('teams')) { _tabTouch('teams'); loadTeams(); }
   if (view === 'trainers' && _tabStale('trainers')) { _tabTouch('trainers'); initTrainersView(); }
   if (view === 'hottakes' && _tabStale('hottakes')) { _tabTouch('hottakes'); loadHotTakes(); }
-  if (view === 'dripbattle') loadDripRound(); // always fresh — it's a live battle
+  if (view === 'dripbattle') loadDripRound();
   if (view === 'wtp') initWTP();
 }
 
@@ -5636,23 +5653,38 @@ async function loadDripRound() {
   if (detailPanel) detailPanel.style.display = 'none';
   document.getElementById('drip-browser-wrap').innerHTML = `<div class="drip-loading">Loading battles...</div>`;
 
-  // Fetch latest round
-  const { data: rounds } = await sb.from('drip_rounds').select('*').order('created_at', { ascending: false }).limit(1);
-  let round = rounds && rounds[0];
-  const now = new Date();
+  let round, battles, allVotes, myVoteRows;
 
-  if (!round || new Date(round.expires_at) <= now) {
-    round = await createNewDripRound();
-    if (!round) {
-      document.getElementById('drip-browser-wrap').innerHTML = `<div class="drip-loading">Could not start a new round.</div>`;
-      return;
+  if (_prefetch.drip) {
+    ({ round, battles, allVotes, myVoteRows } = _prefetch.drip);
+    delete _prefetch.drip;
+  } else {
+    // Fetch latest round
+    const { data: rounds } = await sb.from('drip_rounds').select('*').order('created_at', { ascending: false }).limit(1);
+    round = rounds && rounds[0];
+    const now = new Date();
+    if (!round || new Date(round.expires_at) <= now) {
+      round = await createNewDripRound();
+      if (!round) {
+        document.getElementById('drip-browser-wrap').innerHTML = `<div class="drip-loading">Could not start a new round.</div>`;
+        return;
+      }
+    }
+    // Fetch battles + votes in parallel once we have the round
+    const { data: battleData } = await sb.from('drip_battles').select('*').eq('round_id', round.id).order('battle_index', { ascending: true });
+    battles = battleData || [];
+    if (battles.length) {
+      const ids = battles.map(b => b.id);
+      const [vAll, vMine] = await Promise.all([
+        sb.from('drip_votes').select('battle_id, choice').in('battle_id', ids),
+        sb.from('drip_votes').select('battle_id, choice').in('battle_id', ids).eq('user_id', getUID())
+      ]);
+      allVotes = vAll.data; myVoteRows = vMine.data;
     }
   }
+
   dripRoundData = round;
   startDripCountdown(round.expires_at);
-
-  // Fetch all battles for this round
-  const { data: battles } = await sb.from('drip_battles').select('*').eq('round_id', round.id).order('battle_index', { ascending: true });
   dripBattlesData = battles || [];
 
   if (!dripBattlesData.length) {
@@ -5660,12 +5692,7 @@ async function loadDripRound() {
     return;
   }
 
-  // Fetch all votes + my votes in parallel
   const battleIds = dripBattlesData.map(b => b.id);
-  const [{ data: allVotes }, { data: myVoteRows }] = await Promise.all([
-    sb.from('drip_votes').select('battle_id, choice').in('battle_id', battleIds),
-    sb.from('drip_votes').select('battle_id, choice').in('battle_id', battleIds).eq('user_id', getUID())
-  ]);
 
   dripAllVotes = {};
   dripMyVotes = {};
