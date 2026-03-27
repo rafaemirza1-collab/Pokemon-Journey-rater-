@@ -1165,6 +1165,26 @@
   .wtp-lb-col-you { font-size: 0.55rem; background: rgba(199,125,255,0.25); color: var(--accent2); border-radius: 999px; padding: 1px 5px; font-weight: 700; }
   .wtp-lb-col-empty { font-size: 0.72rem; color: var(--muted); text-align: center; padding: 12px 0; }
   @media(max-width:480px) { .wtp-lb-cols { grid-template-columns: 1fr; } }
+
+  /* ── BERRY CHASE ── */
+  .bc-lobby-card { display:flex; flex-direction:column; align-items:center; gap:14px; width:100%; max-width:460px; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:28px 24px; }
+  .bc-lobby-title { font-size:1.5rem; font-weight:900; letter-spacing:-0.5px; }
+  .bc-lobby-desc { color:var(--muted); font-size:0.88rem; text-align:center; max-width:380px; line-height:1.6; }
+  .bc-hud { margin-bottom:12px; }
+  #bc-lives { font-size:1.1rem; letter-spacing:2px; }
+  .bc-canvas-wrap { display:flex; justify-content:center; width:100%; overflow:hidden; }
+  #bc-canvas { display:block; border:2px solid var(--border); border-radius:12px; background:#000; max-width:100%; image-rendering:pixelated; cursor:none; }
+  .bc-dpad { display:none; flex-direction:column; align-items:center; gap:4px; margin-top:16px; user-select:none; -webkit-user-select:none; }
+  .bc-dpad.visible { display:flex; }
+  .bc-dpad-row { display:flex; gap:4px; }
+  .bc-dpad-btn { width:56px; height:56px; border-radius:12px; background:var(--surface2); border:1px solid var(--border); color:var(--text); font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; touch-action:manipulation; transition:background 0.12s; }
+  .bc-dpad-btn:active { background:var(--accent2); }
+  .bc-dpad-center { background:transparent!important; border-color:transparent!important; pointer-events:none; }
+  @keyframes bcPowerFlash { 0%,100%{box-shadow:none} 50%{box-shadow:0 0 0 4px rgba(255,203,5,0.6)} }
+  .bc-canvas-wrap.power-active { animation:bcPowerFlash 0.5s ease infinite; }
+  @keyframes bcCaughtPop { from{transform:scale(0.5) translateY(20px);opacity:0} 50%{transform:scale(1.2) translateY(-8px);opacity:1} to{transform:scale(1) translateY(0);opacity:0} }
+  .bc-caught-badge { position:fixed; z-index:999; background:var(--accent); color:#000; font-size:1rem; font-weight:900; border-radius:999px; padding:6px 20px; pointer-events:none; animation:bcCaughtPop 1s ease forwards; }
+  @media(max-width:640px) { .bc-dpad-btn { width:52px; height:52px; font-size:1.1rem; } }
   .wtp-hud { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 12px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
   .wtp-hud-score { font-size: 1rem; font-weight: 700; }
   .wtp-hud-score span { color: var(--accent); font-size: 1.3rem; }
@@ -1533,6 +1553,17 @@
     </div>
   </div>
 
+  <!-- BERRY CHASE LOBBY CARD -->
+  <div class="bc-lobby-card" id="bc-lobby-card">
+    <div class="bc-lobby-title">🫐 Berry Chase</div>
+    <div class="bc-lobby-desc">Navigate the maze, collect berries, and avoid Ghost-type chasers. Grab a Rare Candy to catch them!</div>
+    <button class="wtp-start-btn" onclick="bcLaunch()">▶ Play Berry Chase</button>
+    <div class="wtp-lb-col" style="width:100%;max-width:340px">
+      <div class="wtp-lb-col-header"><div class="wtp-lb-col-icon">🫐</div><div class="wtp-lb-col-name">Top Scores</div></div>
+      <div class="wtp-lb-col-body" id="bc-lb-list"><div class="wtp-lb-col-empty">Loading…</div></div>
+    </div>
+  </div>
+
   <!-- GAME -->
   <div id="wtp-game" style="display:none">
     <div class="wtp-hud">
@@ -1555,6 +1586,41 @@
       <div class="wtp-go-btns">
         <button class="wtp-start-btn" id="wtp-replay-btn" onclick="wtpReplay()">▶ Play Again</button>
         <button class="wtp-lb-btn" onclick="wtpShowLobby()">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BERRY CHASE GAME -->
+  <div id="bc-game" style="display:none">
+    <div class="wtp-hud bc-hud">
+      <div class="wtp-hud-score">Score: <span id="bc-score">0</span></div>
+      <div id="bc-lives">❤️❤️❤️</div>
+      <div class="wtp-hud-score">Lv <span id="bc-level">1</span></div>
+    </div>
+    <div class="bc-canvas-wrap" id="bc-canvas-wrap">
+      <canvas id="bc-canvas"></canvas>
+    </div>
+    <div class="bc-dpad" id="bc-dpad">
+      <div class="bc-dpad-row"><button class="bc-dpad-btn" ontouchstart="bcSetDir('up')" onclick="bcSetDir('up')">▲</button></div>
+      <div class="bc-dpad-row">
+        <button class="bc-dpad-btn" ontouchstart="bcSetDir('left')" onclick="bcSetDir('left')">◀</button>
+        <button class="bc-dpad-btn bc-dpad-center" disabled></button>
+        <button class="bc-dpad-btn" ontouchstart="bcSetDir('right')" onclick="bcSetDir('right')">▶</button>
+      </div>
+      <div class="bc-dpad-row"><button class="bc-dpad-btn" ontouchstart="bcSetDir('down')" onclick="bcSetDir('down')">▼</button></div>
+    </div>
+  </div>
+
+  <!-- BERRY CHASE GAME OVER -->
+  <div id="bc-gameover" style="display:none">
+    <div class="wtp-gameover">
+      <div class="wtp-go-title">Game Over!</div>
+      <div class="wtp-go-score">Score: <span id="bc-go-score">0</span></div>
+      <div class="wtp-go-streak">Level reached: <span id="bc-go-level">1</span></div>
+      <div class="wtp-go-rank" id="bc-go-rank"></div>
+      <div class="wtp-go-btns">
+        <button class="wtp-start-btn" onclick="bcLaunch()">▶ Play Again</button>
+        <button class="wtp-lb-btn" onclick="bcShowLobby()">Back</button>
       </div>
     </div>
   </div>
@@ -7068,6 +7134,7 @@ function wtpFormatTime(secs) {
 function initWTP() {
   wtpShowLobby();
   wtpLoadAllLeaderboards();
+  bcLoadLeaderboard();
 }
 
 function wtpShowLobby() {
@@ -7208,6 +7275,449 @@ async function wtpLoadLeaderboard(diff) {
     ).join('');
   } catch(e) { col.innerHTML = '<div class="wtp-lb-col-empty">Could not load</div>'; }
 }
+
+// ═══════════════════════════════════════════════
+// BERRY CHASE MINIGAME
+// ═══════════════════════════════════════════════
+
+const BC_EMPTY=0,BC_WALL=1,BC_DOT=2,BC_POWER=3;
+const BC_CHASERS_DEF=[{id:94,name:'Gengar'},{id:93,name:'Haunter'},{id:92,name:'Gastly'},{id:200,name:'Misdreavus'}];
+const BC_LIVES_START=3;
+const BC_POWER_MS=6000;
+const BC_TICK_MS=1000/60;
+
+// 21×21 maze template (1=wall,0=floor,3=power pellet)
+const BC_MAP_TMPL=[
+  '111111111111111111111',
+  '100000000010000000001',
+  '101110111010111011101',
+  '130110100000010110031',
+  '101110111111111011101',
+  '100000000000000000001',
+  '101110101111101011101',
+  '101110100000001011101',
+  '100000101000101000001',
+  '111011101000101110111',
+  '100000101000101000001',
+  '101110100000001011101',
+  '101110101111101011101',
+  '100000000000000000001',
+  '101110111111111011101',
+  '130110100000010110031',
+  '101110111010111011101',
+  '100000000010000000001',
+  '101110101010101011101',
+  '100000000000000000001',
+  '111111111111111111111',
+];
+
+let bcMap=[], bcDotsLeft=0;
+let bcScore=0,bcLives=BC_LIVES_START,bcLevel=1;
+let bcRunning=false,bcRAF=null,bcLastTime=0,bcAccum=0;
+let bcPowerMode=false,bcPowerTimeout=null,bcPulseTick=0;
+let bcPlayer={col:10,row:15,px:0,py:0,dx:0,dy:0,ndx:0,ndy:0,mt:0,rot:0};
+let bcChasers=[];
+let bcReleaseTimers=[];
+let bcChaserImgs=[],bcPlayerImg=null,bcCandyImg=null;
+let bcTile=20;
+let bcScatterTick=0,bcScatterMode=false;
+let bcDeathAnim=false,bcDeathTimer=0;
+
+function bcBuildLevel(lvl){
+  bcMap=BC_MAP_TMPL.map(row=>row.split('').map(Number));
+  bcDotsLeft=0;
+  // Place dots on all floor tiles (0), power pellets stay as 3
+  for(let r=0;r<21;r++) for(let c=0;c<21;c++){
+    if(bcMap[r][c]===BC_EMPTY){bcMap[r][c]=BC_DOT;bcDotsLeft++;}
+    else if(bcMap[r][c]===BC_POWER) bcDotsLeft++;
+  }
+  // Player start
+  bcPlayer={col:10,row:17,px:0,py:0,dx:1,dy:0,ndx:1,ndy:0,mt:0,rot:0};
+  bcSyncPixels(bcPlayer);
+  // Build chasers
+  const spawnPositions=[{col:9,row:9},{col:10,row:9},{col:11,row:9},{col:10,row:10}];
+  const baseSpeed=Math.max(3,6-Math.floor((lvl-1)*0.5));
+  bcChasers=BC_CHASERS_DEF.map((def,i)=>({
+    id:def.id,name:def.name,idx:i,
+    col:spawnPositions[i].col,row:spawnPositions[i].row,
+    px:0,py:0,dx:0,dy:0,
+    mt:baseSpeed+2,speed:baseSpeed+2,
+    mode:'house',releaseDelay:i*120,
+    scatter:{col:[1,19,1,19][i],row:[1,1,19,19][i]},
+    frightenTimer:0,respawnTimer:0,
+  }));
+  bcChasers.forEach(ch=>bcSyncPixels(ch));
+  bcScatterTick=0;bcScatterMode=true;
+  bcPowerMode=false;
+  clearTimeout(bcPowerTimeout);
+  bcDeathAnim=false;
+}
+
+function bcSyncPixels(obj){obj.px=obj.col*bcTile;obj.py=obj.row*bcTile;}
+
+function bcSizeCanvas(){
+  const wrap=document.getElementById('bc-canvas-wrap');
+  if(!wrap)return;
+  const maxW=Math.min(wrap.clientWidth||360,420);
+  bcTile=Math.floor(maxW/21);
+  const c=document.getElementById('bc-canvas');
+  c.width=bcTile*21;c.height=bcTile*21;
+  // Re-sync all pixel positions
+  bcSyncPixels(bcPlayer);
+  bcChasers.forEach(ch=>bcSyncPixels(ch));
+}
+
+function bcPassable(col,row){
+  if(row<0||row>=21||col<0||col>=21)return false;
+  return bcMap[row][col]!==BC_WALL;
+}
+
+function bcBFS(fc,fr,tc,tr){
+  if(fc===tc&&fr===tr)return{dx:0,dy:0};
+  const dirs=[{dx:0,dy:-1},{dx:0,dy:1},{dx:-1,dy:0},{dx:1,dy:0}];
+  const q=[[fc,fr,null]];
+  const vis=new Set([fc+','+fr]);
+  while(q.length){
+    const[c,r,fs]=q.shift();
+    for(const d of dirs){
+      const nc=(c+d.dx+21)%21,nr=(r+d.dy+21)%21;
+      const k=nc+','+nr;
+      if(!vis.has(k)&&bcPassable(nc,nr)){
+        const step=fs??d;
+        if(nc===tc&&nr===tr)return step;
+        vis.add(k);q.push([nc,nr,step]);
+      }
+    }
+  }
+  // Fallback: random valid direction
+  const valid=dirs.filter(d=>bcPassable((fc+d.dx+21)%21,(fr+d.dy+21)%21));
+  return valid[Math.floor(Math.random()*valid.length)]||{dx:1,dy:0};
+}
+
+function bcMoveTile(obj,speed){
+  obj.mt--;
+  // Interpolate pixel pos
+  const tpx=obj.col*bcTile,tpy=obj.row*bcTile;
+  const prog=Math.max(0,obj.mt)/speed;
+  const prevPx=tpx-obj.dx*bcTile,prevPy=tpy-obj.dy*bcTile;
+  obj.px=prevPx+(tpx-prevPx)*(1-prog);
+  obj.py=prevPy+(tpy-prevPy)*(1-prog);
+  if(obj.mt>0)return false; // not arrived yet
+  obj.px=tpx;obj.py=tpy;
+  return true; // arrived at tile
+}
+
+function bcMovePlayer(){
+  if(bcDeathAnim)return;
+  const arrived=bcMoveTile(bcPlayer,bcPlayer.speed||(6-bcLevel*0.3|0)||4);
+  if(!arrived)return;
+  // Try buffered direction first
+  const nc=(bcPlayer.col+bcPlayer.ndx+21)%21,nr=(bcPlayer.row+bcPlayer.ndy+21)%21;
+  if(bcPassable(nc,nr)&&(bcPlayer.ndx||bcPlayer.ndy)){
+    bcPlayer.dx=bcPlayer.ndx;bcPlayer.dy=bcPlayer.ndy;
+  }
+  const fc=(bcPlayer.col+bcPlayer.dx+21)%21,fr=(bcPlayer.row+bcPlayer.dy+21)%21;
+  if(bcPassable(fc,fr)){bcPlayer.col=fc;bcPlayer.row=fr;}
+  const spd=Math.max(3,6-(bcLevel-1)*0.4);
+  bcPlayer.speed=spd;bcPlayer.mt=spd;
+  bcPlayer.rot+=0.25;
+  // Collect dot
+  const t=bcMap[bcPlayer.row][bcPlayer.col];
+  if(t===BC_DOT){bcMap[bcPlayer.row][bcPlayer.col]=BC_EMPTY;bcScore+=10;bcDotsLeft--;bcUpdateHUD();}
+  else if(t===BC_POWER){
+    bcMap[bcPlayer.row][bcPlayer.col]=BC_EMPTY;bcDotsLeft--;
+    bcScore+=30;bcActivatePower();bcUpdateHUD();
+  }
+}
+
+function bcMoveChaser(ch){
+  if(ch.mode==='house'){
+    ch.releaseDelay--;
+    if(ch.releaseDelay<=0){ch.mode='scatter';ch.col=10;ch.row=8;bcSyncPixels(ch);ch.dx=0;ch.dy=-1;ch.mt=ch.speed;}
+    return;
+  }
+  if(ch.mode==='respawn'){
+    ch.respawnTimer--;
+    if(ch.respawnTimer<=0){ch.mode='scatter';ch.col=10;ch.row=8;bcSyncPixels(ch);ch.mt=ch.speed;}
+    return;
+  }
+  const arrived=bcMoveTile(ch,ch.mt);
+  if(!arrived)return;
+  // Determine target
+  let tc,tr;
+  if(ch.mode==='frightened'){
+    // Run away — pick tile far from player
+    const dirs=[{dx:0,dy:-1},{dx:0,dy:1},{dx:-1,dy:0},{dx:1,dy:0}];
+    const valid=dirs.filter(d=>bcPassable((ch.col+d.dx+21)%21,(ch.row+d.dy+21)%21));
+    // Pick direction that maximises distance from player
+    const best=valid.sort((a,b)=>{
+      const da=Math.abs((ch.col+b.dx)-bcPlayer.col)+Math.abs((ch.row+b.dy)-bcPlayer.row);
+      const db=Math.abs((ch.col+a.dx)-bcPlayer.col)+Math.abs((ch.row+a.dy)-bcPlayer.row);
+      return da-db;
+    })[0]||{dx:1,dy:0};
+    ch.dx=best.dx;ch.dy=best.dy;
+    const nc=(ch.col+ch.dx+21)%21,nr=(ch.row+ch.dy+21)%21;
+    if(bcPassable(nc,nr)){ch.col=nc;ch.row=nr;}
+    ch.mt=ch.speed*2;return;
+  }
+  if(bcScatterMode){tc=ch.scatter.col;tr=ch.scatter.row;}
+  else{
+    switch(ch.idx){
+      case 0:tc=bcPlayer.col;tr=bcPlayer.row;break; // direct
+      case 1:tc=(bcPlayer.col+bcPlayer.dx*4+21)%21;tr=(bcPlayer.row+bcPlayer.dy*4+21)%21;break; // ahead
+      case 2:{const dist=Math.abs(ch.col-bcPlayer.col)+Math.abs(ch.row-bcPlayer.row);
+        if(dist<8){tc=ch.scatter.col;tr=ch.scatter.row;}else{tc=bcPlayer.col;tr=bcPlayer.row;}break;}
+      case 3:tc=bcPlayer.col;tr=bcPlayer.row;break;
+    }
+  }
+  const step=bcBFS(ch.col,ch.row,tc,tr);
+  ch.dx=step.dx;ch.dy=step.dy;
+  const nc=(ch.col+ch.dx+21)%21,nr=(ch.row+ch.dy+21)%21;
+  if(bcPassable(nc,nr)){ch.col=nc;ch.row=nr;}
+  ch.mt=ch.speed;
+}
+
+function bcActivatePower(){
+  bcPowerMode=true;
+  bcChasers.forEach(ch=>{if(ch.mode==='chase'||ch.mode==='scatter')ch.mode='frightened';});
+  document.getElementById('bc-canvas-wrap').classList.add('power-active');
+  clearTimeout(bcPowerTimeout);
+  bcPowerTimeout=setTimeout(()=>{
+    bcPowerMode=false;
+    bcChasers.forEach(ch=>{if(ch.mode==='frightened')ch.mode='chase';});
+    document.getElementById('bc-canvas-wrap').classList.remove('power-active');
+  },BC_POWER_MS);
+}
+
+function bcCheckCollisions(){
+  if(bcDeathAnim)return;
+  bcChasers.forEach(ch=>{
+    if(ch.mode==='house'||ch.mode==='respawn')return;
+    const dc=Math.abs(ch.col-bcPlayer.col),dr=Math.abs(ch.row-bcPlayer.row);
+    if(dc<=0&&dr<=0){
+      if(ch.mode==='frightened'){
+        ch.mode='respawn';ch.respawnTimer=120;
+        bcScore+=BC_POWER_MS/50;bcUpdateHUD();
+        bcShowCaughtBadge(ch.name);
+      } else {
+        bcPlayerDie();
+      }
+    }
+  });
+}
+
+function bcPlayerDie(){
+  bcLives--;bcDeathAnim=true;bcDeathTimer=90;
+  bcUpdateHUD();
+  if(bcLives<=0){setTimeout(()=>bcGameOver(),1200);}
+  else{setTimeout(()=>{bcDeathAnim=false;bcRespawnPlayer();},1200);}
+}
+
+function bcRespawnPlayer(){
+  bcPlayer.col=10;bcPlayer.row=17;bcPlayer.dx=1;bcPlayer.dy=0;bcPlayer.ndx=1;bcPlayer.ndy=0;
+  bcSyncPixels(bcPlayer);bcPlayer.mt=0;
+  bcChasers.forEach(ch=>{ch.mode='respawn';ch.respawnTimer=60+ch.idx*40;});
+}
+
+function bcShowCaughtBadge(name){
+  const b=document.createElement('div');
+  b.className='bc-caught-badge';b.textContent='Caught '+name+'!';
+  b.style.left=Math.random()*60+20+'%';b.style.top='40%';
+  document.body.appendChild(b);
+  setTimeout(()=>b.remove(),1000);
+}
+
+function bcCheckLevelComplete(){
+  if(bcDotsLeft<=0){
+    bcRunning=false;cancelAnimationFrame(bcRAF);
+    bcLevel++;
+    const wrap=document.getElementById('bc-canvas-wrap');
+    wrap.classList.add('power-active');
+    setTimeout(()=>{wrap.classList.remove('power-active');bcBuildLevel(bcLevel);bcSizeCanvas();bcStartLoop();},1500);
+  }
+}
+
+function bcUpdateHUD(){
+  document.getElementById('bc-score').textContent=bcScore;
+  document.getElementById('bc-level').textContent=bcLevel;
+  document.getElementById('bc-lives').textContent='❤️'.repeat(Math.max(0,bcLives));
+}
+
+function bcTick(){
+  bcScatterTick++;
+  if(bcScatterTick===420){bcScatterMode=false;}
+  if(bcScatterTick===780){bcScatterMode=true;bcScatterTick=0;}
+  bcMovePlayer();
+  bcChasers.forEach(ch=>bcMoveChaser(ch));
+  bcCheckCollisions();
+  bcCheckLevelComplete();
+  if(bcDeathAnim)bcDeathTimer--;
+  bcPulseTick++;
+}
+
+function bcRender(){
+  const canvas=document.getElementById('bc-canvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const T=bcTile;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // Maze
+  for(let r=0;r<21;r++)for(let c=0;c<21;c++){
+    const t=bcMap[r][c];
+    if(t===BC_WALL){
+      ctx.fillStyle='#1a1a6e';ctx.fillRect(c*T,r*T,T,T);
+      ctx.strokeStyle='#3b5ba7';ctx.lineWidth=1.5;
+      ctx.strokeRect(c*T+1,r*T+1,T-2,T-2);
+    } else if(t===BC_DOT){
+      ctx.fillStyle='#ffcb05';ctx.beginPath();
+      ctx.arc(c*T+T/2,r*T+T/2,T*0.1,0,Math.PI*2);ctx.fill();
+    } else if(t===BC_POWER){
+      const pulse=0.75+0.25*Math.sin(bcPulseTick*0.1);
+      if(bcCandyImg&&bcCandyImg.complete&&bcCandyImg.naturalWidth>0){
+        const sz=T*0.8*pulse;ctx.drawImage(bcCandyImg,c*T+(T-sz)/2,r*T+(T-sz)/2,sz,sz);
+      } else {
+        ctx.fillStyle=`rgba(255,100,255,${pulse})`;
+        ctx.beginPath();ctx.arc(c*T+T/2,r*T+T/2,T*0.3*pulse,0,Math.PI*2);ctx.fill();
+      }
+    }
+  }
+  // Player
+  if(bcDeathAnim){
+    const alpha=Math.max(0,bcDeathTimer/90);
+    const scale=1-alpha*0.5;
+    ctx.save();ctx.globalAlpha=alpha;
+    ctx.translate(bcPlayer.px+T/2,bcPlayer.py+T/2);ctx.scale(scale,scale);
+    if(bcPlayerImg&&bcPlayerImg.complete&&bcPlayerImg.naturalWidth>0)ctx.drawImage(bcPlayerImg,-T/2,-T/2,T,T);
+    else{ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,T*0.4,0,Math.PI*2);ctx.fill();}
+    ctx.restore();
+  } else {
+    ctx.save();ctx.translate(bcPlayer.px+T/2,bcPlayer.py+T/2);ctx.rotate(bcPlayer.rot);
+    if(bcPlayerImg&&bcPlayerImg.complete&&bcPlayerImg.naturalWidth>0)ctx.drawImage(bcPlayerImg,-T/2,-T/2,T,T);
+    else{ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,T*0.4,0,Math.PI*2);ctx.fill();}
+    ctx.restore();
+  }
+  // Chasers
+  bcChasers.forEach((ch,i)=>{
+    if(ch.mode==='house'||ch.mode==='respawn')return;
+    const img=bcChaserImgs[i];
+    ctx.save();
+    if(ch.mode==='frightened'){
+      const blink=bcPulseTick%20<10||bcPowerTimeout||true;
+      ctx.globalAlpha=0.9;
+      if(img&&img.complete&&img.naturalWidth>0)ctx.drawImage(img,ch.px,ch.py,T,T);
+      ctx.globalCompositeOperation='multiply';
+      ctx.fillStyle='#4444ff';ctx.fillRect(ch.px,ch.py,T,T);
+    } else {
+      if(img&&img.complete&&img.naturalWidth>0)ctx.drawImage(img,ch.px,ch.py,T,T);
+      else{ctx.fillStyle=['#a020f0','#7b68ee','#b0c4de','#dda0dd'][i];
+        ctx.beginPath();ctx.arc(ch.px+T/2,ch.py+T/2,T*0.4,0,Math.PI*2);ctx.fill();}
+    }
+    ctx.restore();
+  });
+}
+
+function bcLoop(ts){
+  if(!bcRunning)return;
+  const dt=ts-bcLastTime;bcLastTime=ts;
+  bcAccum+=Math.min(dt,100);
+  while(bcAccum>=BC_TICK_MS){bcAccum-=BC_TICK_MS;bcTick();}
+  bcRender();
+  bcRAF=requestAnimationFrame(bcLoop);
+}
+
+function bcStartLoop(){
+  bcRunning=true;bcAccum=0;bcLastTime=performance.now();
+  bcRAF=requestAnimationFrame(bcLoop);
+}
+
+function bcPreload(cb){
+  let total=0,done=0;
+  const load=src=>{total++;const img=new Image();img.onload=img.onerror=()=>{done++;if(done===total)cb();};img.src=src;return img;};
+  bcPlayerImg=load('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png');
+  bcCandyImg=load('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rare-candy.png');
+  bcChaserImgs=BC_CHASERS_DEF.map(def=>load(SPRITE(def.id)));
+  // Safety: if no images start loading, cb still fires
+  if(total===0)cb();
+}
+
+let bcKeyH=null,bcTouchS=null,bcTouchE=null;
+function bcAttachInput(){
+  bcKeyH=e=>{
+    const m={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right',W:'up',S:'down',A:'left',D:'right'};
+    if(m[e.key]){e.preventDefault();bcSetDir(m[e.key]);}
+  };
+  document.addEventListener('keydown',bcKeyH);
+  const cv=document.getElementById('bc-canvas');
+  let ts=null;
+  bcTouchS=e=>{ts={x:e.touches[0].clientX,y:e.touches[0].clientY};};
+  bcTouchE=e=>{if(!ts)return;const dx=e.changedTouches[0].clientX-ts.x,dy=e.changedTouches[0].clientY-ts.y;if(Math.abs(dx)<12&&Math.abs(dy)<12)return;Math.abs(dx)>Math.abs(dy)?bcSetDir(dx>0?'right':'left'):bcSetDir(dy>0?'down':'up');ts=null;};
+  cv.addEventListener('touchstart',bcTouchS,{passive:true});
+  cv.addEventListener('touchend',bcTouchE,{passive:true});
+}
+function bcDetachInput(){
+  if(bcKeyH)document.removeEventListener('keydown',bcKeyH);
+  const cv=document.getElementById('bc-canvas');
+  if(cv&&bcTouchS)cv.removeEventListener('touchstart',bcTouchS);
+  if(cv&&bcTouchE)cv.removeEventListener('touchend',bcTouchE);
+  bcKeyH=bcTouchS=bcTouchE=null;
+}
+function bcSetDir(dir){
+  const m={up:{dx:0,dy:-1},down:{dx:0,dy:1},left:{dx:-1,dy:0},right:{dx:1,dy:0}};
+  const d=m[dir];if(d){bcPlayer.ndx=d.dx;bcPlayer.ndy=d.dy;}
+}
+
+async function bcGameOver(){
+  bcRunning=false;cancelAnimationFrame(bcRAF);bcDetachInput();
+  clearTimeout(bcPowerTimeout);bcPowerMode=false;
+  document.getElementById('bc-canvas-wrap').classList.remove('power-active');
+  document.getElementById('bc-game').style.display='none';
+  document.getElementById('bc-gameover').style.display='';
+  document.getElementById('bc-go-score').textContent=bcScore;
+  document.getElementById('bc-go-level').textContent=bcLevel;
+  document.getElementById('bc-go-rank').textContent='';
+  if(dbReady&&bcScore>0){
+    try{
+      await sb.from('minigame_scores').insert({user_id:getUID(),username:getUsername(),score:bcScore,difficulty:'berry_chase'});
+      const{count}=await sb.from('minigame_scores').select('*',{count:'exact',head:true}).eq('difficulty','berry_chase').gt('score',bcScore);
+      const rank=(count??0)+1;
+      document.getElementById('bc-go-rank').textContent=rank<=10?`🏆 #${rank} on the Berry Chase leaderboard!`:`#${rank} on the leaderboard`;
+      bcLoadLeaderboard();
+    }catch(e){}
+  }
+}
+
+function bcLaunch(){
+  document.getElementById('wtp-lobby').style.display='none';
+  document.getElementById('wtp-game').style.display='none';
+  document.getElementById('wtp-gameover').style.display='none';
+  document.getElementById('bc-gameover').style.display='none';
+  document.getElementById('bc-game').style.display='';
+  if('ontouchstart' in window||navigator.maxTouchPoints>0)document.getElementById('bc-dpad').classList.add('visible');
+  bcScore=0;bcLives=BC_LIVES_START;bcLevel=1;
+  bcPreload(()=>{bcSizeCanvas();bcBuildLevel(1);bcAttachInput();bcStartLoop();bcUpdateHUD();});
+}
+
+function bcShowLobby(){
+  bcRunning=false;cancelAnimationFrame(bcRAF);bcDetachInput();
+  clearTimeout(bcPowerTimeout);
+  document.getElementById('bc-canvas-wrap').classList.remove('power-active');
+  document.getElementById('bc-game').style.display='none';
+  document.getElementById('bc-gameover').style.display='none';
+  wtpShowLobby();
+}
+
+async function bcLoadLeaderboard(){
+  const col=document.getElementById('bc-lb-list');if(!col)return;
+  if(!dbReady){col.innerHTML='<div class="wtp-lb-col-empty">Sign in to view</div>';return;}
+  try{
+    const{data:rows}=await sb.from('minigame_scores').select('username,score,user_id').eq('difficulty','berry_chase').order('score',{ascending:false}).limit(5);
+    if(!rows?.length){col.innerHTML='<div class="wtp-lb-col-empty">No scores yet —<br>be first! 👑</div>';return;}
+    const myUid=getUID();
+    const rl=['🥇','🥈','🥉','4','5'],rc=['gold','silver','bronze','',''];
+    col.innerHTML=rows.map((row,i)=>`<div class="wtp-lb-col-row"><div class="wtp-lb-col-rank ${rc[i]}">${rl[i]}</div><div class="wtp-lb-col-username">${esc(row.username||'Anonymous')}${row.user_id===myUid?' <span class="wtp-lb-col-you">you</span>':''}</div><div class="wtp-lb-col-score">${row.score}</div></div>`).join('');
+  }catch(e){col.innerHTML='<div class="wtp-lb-col-empty">Could not load</div>';}
+}
+
 </script>
 <script src="achievements.js"></script>
 </body>
