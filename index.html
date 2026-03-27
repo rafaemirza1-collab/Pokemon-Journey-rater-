@@ -607,14 +607,33 @@
     .mobile-search-bar input { flex: 1; background: none; border: none; outline: none; color: var(--text); font-size: 1rem; font-family: 'Inter', sans-serif; }
     .mobile-search-bar input::placeholder { color: var(--muted); }
 
+    /* ── HAMBURGER + DRAWER ── */
+    .hamburger-btn { display: none; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 10px; background: var(--surface2); border: 1px solid var(--border); cursor: pointer; flex-shrink: 0; }
+    .hamburger-btn svg { display: block; }
+    .nav-drawer-overlay { display: none; position: fixed; inset: 0; z-index: 900; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+    .nav-drawer-overlay.open { display: block; }
+    .nav-drawer { position: fixed; top: 0; left: 0; bottom: 0; width: 280px; background: var(--surface); border-right: 1px solid var(--border); z-index: 901; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.34,1.1,0.64,1); display: flex; flex-direction: column; }
+    .nav-drawer.open { transform: translateX(0); }
+    .nav-drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 16px 14px; border-bottom: 1px solid var(--border); }
+    .nav-drawer-brand { font-size: 1.1rem; font-weight: 900; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; }
+    .nav-drawer-brand img { width: 28px; height: 28px; }
+    .nav-drawer-close { width: 32px; height: 32px; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 1rem; }
+    .nav-drawer-items { flex: 1; overflow-y: auto; padding: 10px 10px; display: flex; flex-direction: column; gap: 4px; }
+    .nav-drawer-item { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-radius: 12px; border: none; background: transparent; color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.95rem; font-weight: 600; cursor: pointer; width: 100%; text-align: left; transition: background 0.15s; }
+    .nav-drawer-item:hover, .nav-drawer-item.active { background: var(--surface2); }
+    .nav-drawer-item.active { color: var(--accent2); }
+    .nav-drawer-item-icon { font-size: 1.3rem; width: 28px; text-align: center; flex-shrink: 0; }
+    /* Current view label in nav on mobile */
+    .nav-current-view { display: none; font-size: 0.8rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
+
     @media (max-width: 640px) {
       /* ── NAV ── */
       nav { padding: 0 12px; height: 56px; gap: 8px; }
+      .nav-current-view { display: block; }
       .nav-brand { font-size: 1rem; }
       .nav-brand img { width: 26px; height: 26px; }
-      .nav-tabs { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; flex-shrink: 1; }
-      .nav-tabs::-webkit-scrollbar { display: none; }
-      .nav-tab { padding: 6px 12px; font-size: 0.78rem; white-space: nowrap; flex-shrink: 0; }
+      .nav-tabs { display: none; }
+      .hamburger-btn { display: flex; }
       .nav-search { display: none; }
       .mobile-search-btn { display: flex; }
       .mobile-search-bar { display: flex; }
@@ -1298,10 +1317,14 @@
 
 <!-- NAV -->
 <nav>
+  <button class="hamburger-btn" onclick="openNavDrawer()" aria-label="Menu">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
   <div class="nav-brand" onclick="switchView('browse')">
     <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="pokeball"/>
     <span>PokéRater</span>
   </div>
+  <span class="nav-current-view" id="nav-current-view">Pokédex</span>
   <div class="nav-tabs">
     <button class="nav-tab active" data-view="browse" onclick="switchView('browse')">Pokédex</button>
     <button class="nav-tab" data-view="rankings" onclick="switchView('rankings')">&#x1F3C6; Rankings</button>
@@ -1329,6 +1352,41 @@
     </div>
   </div>
 </nav>
+
+<!-- MOBILE NAV DRAWER -->
+<div class="nav-drawer-overlay" id="nav-drawer-overlay" onclick="closeNavDrawer()"></div>
+<div class="nav-drawer" id="nav-drawer">
+  <div class="nav-drawer-header">
+    <div class="nav-drawer-brand">
+      <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="pokeball"/>
+      PokéRater
+    </div>
+    <button class="nav-drawer-close" onclick="closeNavDrawer()">✕</button>
+  </div>
+  <div class="nav-drawer-items">
+    <button class="nav-drawer-item active" data-drawer-view="browse" onclick="drawerNav('browse','Pokédex')">
+      <span class="nav-drawer-item-icon">📖</span>Pokédex
+    </button>
+    <button class="nav-drawer-item" data-drawer-view="rankings" onclick="drawerNav('rankings','Rankings')">
+      <span class="nav-drawer-item-icon">🏆</span>Rankings
+    </button>
+    <button class="nav-drawer-item" data-drawer-view="teams" onclick="drawerNav('teams','Teams')">
+      <span class="nav-drawer-item-icon">🛡️</span>Teams
+    </button>
+    <button class="nav-drawer-item" data-drawer-view="trainers" onclick="drawerNav('trainers','Trainers')">
+      <span class="nav-drawer-item-icon">🎖️</span>Trainers
+    </button>
+    <button class="nav-drawer-item" data-drawer-view="hottakes" onclick="drawerNav('hottakes','Hot Takes')">
+      <span class="nav-drawer-item-icon">🔥</span>Hot Takes
+    </button>
+    <button class="nav-drawer-item" data-drawer-view="dripbattle" onclick="drawerNav('dripbattle','Drip Battle')">
+      <span class="nav-drawer-item-icon">⚡</span>Drip Battle
+    </button>
+    <button class="nav-drawer-item" data-drawer-view="wtp" onclick="drawerNav('wtp','Minigames')">
+      <span class="nav-drawer-item-icon">🎮</span>Minigames
+    </button>
+  </div>
+</div>
 
 <!-- CHAT DRAWER -->
 <div class="chat-drawer" id="chat-drawer">
@@ -3669,6 +3727,26 @@ function setGen(gen) {
 function setSort(v) { currentSort = v; applyFilters(); }
 let searchTimer;
 function onSearch(v) { clearTimeout(searchTimer); searchTimer = setTimeout(() => { searchQuery = v.toLowerCase(); applyFilters(); }, 250); }
+function openNavDrawer() {
+  document.getElementById('nav-drawer').classList.add('open');
+  document.getElementById('nav-drawer-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeNavDrawer() {
+  document.getElementById('nav-drawer').classList.remove('open');
+  document.getElementById('nav-drawer-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function drawerNav(view, label) {
+  closeNavDrawer();
+  switchView(view);
+  const el = document.getElementById('nav-current-view');
+  if (el) el.textContent = label;
+  document.querySelectorAll('.nav-drawer-item').forEach(b =>
+    b.classList.toggle('active', b.dataset.drawerView === view)
+  );
+}
+
 function toggleMobileSearch() {
   const bar = document.getElementById('mobile-search-bar');
   const isOpen = bar.classList.toggle('open');
@@ -4758,6 +4836,10 @@ function switchView(view) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById(`view-${view}`).classList.add('active');
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.view===view));
+  document.querySelectorAll('.nav-drawer-item').forEach(b => b.classList.toggle('active', b.dataset.drawerView===view));
+  const labels = {browse:'Pokédex',rankings:'Rankings',teams:'Teams',trainers:'Trainers',hottakes:'Hot Takes',dripbattle:'Drip Battle',wtp:'Minigames'};
+  const el = document.getElementById('nav-current-view');
+  if (el && labels[view]) el.textContent = labels[view];
   if (view === 'rankings' && _tabStale('rankings')) { _tabTouch('rankings'); renderRankings(); }
   if (view === 'teams' && _tabStale('teams')) { _tabTouch('teams'); loadTeams(); }
   if (view === 'trainers' && _tabStale('trainers')) { _tabTouch('trainers'); initTrainersView(); }
