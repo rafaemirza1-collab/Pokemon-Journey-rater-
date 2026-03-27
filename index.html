@@ -4741,13 +4741,13 @@ let builderSearchQuery = '';
 async function loadTeams() {
   if (!dbReady) return;
   document.getElementById('teams-feed').innerHTML = _skeletonRows(6, '120px');
-  const { data: teams } = await sb.from('teams').select('*').order('created_at', { ascending: false }).limit(200);
-  if (!teams) return;
-  const [{ data: likes }, { data: comments }, { data: ratings }] = await Promise.all([
+  const [{ data: teams }, { data: likes }, { data: comments }, { data: ratings }] = await Promise.all([
+    sb.from('teams').select('*').order('created_at', { ascending: false }).limit(200),
     sb.from('team_likes').select('team_id, user_id'),
     sb.from('team_comments').select('team_id').is('parent_id', null),
     sb.from('team_ratings').select('team_id, stars')
   ]);
+  if (!teams) return;
   const likesMap = {};
   const myLikes = new Set();
   if (likes) likes.forEach(l => {
