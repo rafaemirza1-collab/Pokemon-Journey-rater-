@@ -3443,6 +3443,7 @@ async function init() {
 
   // Load community stats in background after Pokemon are visible
   if (dbReady) {
+    prefetchAllTabs().catch(() => {});
     loadCommunityStats().then(() => applyFilters()).catch(() => {});
     loadMyTrainerAvatarFromDB();
     updateChatBadge();
@@ -4432,11 +4433,17 @@ async function renderRankings() {
 
   // Top Teams tab — fetch and render team leaderboard
   if (currentRankTab === 'teams') {
-    const [{ data: teams }, { data: ratings }, { data: likes }] = await Promise.all([
-      sb.from('teams').select('*').limit(500),
-      sb.from('team_ratings').select('team_id, stars'),
-      sb.from('team_likes').select('team_id')
-    ]);
+    let teams, ratings, likes;
+    if (_prefetch.rankings) {
+      ({ teams, ratings, likes } = _prefetch.rankings);
+      delete _prefetch.rankings;
+    } else {
+      [{ data: teams }, { data: ratings }, { data: likes }] = await Promise.all([
+        sb.from('teams').select('*').limit(500),
+        sb.from('team_ratings').select('team_id, stars'),
+        sb.from('team_likes').select('team_id')
+      ]);
+    }
     if (!teams || !teams.length) {
       list.innerHTML = `<div class="empty-rankings"><p>No teams yet.</p><small>Create one in the Teams tab!</small></div>`;
       return;
@@ -4640,6 +4647,32 @@ function buildRankRow(r, i) {
 const _tabCache = {};
 const _TAB_TTL = 60000; // 60 seconds
 function _tabStale(key) { return !_tabCache[key] || Date.now() - _tabCache[key] > _TAB_TTL; }
+const _prefetch = {}; // stores prefetched raw query results keyed by tab
+
+async function prefetchAllTabs() {
+  if (!dbReady) return;
+  try {
+    const [
+      { data: teams }, { data: teamLikes }, { data: teamComments }, { data: teamRatings },
+      { data: trainerRatings }, { data: trainerComments },
+      { data: hotTakes }
+    ] = await Promise.all([
+      sb.from('teams').select('*').order('created_at', { ascending: false }).limit(200),
+      sb.from('team_likes').select('team_id, user_id'),
+      sb.from('team_comments').select('team_id').is('parent_id', null),
+      sb.from('team_ratings').select('team_id, stars'),
+      sb.from('trainer_ratings').select('trainer_id, stars').limit(100000),
+      sb.from('trainer_comments').select('trainer_id').limit(100000),
+      sb.from('hot_takes').select('*').order('created_at', { ascending: false }).limit(200)
+    ]);
+    _prefetch.teams = { teams, likes: teamLikes, comments: teamComments, ratings: teamRatings };
+    // rankings reuses same teams/ratings/likes data (user_id not needed there)
+    _prefetch.rankings = { teams, ratings: teamRatings, likes: teamLikes };
+    _prefetch.trainers = { ratings: trainerRatings, comments: trainerComments };
+    _prefetch.hottakes = hotTakes;
+    _tabTouch('teams'); _tabTouch('rankings'); _tabTouch('trainers'); _tabTouch('hottakes');
+  } catch (e) {}
+}
 function _tabTouch(key) { _tabCache[key] = Date.now(); }
 
 function switchView(view) {
@@ -4741,12 +4774,18 @@ let builderSearchQuery = '';
 async function loadTeams() {
   if (!dbReady) return;
   document.getElementById('teams-feed').innerHTML = _skeletonRows(6, '120px');
-  const [{ data: teams }, { data: likes }, { data: comments }, { data: ratings }] = await Promise.all([
-    sb.from('teams').select('*').order('created_at', { ascending: false }).limit(200),
-    sb.from('team_likes').select('team_id, user_id'),
-    sb.from('team_comments').select('team_id').is('parent_id', null),
-    sb.from('team_ratings').select('team_id, stars')
-  ]);
+  let teams, likes, comments, ratings;
+  if (_prefetch.teams) {
+    ({ teams, likes, comments, ratings } = _prefetch.teams);
+    delete _prefetch.teams;
+  } else {
+    [{ data: teams }, { data: likes }, { data: comments }, { data: ratings }] = await Promise.all([
+      sb.from('teams').select('*').order('created_at', { ascending: false }).limit(200),
+      sb.from('team_likes').select('team_id, user_id'),
+      sb.from('team_comments').select('team_id').is('parent_id', null),
+      sb.from('team_ratings').select('team_id, stars')
+    ]);
+  }
   if (!teams) return;
   const likesMap = {};
   const myLikes = new Set();
@@ -5190,10 +5229,16 @@ const TRAINER_REGIONS = ['All', 'Kanto', 'Johto', 'Hoenn', 'Sinnoh', 'Unova', 'K
 
 async function loadTrainerStats() {
   if (!dbReady) return;
-  const [{ data: ratings }, { data: comments }] = await Promise.all([
-    sb.from('trainer_ratings').select('trainer_id, stars').limit(100000),
-    sb.from('trainer_comments').select('trainer_id').limit(100000)
-  ]);
+  let ratings, comments;
+  if (_prefetch.trainers) {
+    ({ ratings, comments } = _prefetch.trainers);
+    delete _prefetch.trainers;
+  } else {
+    [{ data: ratings }, { data: comments }] = await Promise.all([
+      sb.from('trainer_ratings').select('trainer_id, stars').limit(100000),
+      sb.from('trainer_comments').select('trainer_id').limit(100000)
+    ]);
+  }
   const map = {};
   if (ratings) ratings.forEach(r => {
     if (!map[r.trainer_id]) map[r.trainer_id] = { total: 0, count: 0, comments: 0 };
@@ -6455,7 +6500,13 @@ async function loadHotTakes() {
     return;
   }
   document.getElementById('ht-feed').innerHTML = _skeletonRows(8, '80px');
-  const { data: takes } = await sb.from('hot_takes').select('*').order('created_at', { ascending: false }).limit(200);
+  let takes;
+  if (_prefetch.hottakes) {
+    takes = _prefetch.hottakes;
+    delete _prefetch.hottakes;
+  } else {
+    ({ data: takes } = await sb.from('hot_takes').select('*').order('created_at', { ascending: false }).limit(200));
+  }
   htAllTakes = takes || [];
   htDisplayed = 0;
   renderHtFeed(true);
