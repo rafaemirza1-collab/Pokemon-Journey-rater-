@@ -1124,9 +1124,28 @@
   .wtp-lb-rank.gold { background: rgba(230,57,70,0.15); color: var(--accent); }
   .wtp-lb-rank.silver { background: rgba(199,125,255,0.15); color: var(--accent2); }
   .wtp-lb-rank.bronze { background: rgba(205,127,50,0.1); color: #cd7f32; }
-  .wtp-lb-name { flex: 1; font-size: 0.88rem; font-weight: 600; }
+  .wtp-lb-name { flex: 1; font-size: 0.88rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .wtp-lb-score { font-size: 1.1rem; font-weight: 900; color: var(--accent); }
   .wtp-lb-you { font-size: 0.65rem; background: rgba(199,125,255,0.2); color: var(--accent2); border-radius: 999px; padding: 2px 7px; font-weight: 600; }
+  /* All-3 leaderboards layout */
+  .wtp-all-lb { width: 100%; margin-top: 20px; }
+  .wtp-all-lb-title { font-size: 1rem; font-weight: 900; text-align: center; margin-bottom: 14px; letter-spacing: -0.3px; }
+  .wtp-lb-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; }
+  .wtp-lb-col { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .wtp-lb-col-header { padding: 10px 14px 8px; border-bottom: 1px solid var(--border); text-align: center; }
+  .wtp-lb-col-icon { font-size: 1.3rem; }
+  .wtp-lb-col-name { font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+  .wtp-lb-col-body { padding: 8px; display: flex; flex-direction: column; gap: 5px; }
+  .wtp-lb-col-row { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 8px; background: var(--surface2); }
+  .wtp-lb-col-rank { font-size: 0.72rem; font-weight: 900; width: 16px; text-align: center; flex-shrink: 0; }
+  .wtp-lb-col-rank.gold { color: #ffd700; }
+  .wtp-lb-col-rank.silver { color: #c0c0c0; }
+  .wtp-lb-col-rank.bronze { color: #cd7f32; }
+  .wtp-lb-col-username { flex: 1; font-size: 0.72rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wtp-lb-col-score { font-size: 0.82rem; font-weight: 900; color: var(--accent); flex-shrink: 0; }
+  .wtp-lb-col-you { font-size: 0.55rem; background: rgba(199,125,255,0.25); color: var(--accent2); border-radius: 999px; padding: 1px 5px; font-weight: 700; }
+  .wtp-lb-col-empty { font-size: 0.72rem; color: var(--muted); text-align: center; padding: 12px 0; }
+  @media(max-width:480px) { .wtp-lb-cols { grid-template-columns: 1fr; } }
   .wtp-hud { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 12px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
   .wtp-hud-score { font-size: 1rem; font-weight: 700; }
   .wtp-hud-score span { color: var(--accent); font-size: 1.3rem; }
@@ -1426,15 +1445,32 @@
           <div class="wtp-diff-sub">All Gens · 1025 Pokémon</div>
         </div>
       </div>
-      <!-- Leaderboards -->
-      <div class="wtp-lb-tabs">
-        <button class="wtp-lb-tab active" onclick="wtpSwitchLbTab('easy',this)">🌿 Easy</button>
-        <button class="wtp-lb-tab" onclick="wtpSwitchLbTab('medium',this)">⚡ Medium</button>
-        <button class="wtp-lb-tab" onclick="wtpSwitchLbTab('hard',this)">🔥 Hard</button>
-      </div>
-      <div class="wtp-lb-section">
-        <div class="wtp-lb-title">🏆 Top 10 — <span id="wtp-lb-diff-label">Easy</span></div>
-        <div class="wtp-lb-list" id="wtp-lb-list"><div class="wtp-lb-loading">Loading...</div></div>
+      <!-- Leaderboards — all 3 difficulties always visible -->
+      <div class="wtp-all-lb">
+        <div class="wtp-all-lb-title">🏆 Leaderboards</div>
+        <div class="wtp-lb-cols">
+          <div class="wtp-lb-col">
+            <div class="wtp-lb-col-header">
+              <div class="wtp-lb-col-icon">🌿</div>
+              <div class="wtp-lb-col-name">Easy</div>
+            </div>
+            <div class="wtp-lb-col-body" id="wtp-lb-easy"><div class="wtp-lb-col-empty">Loading…</div></div>
+          </div>
+          <div class="wtp-lb-col">
+            <div class="wtp-lb-col-header">
+              <div class="wtp-lb-col-icon">⚡</div>
+              <div class="wtp-lb-col-name">Medium</div>
+            </div>
+            <div class="wtp-lb-col-body" id="wtp-lb-medium"><div class="wtp-lb-col-empty">Loading…</div></div>
+          </div>
+          <div class="wtp-lb-col">
+            <div class="wtp-lb-col-header">
+              <div class="wtp-lb-col-icon">🔥</div>
+              <div class="wtp-lb-col-name">Hard</div>
+            </div>
+            <div class="wtp-lb-col-body" id="wtp-lb-hard"><div class="wtp-lb-col-empty">Loading…</div></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -6949,7 +6985,7 @@ function wtpFormatTime(secs) {
 
 function initWTP() {
   wtpShowLobby();
-  wtpLoadLeaderboard('easy');
+  wtpLoadAllLeaderboards();
 }
 
 function wtpShowLobby() {
@@ -6959,13 +6995,8 @@ function wtpShowLobby() {
   document.getElementById('wtp-gameover').style.display = 'none';
 }
 
-function wtpSwitchLbTab(diff, btn) {
-  wtpActiveLbTab = diff;
-  document.querySelectorAll('.wtp-lb-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const labels = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
-  document.getElementById('wtp-lb-diff-label').textContent = labels[diff];
-  wtpLoadLeaderboard(diff);
+function wtpLoadAllLeaderboards() {
+  ['easy','medium','hard'].forEach(d => wtpLoadLeaderboard(d));
 }
 
 function wtpStart(diff) {
@@ -7068,6 +7099,8 @@ async function wtpEndGame() {
       const rank = (count ?? 0) + 1;
       const diffLabel = WTP_POOLS[wtpDifficulty].label;
       document.getElementById('wtp-go-rank').textContent = rank <= 10 ? `🏆 #${rank} on ${diffLabel} leaderboard!` : `#${rank} on ${diffLabel} leaderboard`;
+      // Refresh leaderboard for this difficulty so new score shows immediately
+      wtpLoadLeaderboard(wtpDifficulty);
     } catch(e) {}
   } else if (!dbReady) {
     document.getElementById('wtp-go-rank').textContent = 'Sign in to save your score!';
@@ -7075,23 +7108,23 @@ async function wtpEndGame() {
 }
 
 async function wtpLoadLeaderboard(diff) {
-  const listEl = document.getElementById('wtp-lb-list');
-  if (!listEl) return;
-  if (!dbReady) { listEl.innerHTML = '<div class="wtp-lb-loading">Sign in to see the leaderboard</div>'; return; }
-  listEl.innerHTML = '<div class="wtp-lb-loading">Loading...</div>';
+  const col = document.getElementById(`wtp-lb-${diff}`);
+  if (!col) return;
+  if (!dbReady) { col.innerHTML = '<div class="wtp-lb-col-empty">Sign in to view</div>'; return; }
   try {
-    const { data: rows } = await sb.from('minigame_scores').select('username,score,user_id').eq('difficulty', diff).order('score', { ascending: false }).limit(10);
-    if (!rows || !rows.length) { listEl.innerHTML = '<div class="wtp-lb-loading">No scores yet — be the first!</div>'; return; }
+    const { data: rows } = await sb.from('minigame_scores').select('username,score,user_id').eq('difficulty', diff).order('score', { ascending: false }).limit(5);
+    if (!rows || !rows.length) { col.innerHTML = '<div class="wtp-lb-col-empty">No scores yet —<br>be the first! 👑</div>'; return; }
     const myUid = getUID();
-    const rankClasses = ['gold','silver','bronze'];
-    listEl.innerHTML = rows.map((row, i) =>
-      `<div class="wtp-lb-row">
-        <div class="wtp-lb-rank ${rankClasses[i]||''}">${i+1}</div>
-        <div class="wtp-lb-name">${esc(row.username||'Anonymous')} ${row.user_id===myUid?'<span class="wtp-lb-you">you</span>':''}</div>
-        <div class="wtp-lb-score">${row.score}</div>
+    const rankLabels = ['🥇','🥈','🥉','4','5'];
+    const rankClasses = ['gold','silver','bronze','',''];
+    col.innerHTML = rows.map((row, i) =>
+      `<div class="wtp-lb-col-row">
+        <div class="wtp-lb-col-rank ${rankClasses[i]}">${rankLabels[i]}</div>
+        <div class="wtp-lb-col-username">${esc(row.username||'Anonymous')}${row.user_id===myUid?' <span class="wtp-lb-col-you">you</span>':''}</div>
+        <div class="wtp-lb-col-score">${row.score}</div>
       </div>`
     ).join('');
-  } catch(e) { listEl.innerHTML = '<div class="wtp-lb-loading">Could not load scores</div>'; }
+  } catch(e) { col.innerHTML = '<div class="wtp-lb-col-empty">Could not load</div>'; }
 }
 </script>
 <script src="achievements.js"></script>
