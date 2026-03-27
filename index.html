@@ -77,6 +77,88 @@
 
     .skeleton { background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ── SHOWCASE ANIMATIONS ── */
+
+    /* Card pop-in stagger when grid loads */
+    .poke-card { animation: cardPop 0.3s ease both; }
+    @keyframes cardPop {
+      from { opacity: 0; transform: translateY(20px) scale(0.95); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Card hover — glow pulse on border */
+    .poke-card:hover {
+      transform: translateY(-6px) scale(1.02) !important;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px var(--accent) !important;
+      border-color: var(--accent) !important;
+    }
+    .poke-card:hover .poke-card-img { animation: spriteWiggle 0.4s ease; }
+    @keyframes spriteWiggle {
+      0%,100% { transform: rotate(0deg) scale(1); }
+      25%      { transform: rotate(-5deg) scale(1.1); }
+      75%      { transform: rotate(5deg) scale(1.1); }
+    }
+
+    /* Nav tab ripple */
+    .nav-tab { position: relative; overflow: hidden; }
+    .nav-tab::after { content:''; position:absolute; inset:0; background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%); opacity:0; transition: opacity 0.3s; border-radius: 8px; }
+    .nav-tab:active::after { opacity: 1; }
+    .nav-tab.active { background: var(--accent2); color: white; box-shadow: 0 0 16px rgba(59,91,167,0.5); }
+
+    /* Star rating pulse when selected */
+    .star-btn.selected { animation: starPop 0.25s ease; }
+    @keyframes starPop {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.4); }
+      100% { transform: scale(1); }
+    }
+
+    /* Profile modal slide up */
+    #profile-modal { animation: profileSlideUp 0.28s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes profileSlideUp {
+      from { opacity: 0; transform: translateY(30px) scale(0.96); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Achievement toast bounce in */
+    @keyframes slideInRight {
+      from { transform: translateX(120%) scale(0.8); opacity: 0; }
+      to   { transform: translateX(0) scale(1); opacity: 1; }
+    }
+    @keyframes slideOutRight {
+      from { transform: translateX(0) scale(1); opacity: 1; }
+      to   { transform: translateX(120%) scale(0.8); opacity: 0; }
+    }
+
+    /* Rank item hover glow */
+    .rank-item:hover {
+      transform: translateX(6px) !important;
+      box-shadow: -4px 0 0 0 var(--accent), 0 6px 24px rgba(0,0,0,0.4) !important;
+      border-color: var(--accent) !important;
+    }
+
+    /* Floating nav brand pulse */
+    .nav-brand span { animation: brandPulse 4s ease-in-out infinite; }
+    @keyframes brandPulse {
+      0%,100% { filter: brightness(1); }
+      50%      { filter: brightness(1.3) drop-shadow(0 0 8px rgba(255,203,5,0.6)); }
+    }
+
+    /* View switch — slide from right */
+    @keyframes viewFadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Button press feel */
+    button:active:not(.star-btn):not(.squad-slot-remove) { transform: scale(0.96); transition: transform 0.08s; }
+
+    /* Collection item hover */
+    .col-item:hover { transform: translateY(-3px) scale(1.08); transition: transform 0.15s ease; }
+
+    /* Drip battle card hover */
+    .drip-card:hover img { animation: spriteWiggle 0.4s ease; }
     .skel-line { height: 10px; border-radius: 5px; }
 
     .load-more-wrap { display: flex; justify-content: center; padding: 0 32px 60px; }
@@ -3568,8 +3650,9 @@ function renderGrid() {
 function loadMoreCards() {
   const grid = document.getElementById('pokemon-grid');
   const batch = filteredPokemon.slice(displayedCount, displayedCount + PAGE_SIZE);
-  batch.forEach(p => {
+  batch.forEach((p, i) => {
     const card = createCard(p);
+    card.style.animationDelay = `${Math.min(i * 30, 300)}ms`;
     grid.appendChild(card);
     if (!typeCache[p.id]) typeObserver.observe(card);
   });
