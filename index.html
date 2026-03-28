@@ -8317,19 +8317,53 @@ let battleIncomingChannel=null;
 let battleNotifChannel=null; // global listener, always on
 
 // ── Global notification listener (starts at page load) ───────────
+// NOTE: No filter on realtime — Supabase realtime filters are unreliable
+// for non-UUID text IDs. We receive all inserts and check client-side.
+let _battlePollInterval=null;
 function battleStartGlobalListener(){
   if(!dbReady)return;
   if(battleNotifChannel){sb.removeChannel(battleNotifChannel);battleNotifChannel=null;}
-  const uid=getUID();
-  battleNotifChannel=sb.channel('battle-notif-'+uid)
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'battle_rooms',filter:`player_b=eq.${uid}`},payload=>{
+  if(_battlePollInterval){clearInterval(_battlePollInterval);_battlePollInterval=null;}
+
+  // Realtime — no filter, check client-side
+  battleNotifChannel=sb.channel('battle-notif-global')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'battle_rooms'},payload=>{
       const r=payload.new;
-      showToast(`⚔️ ${r.player_a_username||'Someone'} challenged you to a battle!`);
-      battleRefreshIncoming();
-      // Flash the battle nav tab
-      const tab=document.querySelector('.nav-tab[data-view="battle"]');
-      if(tab&&!tab.classList.contains('active')){tab.style.boxShadow='0 0 0 3px var(--accent)';setTimeout(()=>tab.style.boxShadow='',3000);}
-    }).subscribe();
+      const uid=getUID();
+      if(r.player_b===uid){
+        showToast(`⚔️ ${r.player_a_username||'Someone'} challenged you to a battle!`);
+        battleRefreshIncoming();
+        const tab=document.querySelector('.nav-tab[data-view="battle"]');
+        if(tab&&!tab.classList.contains('active')){tab.style.boxShadow='0 0 0 3px var(--accent)';setTimeout(()=>tab.style.boxShadow='',3000);}
+      }
+    })
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'battle_rooms'},payload=>{
+      const r=payload.new;
+      const uid=getUID();
+      // If we're in a battle room, route to the room handler
+      if(battleRoomId&&r.id===battleRoomId){battleOnRoomUpdate(r);return;}
+      // If we're player_b and it just went active, we need to start battle
+      if(r.player_b===uid&&r.status==='active'&&!battleRoomId){
+        battleRefreshIncoming();
+      }
+    })
+    .subscribe();
+
+  // Fallback poll every 8s — catches missed realtime events
+  _battlePollInterval=setInterval(()=>{
+    battleRefreshIncoming();
+    // If we're in a battle and waiting, re-check room state
+    if(battleRoomId&&battleState&&battleState.status==='active'){
+      const isA=battleMySlot==='a';
+      const myPending=isA?battleState.pendingA:battleState.pendingB;
+      if(myPending!==null){
+        // We submitted, check if opponent submitted too
+        sb.from('battle_rooms').select('pending_a,pending_b,state,status').eq('id',battleRoomId).single().then(({data:room})=>{
+          if(room)battleOnRoomUpdate(room);
+        });
+      }
+    }
+  },8000);
 }
 
 // ── Init (called when Battle tab opened) ─────────────────────────
@@ -8470,12 +8504,28 @@ function battleShowVS(room){
 }
 
 // ── Room subscription ─────────────────────────────────────────────
+let _battleRoomPoll=null;
 function battleSubscribeRoom(roomId){
   if(battleChannel){sb.removeChannel(battleChannel);battleChannel=null;}
+  if(_battleRoomPoll){clearInterval(_battleRoomPoll);_battleRoomPoll=null;}
+
+  // Realtime on UUID id — this filter works fine
   battleChannel=sb.channel('battle-room-'+roomId)
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'battle_rooms',filter:`id=eq.${roomId}`},payload=>{
       battleOnRoomUpdate(payload.new);
     }).subscribe();
+
+  // Poll every 3s as fallback (catches missed realtime events)
+  _battleRoomPoll=setInterval(async()=>{
+    if(!battleRoomId)return;
+    try{
+      const{data:room}=await sb.from('battle_rooms').select('*').eq('id',roomId).single();
+      if(room)battleOnRoomUpdate(room);
+    }catch(e){}
+  },3000);
+}
+function battleStopRoomPoll(){
+  if(_battleRoomPoll){clearInterval(_battleRoomPoll);_battleRoomPoll=null;}
 }
 
 // ── Battle engine ─────────────────────────────────────────────────
@@ -8492,6 +8542,8 @@ function battleBuildTeam(squadIds){
 
 function battleStartBattle(room){
   if(battleChannel){sb.removeChannel(battleChannel);battleChannel=null;}
+  battleStopRoomPoll();
+  _battleArenaShowing=true;_battleLastProcessedTurn=1;
   battleRoom=room;
   const sqA=Array.isArray(room.player_a_squad)?room.player_a_squad:(JSON.parse(room.player_a_squad||'[]'));
   const sqB=Array.isArray(room.player_b_squad)?room.player_b_squad:(JSON.parse(room.player_b_squad||'[]'));
@@ -8622,39 +8674,52 @@ async function battleSubmitPending(myMove){
 }
 
 // ── Realtime update handler ───────────────────────────────────────
+let _battleLastProcessedTurn=-1;
+let _battleArenaShowing=false;
 function battleOnRoomUpdate(room){
+  if(!room)return;
   if(room.status==='declined'){showToast('Battle cancelled.');battleBackToLobby();return;}
-  // Player A accepted -> start battle for player A (who is on VS screen)
-  if(room.status==='active'&&battleMySlot==='a'&&document.getElementById('battle-vs-screen').style.display!=='none'){
+
+  // Player A: opponent accepted — transition VS → arena
+  if(room.status==='active'&&battleMySlot==='a'&&!_battleArenaShowing&&document.getElementById('battle-vs-screen').style.display!=='none'){
+    _battleArenaShowing=true;
     battleRoom=room;
     const sqA=Array.isArray(room.player_a_squad)?room.player_a_squad:JSON.parse(room.player_a_squad||'[]');
     const sqB=Array.isArray(room.player_b_squad)?room.player_b_squad:JSON.parse(room.player_b_squad||'[]');
     battleState={teamA:battleBuildTeam(sqA),teamB:battleBuildTeam(sqB),activeA:0,activeB:0,turn:1,pendingA:null,pendingB:null,log:[],status:'active'};
+    _battleLastProcessedTurn=1;
     document.getElementById('bvs-status').textContent='Battle starting!';
     setTimeout(()=>battleShowArena(),800);
     return;
   }
-  if(room.status==='finished'){
-    // B receives finished state from A
-    if(battleMySlot==='b'&&battleState){
-      const savedState=room.state?JSON.parse(room.state):null;
-      if(savedState){battleState=savedState;}
-      battleFinishUI(room.winner_id===getUID());
-    }
+
+  if(room.status==='finished'&&battleState&&battleState.status!=='finished'){
+    battleStopRoomPoll();
+    const savedState=room.state?JSON.parse(room.state):null;
+    if(savedState)battleState=savedState;
+    battleFinishUI(room.winner_id===getUID());
     return;
   }
-  if(room.status!=='active'||!battleState)return;
-  // Both pending cleared = turn was resolved by A, B needs to sync state
-  if(room.pending_a===null&&room.pending_b===null&&room.state){
+
+  if(room.status!=='active'||!battleState||battleState.status!=='active')return;
+
+  // B syncs turn from A's saved state
+  if(battleMySlot==='b'&&room.state){
     const newState=JSON.parse(room.state);
+    if(newState.turn<=_battleLastProcessedTurn)return; // already processed
+    _battleLastProcessedTurn=newState.turn;
     const logDiff=newState.log.slice(battleState.log.length);
     battleState=newState;
     if(logDiff.length)battleUpdateLog(logDiff);
     battleRenderArena();
     battleShowMoves();
-    if(newState.status==='finished'){
-      battleFinishUI(newState.winnerId===battleMySlot);
-    }
+    return;
+  }
+
+  // A: pending cleared after resolving — update our own local pending state
+  if(battleMySlot==='a'&&room.pending_a===null&&room.pending_b===null){
+    battleState.pendingA=null;battleState.pendingB=null;
+    battleShowMoves();
   }
 }
 
@@ -8756,6 +8821,8 @@ async function battleRematch(){
 
 function battleBackToLobby(){
   if(battleChannel){sb.removeChannel(battleChannel);battleChannel=null;}
+  battleStopRoomPoll();
+  _battleArenaShowing=false;_battleLastProcessedTurn=-1;
   ['battle-challenge-panel','battle-vs-screen','battle-arena','battle-result'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('battle-lobby').style.display='';
   battleState=null;battleRoomId=null;battleMySlot=null;battleRoom=null;
