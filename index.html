@@ -8498,8 +8498,8 @@ function battleShowVS(room){
   const sqA=room.player_a_squad||(isA?[]:null);
   const sqB=room.player_b_squad||(isA?null:[]);
   const myFirst=(isA?sqA:sqB)?.[0];const oppFirst=(isA?sqB:sqA)?.[0];
-  if(myFirst){document.getElementById('bvs-sprite-a').src=SPRITE(myFirst);document.getElementById('bvs-poke-a').textContent=(POKEMON_LIST.find(p=>p.id===myFirst)?.name||'?');}
-  if(oppFirst){document.getElementById('bvs-sprite-b').src=SPRITE(oppFirst);document.getElementById('bvs-poke-b').textContent=(POKEMON_LIST.find(p=>p.id===oppFirst)?.name||'?');}
+  if(myFirst){document.getElementById('bvs-sprite-a').src=SPRITE(myFirst);document.getElementById('bvs-poke-a').textContent=(allPokemon.find(p=>p.id===myFirst)?.name||'?');}
+  if(oppFirst){document.getElementById('bvs-sprite-b').src=SPRITE(oppFirst);document.getElementById('bvs-poke-b').textContent=(allPokemon.find(p=>p.id===oppFirst)?.name||'?');}
   document.getElementById('bvs-status').textContent=isA?'Waiting for opponent to accept…':'Starting battle!';
 }
 
@@ -8532,7 +8532,7 @@ function battleStopRoomPoll(){
 function battleBuildPokemon(id){
   const stats=getBattleStats(id);
   const maxHp=calcMaxHP(stats);
-  return {id,name:(POKEMON_LIST.find(p=>p.id===id)?.name||'Pokemon').replace(/-/g,' '),
+  return {id,name:(allPokemon.find(p=>p.id===id)?.name||'Pokemon').replace(/-/g,' '),
     types:getPokemonTypes(id),maxHp,hp:maxHp,stats,fainted:false,
     statMods:{atk:0,def:0,spa:0,spd:0,spe:0},status:null};
 }
