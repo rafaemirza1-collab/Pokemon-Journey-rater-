@@ -3846,6 +3846,7 @@ async function init() {
     loadMyTrainerAvatarFromDB();
     updateChatBadge();
     subscribeToConvUpdates();
+    battleStartGlobalListener();
     // Sync this user's profile so they show up in search
     const username = getUsername();
     if (username && username !== 'Anonymous') upsertUserProfile();
@@ -8174,7 +8175,7 @@ async function bcLoadLeaderboard(){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SQUAD BATTLE SYSTEM
+// SQUAD BATTLE SYSTEM v2
 // ═══════════════════════════════════════════════════════════════
 
 // ── Move database (type → 4 moves) ──────────────────────────────
@@ -8260,47 +8261,51 @@ function calcDamage(attacker,defender,move,attackerTypes){
 }
 
 // ── State ────────────────────────────────────────────────────────
-let battleRoom=null;         // current room row from DB
+let battleRoom=null;
 let battleRoomId=null;
-let battleChannel=null;      // supabase realtime channel
+let battleChannel=null;
 let battleMySlot=null;       // 'a' or 'b'
-let battleState=null;        // live state object
+let battleState=null;
 let battleLastOpponentId=null;
-let battlePendingChallengeId=null;
 let battleIncomingChannel=null;
+let battleNotifChannel=null; // global listener, always on
 
-// ── Init ─────────────────────────────────────────────────────────
-async function initBattleView(){
-  battleBackToLobby();
+// ── Global notification listener (starts at page load) ───────────
+function battleStartGlobalListener(){
   if(!dbReady)return;
-  battleLoadRecord();
-  battleListenIncoming();
-}
-
-async function battleLoadRecord(){
-  const el=document.getElementById('battle-record');
-  if(!el)return;
-  try{
-    const uid=getUID();
-    const{data:wins}=await sb.from('battle_rooms').select('id',{count:'exact',head:true}).eq('winner_id',uid);
-    const{data:losses,count:lc}=await sb.from('battle_rooms').select('id',{count:'exact',head:true}).or(`player_a.eq.${uid},player_b.eq.${uid}`).not('winner_id','is',null).neq('winner_id',uid);
-    const{count:wc}=await sb.from('battle_rooms').select('id',{count:'exact',head:true}).eq('winner_id',uid);
-    el.innerHTML=`<span style="color:#4caf50;font-weight:700">W: ${wc||0}</span> &nbsp;|&nbsp; <span style="color:var(--red);font-weight:700">L: ${lc||0}</span>`;
-  }catch(e){el.textContent='Could not load record.';}
-}
-
-// ── Listen for incoming challenges ───────────────────────────────
-function battleListenIncoming(){
-  if(!dbReady)return;
-  if(battleIncomingChannel){sb.removeChannel(battleIncomingChannel);battleIncomingChannel=null;}
+  if(battleNotifChannel){sb.removeChannel(battleNotifChannel);battleNotifChannel=null;}
   const uid=getUID();
-  battleIncomingChannel=sb.channel('battle-incoming-'+uid)
+  battleNotifChannel=sb.channel('battle-notif-'+uid)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'battle_rooms',filter:`player_b=eq.${uid}`},payload=>{
+      const r=payload.new;
+      showToast(`⚔️ ${r.player_a_username||'Someone'} challenged you to a battle!`);
       battleRefreshIncoming();
+      // Flash the battle nav tab
+      const tab=document.querySelector('.nav-tab[data-view="battle"]');
+      if(tab&&!tab.classList.contains('active')){tab.style.boxShadow='0 0 0 3px var(--accent)';setTimeout(()=>tab.style.boxShadow='',3000);}
     }).subscribe();
+}
+
+// ── Init (called when Battle tab opened) ─────────────────────────
+async function initBattleView(){
+  if(!dbReady){document.getElementById('battle-record').textContent='Sign in to battle!';return;}
+  battleLoadRecord();
   battleRefreshIncoming();
 }
 
+async function battleLoadRecord(){
+  const el=document.getElementById('battle-record');if(!el)return;
+  try{
+    const uid=getUID();
+    const[{count:wc},{count:lc}]=await Promise.all([
+      sb.from('battle_rooms').select('*',{count:'exact',head:true}).eq('winner_id',uid),
+      sb.from('battle_rooms').select('*',{count:'exact',head:true}).or(`player_a.eq.${uid},player_b.eq.${uid}`).eq('status','finished').neq('winner_id',uid)
+    ]);
+    el.innerHTML=`<span style="color:#4caf50;font-weight:700">W: ${wc||0}</span> &nbsp;|&nbsp; <span style="color:var(--red);font-weight:700">L: ${lc||0}</span>`;
+  }catch(e){el.textContent='—';}
+}
+
+// ── Incoming challenges ───────────────────────────────────────────
 async function battleRefreshIncoming(){
   if(!dbReady)return;
   const uid=getUID();
@@ -8309,7 +8314,7 @@ async function battleRefreshIncoming(){
     const wrap=document.getElementById('battle-incoming-wrap');
     const list=document.getElementById('battle-incoming-list');
     if(!wrap||!list)return;
-    if(!rows||!rows.length){wrap.style.display='none';return;}
+    if(!rows?.length){wrap.style.display='none';return;}
     wrap.style.display='';
     list.innerHTML=rows.map(r=>`
       <div class="battle-challenge-card">
@@ -8341,7 +8346,7 @@ async function battleSearchTrainers(q){
   if(!q||q.length<2){el.innerHTML='';return;}
   try{
     const{data:rows}=await sb.from('user_profiles').select('user_id,username').ilike('username','%'+q+'%').neq('user_id',getUID()).limit(8);
-    if(!rows||!rows.length){el.innerHTML='<div style="padding:10px;color:var(--muted);font-size:0.85rem">No trainers found</div>';return;}
+    if(!rows?.length){el.innerHTML='<div style="padding:10px;color:var(--muted);font-size:0.85rem">No trainers found</div>';return;}
     el.innerHTML=rows.map(r=>`
       <div class="battle-trainer-result" onclick="battleChallenge('${r.user_id}','${esc(r.username||'Trainer')}')">
         <div class="battle-challenge-avatar" style="width:32px;height:32px;font-size:0.8rem">${(r.username||'?')[0].toUpperCase()}</div>
@@ -8350,54 +8355,46 @@ async function battleSearchTrainers(q){
   }catch(e){el.innerHTML='<div style="padding:10px;color:var(--muted);font-size:0.85rem">Error searching</div>';}
 }
 
-async function battleChallenge(opponentId, opponentName){
+async function battleChallenge(opponentId,opponentName){
   if(!dbReady)return;
-  // Get my squad
   const mySquad=await battleGetSquad(getUID());
-  if(!mySquad||!mySquad.length){showToast('You need a squad to battle! Set one up in your profile.');return;}
+  if(!mySquad?.length){showToast('Set up your squad in your profile first!');return;}
   battleLastOpponentId=opponentId;
   try{
     const{data:room,error}=await sb.from('battle_rooms').insert({
       player_a:getUID(),player_a_username:getUsername(),
       player_b:opponentId,player_b_username:opponentName,
-      status:'pending',
-      player_a_squad:mySquad,
+      status:'pending',player_a_squad:mySquad,
       created_at:new Date().toISOString()
     }).select().single();
     if(error)throw error;
-    battleRoomId=room.id;
-    battleMySlot='a';
+    battleRoom=room;battleRoomId=room.id;battleMySlot='a';
     battleHideChallenge();
     battleShowVS(room);
-    battleWaitForAccept(room.id);
+    battleSubscribeRoom(room.id);
     showToast('Challenge sent to '+opponentName+'!');
-  }catch(e){showToast('Could not send challenge. Try again.');}
+  }catch(e){showToast('Could not send challenge: '+(e.message||'unknown error'));}
 }
 
-async function battleAccept(roomId, opponentId, opponentName){
+async function battleAccept(roomId,opponentId,opponentName){
   if(!dbReady)return;
   const mySquad=await battleGetSquad(getUID());
-  if(!mySquad||!mySquad.length){showToast('You need a squad to battle! Set one up in your profile.');return;}
+  if(!mySquad?.length){showToast('Set up your squad in your profile first!');return;}
   try{
     const{data:room,error}=await sb.from('battle_rooms').update({
-      status:'active',
-      player_b_squad:mySquad,
-      state:null
+      status:'active',player_b_squad:mySquad,pending_a:null,pending_b:null
     }).eq('id',roomId).select().single();
     if(error)throw error;
-    battleRoomId=roomId;
-    battleMySlot='b';
-    battleLastOpponentId=opponentId;
+    battleRoom=room;battleRoomId=roomId;battleMySlot='b';battleLastOpponentId=opponentId;
     battleRefreshIncoming();
     battleStartBattle(room);
-  }catch(e){showToast('Could not accept. Try again.');}
+  }catch(e){showToast('Could not accept: '+(e.message||'unknown error'));}
 }
 
 async function battleDecline(roomId){
   try{
     await sb.from('battle_rooms').update({status:'declined'}).eq('id',roomId);
     battleRefreshIncoming();
-    showToast('Challenge declined.');
   }catch(e){}
 }
 
@@ -8413,40 +8410,25 @@ async function battleGetSquad(uid){
 
 // ── VS screen ────────────────────────────────────────────────────
 function battleShowVS(room){
-  document.getElementById('battle-lobby').style.display='none';
-  document.getElementById('battle-challenge-panel').style.display='none';
+  ['battle-lobby','battle-challenge-panel','battle-arena','battle-result'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('battle-vs-screen').style.display='';
-  document.getElementById('battle-arena').style.display='none';
-  document.getElementById('battle-result').style.display='none';
-
   const isA=battleMySlot==='a';
-  const myName=getUsername();
-  const oppName=isA?(room.player_b_username||'Opponent'):(room.player_a_username||'Opponent');
-  document.getElementById('bvs-name-a').textContent=isA?myName:oppName;
-  document.getElementById('bvs-name-b').textContent=isA?oppName:myName;
-
-  const mySquad=isA?room.player_a_squad:room.player_b_squad;
-  const oppSquad=isA?room.player_b_squad:room.player_a_squad;
-  const myFirst=mySquad?mySquad[0]:null;
-  const oppFirst=oppSquad?oppSquad[0]:null;
-  if(myFirst)document.getElementById('bvs-sprite-a').src=SPRITE(myFirst);
-  if(oppFirst)document.getElementById('bvs-sprite-b').src=SPRITE(oppFirst);
-  document.getElementById('bvs-poke-a').textContent=myFirst?(POKEMON_LIST.find(p=>p.id===myFirst)?.name||''):'?';
-  document.getElementById('bvs-poke-b').textContent=oppFirst?(POKEMON_LIST.find(p=>p.id===oppFirst)?.name||''):'?';
-  document.getElementById('bvs-status').textContent='Waiting for opponent…';
+  document.getElementById('bvs-name-a').textContent=isA?getUsername():(room.player_a_username||'Opponent');
+  document.getElementById('bvs-name-b').textContent=isA?(room.player_b_username||'Opponent'):getUsername();
+  const sqA=room.player_a_squad||(isA?[]:null);
+  const sqB=room.player_b_squad||(isA?null:[]);
+  const myFirst=(isA?sqA:sqB)?.[0];const oppFirst=(isA?sqB:sqA)?.[0];
+  if(myFirst){document.getElementById('bvs-sprite-a').src=SPRITE(myFirst);document.getElementById('bvs-poke-a').textContent=(POKEMON_LIST.find(p=>p.id===myFirst)?.name||'?');}
+  if(oppFirst){document.getElementById('bvs-sprite-b').src=SPRITE(oppFirst);document.getElementById('bvs-poke-b').textContent=(POKEMON_LIST.find(p=>p.id===oppFirst)?.name||'?');}
+  document.getElementById('bvs-status').textContent=isA?'Waiting for opponent to accept…':'Starting battle!';
 }
 
-function battleWaitForAccept(roomId){
+// ── Room subscription ─────────────────────────────────────────────
+function battleSubscribeRoom(roomId){
   if(battleChannel){sb.removeChannel(battleChannel);battleChannel=null;}
   battleChannel=sb.channel('battle-room-'+roomId)
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'battle_rooms',filter:`id=eq.${roomId}`},payload=>{
-      const room=payload.new;
-      if(room.status==='active'){
-        battleStartBattle(room);
-      } else if(room.status==='declined'){
-        document.getElementById('bvs-status').textContent='Challenge declined.';
-        setTimeout(battleBackToLobby,2000);
-      }
+      battleOnRoomUpdate(payload.new);
     }).subscribe();
 }
 
@@ -8454,333 +8436,282 @@ function battleWaitForAccept(roomId){
 function battleBuildPokemon(id){
   const stats=getBattleStats(id);
   const maxHp=calcMaxHP(stats);
-  const types=getPokemonTypes(id);
-  const name=(POKEMON_LIST.find(p=>p.id===id)?.name||'Pokemon').replace(/-/g,' ');
-  return {id,name,types,maxHp,hp:maxHp,stats,fainted:false,statMods:{atk:0,def:0,spa:0,spd:0,spe:0},status:null};
+  return {id,name:(POKEMON_LIST.find(p=>p.id===id)?.name||'Pokemon').replace(/-/g,' '),
+    types:getPokemonTypes(id),maxHp,hp:maxHp,stats,fainted:false,
+    statMods:{atk:0,def:0,spa:0,spd:0,spe:0},status:null};
 }
-
 function battleBuildTeam(squadIds){
-  return squadIds.filter(Boolean).map(id=>battleBuildPokemon(id));
+  return (Array.isArray(squadIds)?squadIds:[]).filter(Boolean).map(id=>battleBuildPokemon(Number(id)));
 }
 
 function battleStartBattle(room){
-  if(battleChannel&&room.status==='pending'){return;}
-  // Clean up channel from waiting
   if(battleChannel){sb.removeChannel(battleChannel);battleChannel=null;}
-
-  const squadA=Array.isArray(room.player_a_squad)?room.player_a_squad:JSON.parse(room.player_a_squad||'[]');
-  const squadB=Array.isArray(room.player_b_squad)?room.player_b_squad:JSON.parse(room.player_b_squad||'[]');
-
-  // Build initial state
+  battleRoom=room;
+  const sqA=Array.isArray(room.player_a_squad)?room.player_a_squad:(JSON.parse(room.player_a_squad||'[]'));
+  const sqB=Array.isArray(room.player_b_squad)?room.player_b_squad:(JSON.parse(room.player_b_squad||'[]'));
   battleState={
-    teamA:battleBuildTeam(squadA),
-    teamB:battleBuildTeam(squadB),
-    activeA:0,
-    activeB:0,
-    turn:1,
-    pendingA:null,   // chosen move by player A this turn
-    pendingB:null,   // chosen move by player B this turn
-    log:[],
-    status:'active', // active | finished
-    winnerId:null
+    teamA:battleBuildTeam(sqA),teamB:battleBuildTeam(sqB),
+    activeA:0,activeB:0,turn:1,
+    pendingA:null,pendingB:null,
+    log:[],status:'active'
   };
-
-  // Show VS screen briefly then arena
+  battleShowVS(room);
   document.getElementById('bvs-status').textContent='Battle starting!';
-  setTimeout(()=>battleShowArena(),1200);
-
-  // Subscribe to realtime updates
-  battleChannel=sb.channel('battle-room-'+battleRoomId)
-    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'battle_rooms',filter:`id=eq.${battleRoomId}`},payload=>{
-      battleOnRoomUpdate(payload.new);
-    }).subscribe();
+  battleSubscribeRoom(battleRoomId);
+  setTimeout(()=>battleShowArena(),1000);
 }
 
 function battleShowArena(){
-  document.getElementById('battle-vs-screen').style.display='none';
+  ['battle-vs-screen','battle-lobby','battle-result'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('battle-arena').style.display='';
-  document.getElementById('battle-lobby').style.display='none';
-  document.getElementById('battle-result').style.display='none';
+  document.getElementById('battle-log').innerHTML='';
   battleRenderArena();
   battleShowMoves();
 }
 
 function battleRenderArena(){
   if(!battleState)return;
-  const myTeam=battleMySlot==='a'?battleState.teamA:battleState.teamB;
-  const oppTeam=battleMySlot==='a'?battleState.teamB:battleState.teamA;
-  const myActive=battleMySlot==='a'?battleState.activeA:battleState.activeB;
-  const oppActive=battleMySlot==='a'?battleState.activeB:battleState.activeA;
+  const isA=battleMySlot==='a';
+  const myTeam=isA?battleState.teamA:battleState.teamB;
+  const oppTeam=isA?battleState.teamB:battleState.teamA;
+  const myIdx=isA?battleState.activeA:battleState.activeB;
+  const oppIdx=isA?battleState.activeB:battleState.activeA;
+  const me=myTeam[Math.min(myIdx,myTeam.length-1)];
+  const opp=oppTeam[Math.min(oppIdx,oppTeam.length-1)];
+  if(!me||!opp)return;
 
-  const me=myTeam[myActive];
-  const opp=oppTeam[oppActive];
-
-  // Enemy
-  document.getElementById('b-enemy-name').textContent=opp.name;
-  document.getElementById('b-enemy-sprite').src=SPRITE(opp.id);
-  document.getElementById('b-enemy-sprite').className='battle-sprite enemy'+(opp.fainted?' fainted':'');
-  const oppHpPct=Math.max(0,(opp.hp/opp.maxHp)*100);
-  const oppHpBar=document.getElementById('b-enemy-hp-bar');
-  oppHpBar.style.width=oppHpPct+'%';
-  oppHpBar.style.background=oppHpPct>50?'#4caf50':oppHpPct>20?'#ff9800':'#f44336';
-  document.getElementById('b-enemy-hp-text').textContent=`HP: ${Math.max(0,opp.hp)}/${opp.maxHp}`;
-
-  // Player
-  document.getElementById('b-player-name').textContent=me.name;
-  document.getElementById('b-player-sprite').src=SPRITE(me.id);
-  document.getElementById('b-player-sprite').className='battle-sprite'+(me.fainted?' fainted':'');
-  const myHpPct=Math.max(0,(me.hp/me.maxHp)*100);
-  const myHpBar=document.getElementById('b-player-hp-bar');
-  myHpBar.style.width=myHpPct+'%';
-  myHpBar.style.background=myHpPct>50?'#4caf50':myHpPct>20?'#ff9800':'#f44336';
-  document.getElementById('b-player-hp-text').textContent=`HP: ${Math.max(0,me.hp)}/${me.maxHp}`;
+  const setHp=(nameId,barId,textId,pk)=>{
+    document.getElementById(nameId).textContent=pk.name;
+    document.getElementById(nameId.replace('name','sprite')).src=SPRITE(pk.id);
+    document.getElementById(nameId.replace('name','sprite')).className='battle-sprite'+(nameId.includes('enemy')?' enemy':'')+(pk.fainted?' fainted':'');
+    const pct=Math.max(0,(pk.hp/pk.maxHp)*100);
+    const bar=document.getElementById(barId);
+    bar.style.width=pct+'%';bar.style.background=pct>50?'#4caf50':pct>20?'#ff9800':'#f44336';
+    document.getElementById(textId).textContent=`HP: ${Math.max(0,pk.hp)}/${pk.maxHp}`;
+  };
+  setHp('b-enemy-name','b-enemy-hp-bar','b-enemy-hp-text',opp);
+  setHp('b-player-name','b-player-hp-bar','b-player-hp-text',me);
 }
 
 function battleShowMoves(){
   if(!battleState)return;
-  const myTeam=battleMySlot==='a'?battleState.teamA:battleState.teamB;
-  const myActive=battleMySlot==='a'?battleState.activeA:battleState.activeB;
-  const me=myTeam[myActive];
-  const moves=getBattleMoves(me.id);
-  const myPending=battleMySlot==='a'?battleState.pendingA:battleState.pendingB;
-
+  const isA=battleMySlot==='a';
+  const myTeam=isA?battleState.teamA:battleState.teamB;
+  const myIdx=isA?battleState.activeA:battleState.activeB;
+  const me=myTeam[Math.min(myIdx,myTeam.length-1)];
+  if(!me)return;
+  const myPending=isA?battleState.pendingA:battleState.pendingB;
   document.getElementById('battle-switch-panel').style.display='none';
-  document.getElementById('battle-waiting-move').style.display='none';
-
-  if(myPending!==null){
-    // Already submitted move, waiting for opponent
+  if(myPending!==null&&myPending!==undefined){
     document.getElementById('battle-moves-wrap').style.display='none';
     document.getElementById('battle-waiting-move').style.display='';
     return;
   }
-
   document.getElementById('battle-moves-wrap').style.display='';
-  const movesEl=document.getElementById('battle-moves');
-  movesEl.innerHTML=moves.map((m,i)=>{
+  document.getElementById('battle-waiting-move').style.display='none';
+  const moves=getBattleMoves(me.id);
+  document.getElementById('battle-moves').innerHTML=moves.map((m,i)=>{
     const col=TYPE_COLORS[m.type]||'#666';
-    const effText=m.power?`Power: ${m.power}`:'Status';
-    return `<button class="battle-move-btn" style="border-color:${col}44;background:${col}18"
-      onclick="battlePickMove(${i})">
+    return `<button class="battle-move-btn" style="border-color:${col}44;background:${col}18" onclick="battlePickMove(${i})">
       <span style="font-size:0.9rem">${m.name}</span>
       <span class="battle-move-type" style="background:${col}">${m.type}</span>
-      <span class="battle-move-power">${effText}</span>
+      <span class="battle-move-power">${m.power?'Power: '+m.power:'Status'}</span>
     </button>`;
-  }).join('');
-
-  // Add switch button
-  movesEl.innerHTML+=`<button class="battle-move-btn" style="grid-column:span 2;opacity:0.7" onclick="battleShowSwitch()">↕ Switch Pokemon</button>`;
+  }).join('')+`<button class="battle-move-btn" style="grid-column:span 2;opacity:0.7" onclick="battleShowSwitch()">↕ Switch Pokémon</button>`;
 }
 
 function battleShowSwitch(){
-  const myTeam=battleMySlot==='a'?battleState.teamA:battleState.teamB;
-  const myActive=battleMySlot==='a'?battleState.activeA:battleState.activeB;
+  const isA=battleMySlot==='a';
+  const myTeam=isA?battleState.teamA:battleState.teamB;
+  const myIdx=isA?battleState.activeA:battleState.activeB;
   const panel=document.getElementById('battle-switch-panel');
   panel.style.display='';
-  panel.innerHTML=myTeam.map((p,i)=>{
-    const disabled=i===myActive||p.fainted;
-    return `<button class="battle-switch-btn" ${disabled?'disabled':''} onclick="battlePickSwitch(${i})">
+  panel.innerHTML=myTeam.map((p,i)=>`
+    <button class="battle-switch-btn" ${(i===myIdx||p.fainted)?'disabled':''} onclick="battlePickSwitch(${i})">
       <img src="${SPRITE(p.id)}" alt="${p.name}"/>
       <span>${p.name}</span>
-      <span style="font-size:0.65rem;color:${p.fainted?'var(--red)':'#4caf50'}">${p.fainted?'Fainted':`HP: ${p.hp}`}</span>
-    </button>`;
-  }).join('');
+      <span style="font-size:0.65rem;color:${p.fainted?'var(--red)':'#4caf50'}">${p.fainted?'Fainted':'HP: '+p.hp}</span>
+    </button>`).join('');
 }
 
 async function battlePickMove(moveIdx){
   if(!battleState||battleState.status!=='active')return;
-  const field=battleMySlot==='a'?'pending_a':'pending_b';
-  if(battleMySlot==='a'&&battleState.pendingA!==null)return;
-  if(battleMySlot==='b'&&battleState.pendingB!==null)return;
-
-  // Optimistically update UI
-  if(battleMySlot==='a')battleState.pendingA=moveIdx;
-  else battleState.pendingB=moveIdx;
+  const isA=battleMySlot==='a';
+  if(isA&&battleState.pendingA!==null)return;
+  if(!isA&&battleState.pendingB!==null)return;
+  if(isA)battleState.pendingA=moveIdx; else battleState.pendingB=moveIdx;
   battleShowMoves();
-
-  try{
-    // Fetch current room state
-    const{data:room}=await sb.from('battle_rooms').select('state,pending_a,pending_b').eq('id',battleRoomId).single();
-    const update={[field]:moveIdx};
-    // Check if both moves are in — if so, resolve
-    const otherField=battleMySlot==='a'?'pending_b':'pending_a';
-    const otherPending=room[otherField];
-    if(otherPending!==null&&otherPending!==undefined){
-      // Both chosen — resolve turn
-      update.pending_a=battleMySlot==='a'?moveIdx:room.pending_a;
-      update.pending_b=battleMySlot==='b'?moveIdx:room.pending_b;
-      await sb.from('battle_rooms').update(update).eq('id',battleRoomId);
-    } else {
-      await sb.from('battle_rooms').update(update).eq('id',battleRoomId);
-    }
-  }catch(e){showToast('Connection error. Try again.');}
+  await battleSubmitPending(moveIdx);
 }
 
 async function battlePickSwitch(slotIdx){
   document.getElementById('battle-switch-panel').style.display='none';
-  const field=battleMySlot==='a'?'pending_a':'pending_b';
-  const switchCode=100+slotIdx; // 100+ = switch command
-  if(battleMySlot==='a')battleState.pendingA=switchCode;
-  else battleState.pendingB=switchCode;
+  const code=100+slotIdx;
+  const isA=battleMySlot==='a';
+  if(isA)battleState.pendingA=code; else battleState.pendingB=code;
   battleShowMoves();
+  await battleSubmitPending(code);
+}
+
+async function battleSubmitPending(myMove){
+  const field=battleMySlot==='a'?'pending_a':'pending_b';
+  const otherField=battleMySlot==='a'?'pending_b':'pending_a';
   try{
+    // Write my move
+    await sb.from('battle_rooms').update({[field]:myMove}).eq('id',battleRoomId);
+    // Check if opponent already moved
     const{data:room}=await sb.from('battle_rooms').select('pending_a,pending_b').eq('id',battleRoomId).single();
-    const update={[field]:switchCode};
-    const otherField=battleMySlot==='a'?'pending_b':'pending_a';
-    if(room[otherField]!==null&&room[otherField]!==undefined){
-      update.pending_a=battleMySlot==='a'?switchCode:room.pending_a;
-      update.pending_b=battleMySlot==='b'?switchCode:room.pending_b;
+    const otherMove=room?.[otherField];
+    if(otherMove!==null&&otherMove!==undefined){
+      // Both in — player A resolves (prevents double-resolve)
+      if(battleMySlot==='a'){
+        const pA=myMove,pB=otherMove;
+        // Clear pending first so B doesn't also trigger
+        await sb.from('battle_rooms').update({pending_a:null,pending_b:null}).eq('id',battleRoomId);
+        battleResolveTurn(pA,pB);
+      }
+      // B just waits for the realtime update after A resolves
     }
-    await sb.from('battle_rooms').update(update).eq('id',battleRoomId);
-  }catch(e){}
+  }catch(e){showToast('Connection error. Try again.');}
 }
 
 // ── Realtime update handler ───────────────────────────────────────
 function battleOnRoomUpdate(room){
-  if(room.status==='declined'){battleBackToLobby();showToast('Battle cancelled.');return;}
-  if(room.status==='active'&&document.getElementById('battle-vs-screen').style.display!=='none'){
-    battleStartBattle(room);return;
+  if(room.status==='declined'){showToast('Battle cancelled.');battleBackToLobby();return;}
+  // Player A accepted -> start battle for player A (who is on VS screen)
+  if(room.status==='active'&&battleMySlot==='a'&&document.getElementById('battle-vs-screen').style.display!=='none'){
+    battleRoom=room;
+    const sqA=Array.isArray(room.player_a_squad)?room.player_a_squad:JSON.parse(room.player_a_squad||'[]');
+    const sqB=Array.isArray(room.player_b_squad)?room.player_b_squad:JSON.parse(room.player_b_squad||'[]');
+    battleState={teamA:battleBuildTeam(sqA),teamB:battleBuildTeam(sqB),activeA:0,activeB:0,turn:1,pendingA:null,pendingB:null,log:[],status:'active'};
+    document.getElementById('bvs-status').textContent='Battle starting!';
+    setTimeout(()=>battleShowArena(),800);
+    return;
   }
-  if(room.status!=='active')return;
-
-  const pA=room.pending_a;
-  const pB=room.pending_b;
-  if(pA===null||pA===undefined||pB===null||pB===undefined)return;
-
-  // Both moves received — resolve turn
-  battleResolveTurn(pA,pB,room.state?JSON.parse(room.state):null);
+  if(room.status==='finished'){
+    // B receives finished state from A
+    if(battleMySlot==='b'&&battleState){
+      const savedState=room.state?JSON.parse(room.state):null;
+      if(savedState){battleState=savedState;}
+      battleFinishUI(room.winner_id===getUID());
+    }
+    return;
+  }
+  if(room.status!=='active'||!battleState)return;
+  // Both pending cleared = turn was resolved by A, B needs to sync state
+  if(room.pending_a===null&&room.pending_b===null&&room.state){
+    const newState=JSON.parse(room.state);
+    const logDiff=newState.log.slice(battleState.log.length);
+    battleState=newState;
+    if(logDiff.length)battleUpdateLog(logDiff);
+    battleRenderArena();
+    battleShowMoves();
+    if(newState.status==='finished'){
+      battleFinishUI(newState.winnerId===battleMySlot);
+    }
+  }
 }
 
-function battleResolveTurn(moveA,moveB,savedState){
+function battleResolveTurn(moveA,moveB){
   if(!battleState)return;
-  const teamA=battleState.teamA;
-  const teamB=battleState.teamB;
+  const{teamA,teamB}=battleState;
   const pkA=teamA[battleState.activeA];
   const pkB=teamB[battleState.activeB];
   const log=[];
 
-  function applyMove(attacker,defender,moveIdx,attackerTeam,defenderTeam,activeAttackerIdx,activeDefenderIdx){
+  function applyAction(attacker,defender,moveIdx,atkTeam,isPlayerA){
     if(moveIdx>=100){
-      // Switch
-      const newIdx=moveIdx-100;
-      if(attacker===pkA){battleState.activeA=newIdx;log.push(`${attacker.name} switched out! ${attackerTeam[newIdx].name} came in!`);}
-      else{battleState.activeB=newIdx;log.push(`${attacker.name} switched out! ${attackerTeam[newIdx].name} came in!`);}
+      const ni=moveIdx-100;
+      if(isPlayerA){battleState.activeA=ni;}else{battleState.activeB=ni;}
+      log.push(`${attacker.name} switched out! ${atkTeam[ni].name} came in!`);
       return;
     }
-    const moves=getBattleMoves(attacker.id);
-    const move=moves[moveIdx];
+    const move=getBattleMoves(attacker.id)[moveIdx];
     if(!move)return;
+    log.push(`${attacker.name} used ${move.name}!`);
     if(!move.power){
-      log.push(`${attacker.name} used ${move.name}!`);
-      // Status effects
-      if(move.effect){
-        if(move.effect==='burn'){defender.status='burned';log.push(`${defender.name} was burned!`);}
-        else if(move.effect==='para'){defender.status='paralyzed';log.push(`${defender.name} is paralyzed!`);}
-        else if(move.effect==='poison'){defender.status='poisoned';log.push(`${defender.name} was poisoned!`);}
-        else if(move.effect==='drain'){defender.hp=Math.max(0,defender.hp-Math.floor(defender.maxHp/8));log.push(`${defender.name} is seeded!`);}
-        else if(move.effect&&move.effect.includes('+')){const[stat,val]=move.effect.split('+');attacker.statMods[stat]=(attacker.statMods[stat]||0)+parseInt(val);log.push(`${attacker.name}'s ${stat} rose!`);}
-        else if(move.effect&&move.effect.includes('-')){const[stat,val]=move.effect.split('-');defender.statMods[stat]=(defender.statMods[stat]||0)-parseInt(val);log.push(`${defender.name}'s ${stat} fell!`);}
-      }
+      if(move.effect==='burn'&&!defender.status){defender.status='burned';log.push(`${defender.name} was burned! 🔥`);}
+      else if(move.effect==='para'&&!defender.status){defender.status='paralyzed';log.push(`${defender.name} is paralyzed! ⚡`);}
+      else if(move.effect==='poison'&&!defender.status){defender.status='poisoned';log.push(`${defender.name} was poisoned! ☠️`);}
+      else if(move.effect==='drain'){const d=Math.floor(defender.maxHp/8);defender.hp=Math.max(0,defender.hp-d);log.push(`${defender.name} lost ${d} HP from Leech Seed!`);}
+      else if(move.effect?.includes('+')){const[s,v]=move.effect.split('+');attacker.statMods[s]=(attacker.statMods[s]||0)+Number(v);log.push(`${attacker.name}'s ${s} rose!`);}
+      else if(move.effect?.includes('-')){const[s,v]=move.effect.split('-');defender.statMods[s]=(defender.statMods[s]||0)-Number(v);log.push(`${defender.name}'s ${s} fell!`);}
       return;
     }
-    // Physical/special damage
     const eff=getTypeEffectiveness(move.type,defender.types);
+    if(eff===0){log.push(`It has no effect on ${defender.name}…`);return;}
     const dmg=calcDamage(attacker,defender,move,attacker.types);
     defender.hp=Math.max(0,defender.hp-dmg);
-    log.push(`${attacker.name} used ${move.name}! (${dmg} dmg${eff>=2?' Super effective!':eff===0?' No effect...':eff<1?' Not very effective...':''})`);
+    log.push(`Dealt ${dmg} damage!${eff>=2?' Super effective!':eff<1?' Not very effective…':''}`);
     if(defender.hp<=0){defender.fainted=true;log.push(`${defender.name} fainted!`);}
   }
 
-  // Speed determines who goes first (unless priority move)
-  const spdA=pkA.stats.spe*(1+0.1*(pkA.statMods.spe||0));
-  const spdB=pkB.stats.spe*(1+0.1*(pkB.statMods.spe||0));
-  if(spdA>=spdB){
-    if(!pkA.fainted)applyMove(pkA,pkB,moveA,teamA,teamB);
-    if(!pkB.fainted)applyMove(pkB,pkA,moveB,teamB,teamA);
-  } else {
-    if(!pkB.fainted)applyMove(pkB,pkA,moveB,teamB,teamA);
-    if(!pkA.fainted)applyMove(pkA,pkB,moveA,teamA,teamB);
-  }
+  const spdA=pkA.stats.spe*(1+0.1*(pkA.statMods?.spe||0));
+  const spdB=pkB.stats.spe*(1+0.1*(pkB.statMods?.spe||0));
+  if(spdA>=spdB){applyAction(pkA,pkB,moveA,teamA,true);if(!pkB.fainted)applyAction(pkB,pkA,moveB,teamB,false);}
+  else{applyAction(pkB,pkA,moveB,teamB,false);if(!pkA.fainted)applyAction(pkA,pkB,moveA,teamA,true);}
 
-  // Status damage
   [pkA,pkB].forEach(pk=>{
-    if(pk.status==='burned'||pk.status==='poisoned'){
-      const dmg=Math.floor(pk.maxHp/8);pk.hp=Math.max(0,pk.hp-dmg);
-      log.push(`${pk.name} is hurt by its ${pk.status}! (${dmg} dmg)`);
+    if((pk.status==='burned'||pk.status==='poisoned')&&!pk.fainted){
+      const d=Math.floor(pk.maxHp/8);pk.hp=Math.max(0,pk.hp-d);
+      log.push(`${pk.name} hurt by ${pk.status}! (${d} dmg)`);
       if(pk.hp<=0){pk.fainted=true;log.push(`${pk.name} fainted!`);}
     }
   });
 
-  // Auto-advance to next living Pokemon
   while(battleState.activeA<teamA.length&&teamA[battleState.activeA].fainted)battleState.activeA++;
   while(battleState.activeB<teamB.length&&teamB[battleState.activeB].fainted)battleState.activeB++;
 
-  battleState.pendingA=null;battleState.pendingB=null;
   battleState.turn++;
   battleState.log.push(...log);
 
-  // Check win condition
-  const aAllFainted=teamA.every(p=>p.fainted);
-  const bAllFainted=teamB.every(p=>p.fainted);
-  if(aAllFainted||bAllFainted){
-    const winnerId=aAllFainted?(battleState.teamB[0]?.id?battleRoom?.player_b:null):null;
-    const winnerSlot=aAllFainted?'b':'a';
-    battleState.status='finished';
-    battleState.winnerId=winnerSlot;
-    battleFinish(winnerSlot,log);
+  const aOut=teamA.every(p=>p.fainted);
+  const bOut=teamB.every(p=>p.fainted);
+  if(aOut||bOut){
+    const winSlot=aOut?'b':'a';
+    const winUid=winSlot==='a'?battleRoom.player_a:battleRoom.player_b;
+    battleState.status='finished';battleState.winnerId=winSlot;
+    // Save final state + winner, B will get update via realtime
+    sb.from('battle_rooms').update({status:'finished',winner_id:winUid,state:JSON.stringify(battleState),pending_a:null,pending_b:null}).eq('id',battleRoomId).then(()=>{});
+    battleUpdateLog(log);battleRenderArena();
+    battleFinishUI(winSlot===battleMySlot);
   } else {
-    battleRenderArena();
-    battleUpdateLog(log);
-    battleShowMoves();
-    // Clear pending in DB so next turn can begin
-    sb.from('battle_rooms').update({pending_a:null,pending_b:null,state:JSON.stringify(battleState)}).eq('id',battleRoomId).then(()=>{});
+    battleUpdateLog(log);battleRenderArena();battleShowMoves();
+    // Save state for B to sync, pending already cleared
+    sb.from('battle_rooms').update({state:JSON.stringify(battleState)}).eq('id',battleRoomId).then(()=>{});
   }
 }
 
-function battleUpdateLog(newLines){
-  const el=document.getElementById('battle-log');if(!el)return;
-  el.innerHTML+=newLines.map((l,i)=>`<div class="battle-log-line${i===0?' new':''}">${esc(l)}</div>`).join('');
+function battleUpdateLog(lines){
+  const el=document.getElementById('battle-log');if(!el||!lines?.length)return;
+  lines.forEach((l,i)=>{const d=document.createElement('div');d.className='battle-log-line'+(i===0?' new':'');d.textContent=l;el.appendChild(d);});
   el.scrollTop=el.scrollHeight;
 }
 
-async function battleFinish(winnerSlot,log){
-  const iWon=(winnerSlot===battleMySlot);
-  battleUpdateLog(log||[]);
-  battleRenderArena();
-
-  // Save to DB
-  try{
-    const winnerUid=winnerSlot==='a'?battleRoom?.player_a:battleRoom?.player_b;
-    await sb.from('battle_rooms').update({status:'finished',winner_id:winnerUid,state:JSON.stringify(battleState)}).eq('id',battleRoomId);
-  }catch(e){}
-
+function battleFinishUI(iWon){
   setTimeout(()=>{
     document.getElementById('battle-arena').style.display='none';
     document.getElementById('battle-result').style.display='';
     const title=document.getElementById('br-title');
-    title.textContent=iWon?'You Win! 🎉':'You Lost...';
+    title.textContent=iWon?'You Win! 🎉':'You Lost…';
     title.className='battle-result-title '+(iWon?'win':'loss');
-    document.getElementById('br-detail').textContent=`Turn ${battleState.turn} • ${iWon?'Victory!':'Better luck next time.'}`;
-    battleLoadRecord();
+    document.getElementById('br-detail').textContent=`Turn ${battleState?.turn||'?'} • ${iWon?'Victory!':'Better luck next time.'}`;
     if(battleChannel){sb.removeChannel(battleChannel);battleChannel=null;}
-  },1500);
+    battleLoadRecord();
+  },1200);
 }
 
 async function battleRematch(){
   if(!battleLastOpponentId)return;
-  const{data:profile}=await sb.from('user_profiles').select('username').eq('user_id',battleLastOpponentId).single();
-  const name=profile?.username||'Trainer';
-  battleBackToLobby();
-  battleShowChallenge();
-  setTimeout(()=>{document.getElementById('battle-search-input').value=name;battleSearchTrainers(name);},300);
+  const{data:p}=await sb.from('user_profiles').select('username').eq('user_id',battleLastOpponentId).single();
+  battleBackToLobby();battleShowChallenge();
+  setTimeout(()=>{const inp=document.getElementById('battle-search-input');inp.value=p?.username||'';battleSearchTrainers(inp.value);},300);
 }
 
 function battleBackToLobby(){
   if(battleChannel){sb.removeChannel(battleChannel);battleChannel=null;}
+  ['battle-challenge-panel','battle-vs-screen','battle-arena','battle-result'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('battle-lobby').style.display='';
-  document.getElementById('battle-challenge-panel').style.display='none';
-  document.getElementById('battle-vs-screen').style.display='none';
-  document.getElementById('battle-arena').style.display='none';
-  document.getElementById('battle-result').style.display='none';
   battleState=null;battleRoomId=null;battleMySlot=null;battleRoom=null;
 }
 
