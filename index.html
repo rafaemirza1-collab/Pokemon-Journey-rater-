@@ -1166,6 +1166,19 @@
   .wtp-lb-col-empty { font-size: 0.72rem; color: var(--muted); text-align: center; padding: 12px 0; }
   @media(max-width:480px) { .wtp-lb-cols { grid-template-columns: 1fr; } }
 
+  /* ── MINIGAME PICKER ── */
+  #mg-picker { max-width: 600px; margin: 0 auto; }
+  .mg-picker-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .mg-picker-card { background: var(--surface); border: 2px solid var(--border); border-radius: 20px; padding: 28px 20px; text-align: center; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .mg-picker-card:hover { border-color: var(--accent2); transform: translateY(-4px); box-shadow: 0 12px 32px rgba(199,125,255,0.2); }
+  .mg-picker-icon { font-size: 3rem; }
+  .mg-picker-name { font-size: 1.1rem; font-weight: 900; letter-spacing: -0.3px; }
+  .mg-picker-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+  .mg-picker-best { font-size: 0.75rem; font-weight: 700; color: var(--accent2); margin-top: 4px; }
+  .mg-back-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); border-radius: 999px; padding: 8px 18px; font-size: 0.82rem; font-weight: 700; cursor: pointer; margin-bottom: 20px; transition: all 0.2s; font-family: 'Inter', sans-serif; }
+  .mg-back-btn:hover { color: var(--text); border-color: #555; }
+  @media(max-width: 480px) { .mg-picker-grid { grid-template-columns: 1fr; } }
+
   /* ── BERRY CHASE ── */
   .bc-lobby-card { display:flex; flex-direction:column; align-items:center; gap:14px; width:100%; max-width:460px; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:28px 24px; }
   .bc-lobby-title { font-size:1.5rem; font-weight:900; letter-spacing:-0.5px; }
@@ -1494,137 +1507,157 @@
   </div>
 </div>
 
-<!-- WHO'S THAT POKÉMON MINIGAME -->
+<!-- MINIGAMES -->
 <div id="view-wtp" class="view">
   <div class="wtp-header">
     <h1>🎮 Minigames</h1>
-    <p class="wtp-subtitle">Test your Pokémon knowledge</p>
+    <p class="wtp-subtitle">Choose a game to play</p>
   </div>
 
-  <!-- LOBBY -->
-  <div id="wtp-lobby">
-    <div class="wtp-lobby">
-      <div class="wtp-lobby-title">Who's That Pokémon?</div>
-      <div class="wtp-lobby-desc">1 minute — identify as many Pokémon silhouettes as you can. Choose your difficulty:</div>
-      <div class="wtp-diff-grid">
-        <div class="wtp-diff-card" onclick="wtpStart('easy')">
-          <div class="wtp-diff-icon">🌿</div>
-          <div class="wtp-diff-name">Easy</div>
-          <div class="wtp-diff-sub">Gen I – IV · 493 Pokémon</div>
-        </div>
-        <div class="wtp-diff-card" onclick="wtpStart('medium')">
-          <div class="wtp-diff-icon">⚡</div>
-          <div class="wtp-diff-name">Medium</div>
-          <div class="wtp-diff-sub">Gen I – VIII · 905 Pokémon</div>
-        </div>
-        <div class="wtp-diff-card" onclick="wtpStart('hard')">
-          <div class="wtp-diff-icon">🔥</div>
-          <div class="wtp-diff-name">Hard</div>
-          <div class="wtp-diff-sub">All Gens · 1025 Pokémon</div>
-        </div>
+  <!-- ── GAME PICKER (shown first) ── -->
+  <div id="mg-picker">
+    <div class="mg-picker-grid">
+      <div class="mg-picker-card" onclick="mgOpen('wtp')">
+        <div class="mg-picker-icon">❓</div>
+        <div class="mg-picker-name">Who's That Pokémon?</div>
+        <div class="mg-picker-desc">Identify silhouettes before time runs out</div>
+        <div class="mg-picker-best" id="mg-best-wtp">Loading…</div>
       </div>
-      <!-- Leaderboards — all 3 difficulties always visible -->
-      <div class="wtp-all-lb">
-        <div class="wtp-all-lb-title">🏆 Leaderboards</div>
-        <div class="wtp-lb-cols">
-          <div class="wtp-lb-col">
-            <div class="wtp-lb-col-header">
-              <div class="wtp-lb-col-icon">🌿</div>
-              <div class="wtp-lb-col-name">Easy</div>
-            </div>
-            <div class="wtp-lb-col-body" id="wtp-lb-easy"><div class="wtp-lb-col-empty">Loading…</div></div>
+      <div class="mg-picker-card" onclick="mgOpen('bc')">
+        <div class="mg-picker-icon">🫐</div>
+        <div class="mg-picker-name">Berry Chase</div>
+        <div class="mg-picker-desc">Collect berries, dodge Ghost-type chasers</div>
+        <div class="mg-picker-best" id="mg-best-bc">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── WHO'S THAT POKÉMON SCREENS ── -->
+  <div id="wtp-screens" style="display:none">
+    <button class="mg-back-btn" onclick="mgBack()">← Back to Games</button>
+
+    <!-- Lobby -->
+    <div id="wtp-lobby">
+      <div class="wtp-lobby">
+        <div class="wtp-lobby-title">Who's That Pokémon?</div>
+        <div class="wtp-lobby-desc">1 minute — identify as many Pokémon silhouettes as you can. Choose your difficulty:</div>
+        <div class="wtp-diff-grid">
+          <div class="wtp-diff-card" onclick="wtpStart('easy')">
+            <div class="wtp-diff-icon">🌿</div>
+            <div class="wtp-diff-name">Easy</div>
+            <div class="wtp-diff-sub">Gen I – IV · 493 Pokémon</div>
           </div>
-          <div class="wtp-lb-col">
-            <div class="wtp-lb-col-header">
-              <div class="wtp-lb-col-icon">⚡</div>
-              <div class="wtp-lb-col-name">Medium</div>
-            </div>
-            <div class="wtp-lb-col-body" id="wtp-lb-medium"><div class="wtp-lb-col-empty">Loading…</div></div>
+          <div class="wtp-diff-card" onclick="wtpStart('medium')">
+            <div class="wtp-diff-icon">⚡</div>
+            <div class="wtp-diff-name">Medium</div>
+            <div class="wtp-diff-sub">Gen I – VIII · 905 Pokémon</div>
           </div>
-          <div class="wtp-lb-col">
-            <div class="wtp-lb-col-header">
-              <div class="wtp-lb-col-icon">🔥</div>
-              <div class="wtp-lb-col-name">Hard</div>
-            </div>
-            <div class="wtp-lb-col-body" id="wtp-lb-hard"><div class="wtp-lb-col-empty">Loading…</div></div>
+          <div class="wtp-diff-card" onclick="wtpStart('hard')">
+            <div class="wtp-diff-icon">🔥</div>
+            <div class="wtp-diff-name">Hard</div>
+            <div class="wtp-diff-sub">All Gens · 1025 Pokémon</div>
           </div>
         </div>
+        <div class="wtp-all-lb">
+          <div class="wtp-all-lb-title">🏆 Leaderboards</div>
+          <div class="wtp-lb-cols">
+            <div class="wtp-lb-col">
+              <div class="wtp-lb-col-header"><div class="wtp-lb-col-icon">🌿</div><div class="wtp-lb-col-name">Easy</div></div>
+              <div class="wtp-lb-col-body" id="wtp-lb-easy"><div class="wtp-lb-col-empty">Loading…</div></div>
+            </div>
+            <div class="wtp-lb-col">
+              <div class="wtp-lb-col-header"><div class="wtp-lb-col-icon">⚡</div><div class="wtp-lb-col-name">Medium</div></div>
+              <div class="wtp-lb-col-body" id="wtp-lb-medium"><div class="wtp-lb-col-empty">Loading…</div></div>
+            </div>
+            <div class="wtp-lb-col">
+              <div class="wtp-lb-col-header"><div class="wtp-lb-col-icon">🔥</div><div class="wtp-lb-col-name">Hard</div></div>
+              <div class="wtp-lb-col-body" id="wtp-lb-hard"><div class="wtp-lb-col-empty">Loading…</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game -->
+    <div id="wtp-game" style="display:none">
+      <div class="wtp-hud">
+        <div class="wtp-hud-score">Score: <span id="wtp-score">0</span></div>
+        <div class="wtp-hud-timer" id="wtp-timer">1:00</div>
+        <div class="wtp-hud-streak">Streak: <span id="wtp-streak">0</span> 🔥</div>
+      </div>
+      <div class="wtp-diff-badge" id="wtp-diff-badge"></div>
+      <div class="wtp-stage" id="wtp-stage"></div>
+      <div class="wtp-choices" id="wtp-choices"></div>
+    </div>
+
+    <!-- Game Over -->
+    <div id="wtp-gameover" style="display:none">
+      <div class="wtp-gameover">
+        <div class="wtp-go-title">⏰ Time's Up!</div>
+        <div class="wtp-go-score">You scored <span id="wtp-go-score">0</span></div>
+        <div class="wtp-go-streak">Best streak: <span id="wtp-go-streak">0</span> 🔥</div>
+        <div class="wtp-go-rank" id="wtp-go-rank"></div>
+        <div class="wtp-go-btns">
+          <button class="wtp-start-btn" id="wtp-replay-btn" onclick="wtpReplay()">▶ Play Again</button>
+          <button class="wtp-lb-btn" onclick="wtpShowLobby()">← Difficulty</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- BERRY CHASE LOBBY CARD -->
-  <div class="bc-lobby-card" id="bc-lobby-card">
-    <div class="bc-lobby-title">🫐 Berry Chase</div>
-    <div class="bc-lobby-desc">Navigate the maze, collect berries, and avoid Ghost-type chasers. Grab a Rare Candy to catch them!</div>
-    <button class="wtp-start-btn" onclick="bcLaunch()">▶ Play Berry Chase</button>
-    <div class="wtp-lb-col" style="width:100%;max-width:340px">
-      <div class="wtp-lb-col-header"><div class="wtp-lb-col-icon">🫐</div><div class="wtp-lb-col-name">Top Scores</div></div>
-      <div class="wtp-lb-col-body" id="bc-lb-list"><div class="wtp-lb-col-empty">Loading…</div></div>
-    </div>
-  </div>
+  <!-- ── BERRY CHASE SCREENS ── -->
+  <div id="bc-screens" style="display:none">
+    <button class="mg-back-btn" onclick="mgBack()">← Back to Games</button>
 
-  <!-- GAME -->
-  <div id="wtp-game" style="display:none">
-    <div class="wtp-hud">
-      <div class="wtp-hud-score">Score: <span id="wtp-score">0</span></div>
-      <div class="wtp-hud-timer" id="wtp-timer">1:00</div>
-      <div class="wtp-hud-streak">Streak: <span id="wtp-streak">0</span> 🔥</div>
-    </div>
-    <div class="wtp-diff-badge" id="wtp-diff-badge"></div>
-    <div class="wtp-stage" id="wtp-stage"></div>
-    <div class="wtp-choices" id="wtp-choices"></div>
-  </div>
-
-  <!-- GAME OVER -->
-  <div id="wtp-gameover" style="display:none">
-    <div class="wtp-gameover">
-      <div class="wtp-go-title">⏰ Time's Up!</div>
-      <div class="wtp-go-score">You scored <span id="wtp-go-score">0</span></div>
-      <div class="wtp-go-streak">Best streak: <span id="wtp-go-streak">0</span> 🔥</div>
-      <div class="wtp-go-rank" id="wtp-go-rank"></div>
-      <div class="wtp-go-btns">
-        <button class="wtp-start-btn" id="wtp-replay-btn" onclick="wtpReplay()">▶ Play Again</button>
-        <button class="wtp-lb-btn" onclick="wtpShowLobby()">Back</button>
+    <!-- Lobby -->
+    <div id="bc-lobby">
+      <div class="wtp-lobby">
+        <div class="wtp-lobby-title">🫐 Berry Chase</div>
+        <div class="wtp-lobby-desc">Navigate the maze, collect berries, and avoid Ghost-type chasers. Grab a Rare Candy to catch them!</div>
+        <button class="wtp-start-btn" onclick="bcLaunch()">▶ Play Berry Chase</button>
+        <div class="wtp-lb-col" style="width:100%;max-width:340px;margin-top:8px">
+          <div class="wtp-lb-col-header"><div class="wtp-lb-col-icon">🏆</div><div class="wtp-lb-col-name">Top Scores</div></div>
+          <div class="wtp-lb-col-body" id="bc-lb-list"><div class="wtp-lb-col-empty">Loading…</div></div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- BERRY CHASE GAME -->
-  <div id="bc-game" style="display:none">
-    <div class="wtp-hud bc-hud">
-      <div class="wtp-hud-score">Score: <span id="bc-score">0</span></div>
-      <div id="bc-lives">❤️❤️❤️</div>
-      <div class="wtp-hud-score">Lv <span id="bc-level">1</span></div>
-    </div>
-    <div class="bc-canvas-wrap" id="bc-canvas-wrap">
-      <canvas id="bc-canvas"></canvas>
-    </div>
-    <div class="bc-dpad" id="bc-dpad">
-      <div class="bc-dpad-row"><button class="bc-dpad-btn" ontouchstart="bcSetDir('up')" onclick="bcSetDir('up')">▲</button></div>
-      <div class="bc-dpad-row">
-        <button class="bc-dpad-btn" ontouchstart="bcSetDir('left')" onclick="bcSetDir('left')">◀</button>
-        <button class="bc-dpad-btn bc-dpad-center" disabled></button>
-        <button class="bc-dpad-btn" ontouchstart="bcSetDir('right')" onclick="bcSetDir('right')">▶</button>
+    <!-- Game -->
+    <div id="bc-game" style="display:none">
+      <div class="wtp-hud bc-hud">
+        <div class="wtp-hud-score">Score: <span id="bc-score">0</span></div>
+        <div id="bc-lives">❤️❤️❤️</div>
+        <div class="wtp-hud-score">Lv <span id="bc-level">1</span></div>
       </div>
-      <div class="bc-dpad-row"><button class="bc-dpad-btn" ontouchstart="bcSetDir('down')" onclick="bcSetDir('down')">▼</button></div>
-    </div>
-  </div>
-
-  <!-- BERRY CHASE GAME OVER -->
-  <div id="bc-gameover" style="display:none">
-    <div class="wtp-gameover">
-      <div class="wtp-go-title">Game Over!</div>
-      <div class="wtp-go-score">Score: <span id="bc-go-score">0</span></div>
-      <div class="wtp-go-streak">Level reached: <span id="bc-go-level">1</span></div>
-      <div class="wtp-go-rank" id="bc-go-rank"></div>
-      <div class="wtp-go-btns">
-        <button class="wtp-start-btn" onclick="bcLaunch()">▶ Play Again</button>
-        <button class="wtp-lb-btn" onclick="bcShowLobby()">Back</button>
+      <div class="bc-canvas-wrap" id="bc-canvas-wrap">
+        <canvas id="bc-canvas"></canvas>
+      </div>
+      <div class="bc-dpad" id="bc-dpad">
+        <div class="bc-dpad-row"><button class="bc-dpad-btn" ontouchstart="bcSetDir('up')" onclick="bcSetDir('up')">▲</button></div>
+        <div class="bc-dpad-row">
+          <button class="bc-dpad-btn" ontouchstart="bcSetDir('left')" onclick="bcSetDir('left')">◀</button>
+          <button class="bc-dpad-btn bc-dpad-center" disabled></button>
+          <button class="bc-dpad-btn" ontouchstart="bcSetDir('right')" onclick="bcSetDir('right')">▶</button>
+        </div>
+        <div class="bc-dpad-row"><button class="bc-dpad-btn" ontouchstart="bcSetDir('down')" onclick="bcSetDir('down')">▼</button></div>
       </div>
     </div>
-  </div>
-</div>
+
+    <!-- Game Over -->
+    <div id="bc-gameover" style="display:none">
+      <div class="wtp-gameover">
+        <div class="wtp-go-title">Game Over!</div>
+        <div class="wtp-go-score">Score: <span id="bc-go-score">0</span></div>
+        <div class="wtp-go-streak">Level reached: <span id="bc-go-level">1</span></div>
+        <div class="wtp-go-rank" id="bc-go-rank"></div>
+        <div class="wtp-go-btns">
+          <button class="wtp-start-btn" onclick="bcLaunch()">▶ Play Again</button>
+          <button class="wtp-lb-btn" onclick="bcShowLobby()">← Lobby</button>
+        </div>
+      </div>
+    </div>
+  </div><!-- end bc-screens -->
+</div><!-- end view-wtp -->
 
 <!-- SETUP BANNER -->
 <div class="setup-banner" id="setup-banner">
@@ -7132,9 +7165,53 @@ function wtpFormatTime(secs) {
 }
 
 function initWTP() {
-  wtpShowLobby();
+  mgShowPicker();
   wtpLoadAllLeaderboards();
   bcLoadLeaderboard();
+  mgLoadBests();
+}
+
+function mgShowPicker() {
+  document.getElementById('mg-picker').style.display    = '';
+  document.getElementById('wtp-screens').style.display  = 'none';
+  document.getElementById('bc-screens').style.display   = 'none';
+}
+
+function mgOpen(game) {
+  document.getElementById('mg-picker').style.display = 'none';
+  if (game === 'wtp') {
+    document.getElementById('wtp-screens').style.display = '';
+    document.getElementById('bc-screens').style.display  = 'none';
+    wtpShowLobby();
+  } else {
+    document.getElementById('bc-screens').style.display  = '';
+    document.getElementById('wtp-screens').style.display = 'none';
+    bcShowLobby();
+  }
+}
+
+function mgBack() {
+  clearInterval(wtpTimerInterval);
+  bcRunning = false; cancelAnimationFrame(bcRAF); bcDetachInput();
+  clearTimeout(bcPowerTimeout);
+  document.getElementById('bc-canvas-wrap').classList.remove('power-active');
+  mgShowPicker();
+}
+
+async function mgLoadBests() {
+  if (!dbReady) return;
+  const uid = getUID();
+  if (!uid) return;
+  try {
+    const [wRes, bRes] = await Promise.all([
+      sb.from('minigame_scores').select('score').eq('user_id', uid).in('difficulty', ['easy','medium','hard']).order('score', { ascending: false }).limit(1),
+      sb.from('minigame_scores').select('score').eq('user_id', uid).eq('difficulty', 'berry_chase').order('score', { ascending: false }).limit(1)
+    ]);
+    const wEl = document.getElementById('mg-best-wtp');
+    const bEl = document.getElementById('mg-best-bc');
+    if (wEl) wEl.textContent = wRes.data?.[0] ? `Your best: ${wRes.data[0].score}` : 'No score yet';
+    if (bEl) bEl.textContent = bRes.data?.[0] ? `Your best: ${bRes.data[0].score}` : 'No score yet';
+  } catch {}
 }
 
 function wtpShowLobby() {
@@ -7671,6 +7748,7 @@ async function bcGameOver(){
   clearTimeout(bcPowerTimeout);bcPowerMode=false;
   document.getElementById('bc-canvas-wrap').classList.remove('power-active');
   document.getElementById('bc-game').style.display='none';
+  document.getElementById('bc-lobby').style.display='none';
   document.getElementById('bc-gameover').style.display='';
   document.getElementById('bc-go-score').textContent=bcScore;
   document.getElementById('bc-go-level').textContent=bcLevel;
@@ -7687,9 +7765,7 @@ async function bcGameOver(){
 }
 
 function bcLaunch(){
-  document.getElementById('wtp-lobby').style.display='none';
-  document.getElementById('wtp-game').style.display='none';
-  document.getElementById('wtp-gameover').style.display='none';
+  document.getElementById('bc-lobby').style.display='none';
   document.getElementById('bc-gameover').style.display='none';
   document.getElementById('bc-game').style.display='';
   if('ontouchstart' in window||navigator.maxTouchPoints>0)document.getElementById('bc-dpad').classList.add('visible');
@@ -7703,7 +7779,7 @@ function bcShowLobby(){
   document.getElementById('bc-canvas-wrap').classList.remove('power-active');
   document.getElementById('bc-game').style.display='none';
   document.getElementById('bc-gameover').style.display='none';
-  wtpShowLobby();
+  document.getElementById('bc-lobby').style.display='';
 }
 
 async function bcLoadLeaderboard(){
