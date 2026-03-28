@@ -3057,15 +3057,7 @@ async function openUserProfile(uid, username) {
           <div class="profile-social-label">Posts</div>
         </div>
       </div>
-      ${isOwn && getMyStarter() ? `
-        <div style="margin:8px auto;display:flex;align-items:center;gap:10px;justify-content:center">
-          <img src="${ART(getMyStarter())}" style="width:52px;height:52px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5))" onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${getMyStarter()}.png'"/>
-          <div style="text-align:left">
-            <div style="font-size:0.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Starter</div>
-            <div style="font-size:0.9rem;font-weight:800;text-transform:capitalize">${getMyStarterName()}</div>
-          </div>
-          <span style="font-size:0.65rem;color:var(--muted);font-style:italic">Your partner</span>
-        </div>` : isOwn ? `
+      ${isOwn && !profileStarterId ? `
         <button onclick="closeProfile();openChangeStarter()" style="margin:8px auto;display:block;background:var(--surface2);border:1px dashed var(--border);border-radius:12px;color:var(--muted);font-size:0.8rem;padding:8px 20px;cursor:pointer;font-family:Inter,sans-serif;font-weight:600">+ Pick your starter</button>` : ''}
       ${isOwn ? `
         <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px">
@@ -3080,13 +3072,14 @@ async function openUserProfile(uid, username) {
           <button class="follow-btn ${isFollowing ? 'is-following' : 'not-following'}" id="follow-btn-${uid}" onclick="${isFollowing ? `unfollowUser('${uid}')` : `followUser('${uid}')`}">${isFollowing ? 'Following' : 'Follow'}</button>
           <button class="profile-edit-btn" onclick="closeProfile();startConversation('${uid}','${esc(username||'Anonymous')}')">💬 Message</button>
         </div>`}
-      ${!isOwn && profileStarterId ? `
+      ${profileStarterId ? `
         <div style="margin:8px auto;display:flex;align-items:center;gap:10px;justify-content:center">
-          <img src="${ART(profileStarterId)}" style="width:44px;height:44px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5))"/>
+          <img src="${ART(profileStarterId)}" style="width:${isOwn?'52':'44'}px;height:${isOwn?'52':'44'}px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5))" onerror="this.src='${SPRITE(profileStarterId)}'"/>
           <div style="text-align:left">
             <div style="font-size:0.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Starter</div>
-            <div style="font-size:0.88rem;font-weight:800;text-transform:capitalize">${esc(profileStarterName||'')}</div>
+            <div style="font-size:${isOwn?'0.9':'0.88'}rem;font-weight:800;text-transform:capitalize">${esc(profileStarterName||'')}</div>
           </div>
+          ${isOwn?'<span style="font-size:0.65rem;color:var(--muted);font-style:italic">Your partner</span>':''}
         </div>` : ''}
     </div>
     <div class="profile-stats" id="profile-stats-${uid}" style="grid-template-columns:repeat(3,1fr)">
