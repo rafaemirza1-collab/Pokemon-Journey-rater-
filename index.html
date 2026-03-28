@@ -1214,51 +1214,95 @@
   /* ── Battle field — real Pokemon layout ── */
   .battle-field {
     position:relative; overflow:hidden;
-    background:linear-gradient(180deg, #4a7c59 0%, #5a9e6f 35%, #6db87f 50%, #8fd4a0 52%, #c8e6c9 52%, #e8f5e9 100%);
-    min-height:260px; padding:0;
+    min-height:280px; padding:0;
   }
+  /* Dynamic backgrounds via data-bg attribute */
+  .battle-field[data-bg="plains"] .battle-field-sky { background:linear-gradient(180deg,#87ceeb 0%,#b0e0f5 100%); }
+  .battle-field[data-bg="plains"] .battle-field-ground { background:linear-gradient(180deg,#8fd4a0 0%,#6db87f 100%); }
+  .battle-field[data-bg="night"] .battle-field-sky { background:linear-gradient(180deg,#0a0a2e 0%,#1a1a4e 100%); }
+  .battle-field[data-bg="night"] .battle-field-ground { background:linear-gradient(180deg,#2d3a2d 0%,#1e271e 100%); }
+  .battle-field[data-bg="cave"] .battle-field-sky { background:linear-gradient(180deg,#1a1008 0%,#2d1f10 100%); }
+  .battle-field[data-bg="cave"] .battle-field-ground { background:linear-gradient(180deg,#4a3828 0%,#2d2218 100%); }
+  .battle-field[data-bg="snow"] .battle-field-sky { background:linear-gradient(180deg,#c8e6f0 0%,#ddeef7 100%); }
+  .battle-field[data-bg="snow"] .battle-field-ground { background:linear-gradient(180deg,#e8f4f8 0%,#cce0ec 100%); }
+  .battle-field[data-bg="volcano"] .battle-field-sky { background:linear-gradient(180deg,#3d1208 0%,#7a2010 100%); }
+  .battle-field[data-bg="volcano"] .battle-field-ground { background:linear-gradient(180deg,#5c2010 0%,#3d1208 100%); }
   .battle-field-sky { position:absolute; inset:0 0 50% 0; background:linear-gradient(180deg,#87ceeb 0%,#b0e0f5 100%); }
   .battle-field-ground { position:absolute; inset:50% 0 0 0; background:linear-gradient(180deg,#8fd4a0 0%,#6db87f 100%); }
-  .battle-field-platform-enemy { position:absolute; top:28%; left:55%; transform:translateX(-50%); width:110px; height:22px; background:radial-gradient(ellipse,rgba(0,0,0,0.25) 60%,transparent 100%); border-radius:50%; }
-  .battle-field-platform-player { position:absolute; top:58%; left:30%; transform:translateX(-50%); width:130px; height:26px; background:radial-gradient(ellipse,rgba(0,0,0,0.3) 60%,transparent 100%); border-radius:50%; }
-  .battle-hud-enemy { position:absolute; top:8px; left:12px; background:rgba(0,0,0,0.75); border:2px solid rgba(255,255,255,0.15); border-radius:12px; padding:8px 14px; min-width:170px; backdrop-filter:blur(4px); }
-  .battle-hud-player { position:absolute; bottom:8px; right:12px; background:rgba(0,0,0,0.75); border:2px solid rgba(255,255,255,0.15); border-radius:12px; padding:8px 14px; min-width:170px; backdrop-filter:blur(4px); }
+  .battle-field-platform-enemy { position:absolute; top:28%; left:55%; transform:translateX(-50%); width:110px; height:22px; background:radial-gradient(ellipse,rgba(0,0,0,0.3) 60%,transparent 100%); border-radius:50%; }
+  .battle-field-platform-player { position:absolute; top:58%; left:30%; transform:translateX(-50%); width:130px; height:26px; background:radial-gradient(ellipse,rgba(0,0,0,0.35) 60%,transparent 100%); border-radius:50%; }
+  /* HUD boxes */
+  .battle-hud-enemy { position:absolute; top:8px; left:12px; background:rgba(0,0,0,0.82); border:2px solid rgba(255,255,255,0.18); border-radius:12px; padding:8px 14px 10px; min-width:180px; backdrop-filter:blur(4px); }
+  .battle-hud-player { position:absolute; bottom:8px; right:12px; background:rgba(0,0,0,0.82); border:2px solid rgba(255,255,255,0.18); border-radius:12px; padding:8px 14px 10px; min-width:180px; backdrop-filter:blur(4px); }
   .battle-hud-name { font-size:0.82rem; font-weight:800; color:#fff; margin-bottom:4px; text-transform:capitalize; display:flex; align-items:center; gap:6px; }
-  .battle-hud-level { font-size:0.65rem; color:#aaa; }
-  .battle-hp-bar-wrap { background:rgba(255,255,255,0.15); border-radius:999px; height:7px; overflow:hidden; margin-bottom:3px; }
+  .battle-hud-level { font-size:0.65rem; color:#aaa; margin-left:auto; }
+  .battle-hp-bar-wrap { background:rgba(255,255,255,0.15); border-radius:999px; height:8px; overflow:hidden; margin-bottom:4px; }
   .battle-hp-bar { height:100%; border-radius:999px; transition:width 0.6s ease, background 0.4s ease; }
-  .battle-hp-text { font-size:0.65rem; color:#ccc; font-variant-numeric:tabular-nums; text-align:right; }
+  .battle-hp-text { font-size:0.65rem; color:#ccc; font-variant-numeric:tabular-nums; text-align:right; margin-bottom:5px; }
+  /* Team dots (Pokeball indicators) */
+  .battle-hud-dots { display:flex; gap:3px; margin-top:2px; }
+  .battle-hud-dot { width:9px; height:9px; border-radius:50%; border:1.5px solid rgba(255,255,255,0.3); background:#4caf50; flex-shrink:0; }
+  .battle-hud-dot.fainted { background:#555; border-color:rgba(255,255,255,0.1); }
+  .battle-hud-dot.active { border-color:#fff; box-shadow:0 0 4px rgba(255,255,255,0.6); }
+  /* Sprites */
   .battle-sprite-wrap { position:absolute; }
   .battle-sprite-wrap.enemy { top:2%; left:52%; transform:translateX(-50%); }
-  .battle-sprite-wrap.player { top:30%; left:20%; transform:translateX(-50%); }
-  .battle-sprite { width:112px; height:112px; object-fit:contain; image-rendering:pixelated; filter:drop-shadow(0 6px 16px rgba(0,0,0,0.5)); }
-  .battle-sprite.enemy { width:100px; height:100px; }
-  .battle-sprite.fainted { filter:brightness(0) opacity(0.25); transform:rotate(90deg) translateY(20px); transition:all 0.5s ease; }
-  .battle-pokemon-name { display:none; } /* replaced by HUD */
-  @keyframes battleShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
-  @keyframes battleFlash { 0%,100%{opacity:1} 50%{opacity:0.2} }
+  .battle-sprite-wrap.player { top:28%; left:20%; transform:translateX(-50%); }
+  .battle-sprite { width:120px; height:120px; object-fit:contain; image-rendering:pixelated; filter:drop-shadow(0 8px 20px rgba(0,0,0,0.6)); transition:transform 0.3s ease; }
+  .battle-sprite.enemy { width:108px; height:108px; }
+  .battle-sprite.fainted { filter:brightness(0) opacity(0.2); transform:rotate(90deg) translateY(24px); transition:all 0.5s ease; }
+  .battle-pokemon-name { display:none; }
+  /* Turn counter */
+  .battle-turn-badge { position:absolute; top:8px; right:12px; background:rgba(0,0,0,0.6); color:#fff; font-size:0.65rem; font-weight:700; padding:3px 8px; border-radius:999px; border:1px solid rgba(255,255,255,0.15); }
+  @keyframes battleShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-10px)} 40%{transform:translateX(10px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
+  @keyframes battleFlash { 0%,100%{opacity:1} 50%{opacity:0.1} }
   .battle-sprite.hit { animation:battleShake 0.4s ease; }
-  .battle-sprite.flash { animation:battleFlash 0.15s ease 3; }
-  @keyframes battleFloat { from{transform:translateY(0);opacity:1} to{transform:translateY(-40px);opacity:0} }
-  .battle-float { position:absolute; font-size:1.1rem; font-weight:900; pointer-events:none; animation:battleFloat 1s ease forwards; color:#fff; text-shadow:0 2px 4px rgba(0,0,0,0.8); white-space:nowrap; }
-  /* Move buttons */
-  .battle-moves { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:16px; background:var(--surface); border-top:1px solid var(--border); }
-  .battle-move-btn { padding:14px 10px; border-radius:14px; border:2px solid transparent; cursor:pointer; font-size:0.85rem; font-weight:700; text-align:center; transition:all 0.18s; display:flex; flex-direction:column; gap:3px; align-items:center; background:var(--surface2); color:var(--text); }
-  .battle-move-btn:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,0.3); }
+  .battle-sprite.flash { animation:battleFlash 0.12s ease 4; }
+  @keyframes battleFloat { from{transform:translateY(0);opacity:1} to{transform:translateY(-48px);opacity:0} }
+  .battle-float { position:absolute; font-size:1.2rem; font-weight:900; pointer-events:none; animation:battleFloat 1.1s ease forwards; color:#fff; text-shadow:0 2px 6px rgba(0,0,0,0.9); white-space:nowrap; }
+  /* Move panel */
+  .battle-bottom-bar { background:var(--surface); border-top:2px solid var(--border); }
+  .battle-move-header { display:flex; align-items:center; justify-content:space-between; padding:10px 16px 4px; }
+  .battle-move-header-label { font-size:0.75rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; }
+  .battle-forfeit-btn { font-size:0.72rem; color:var(--red); background:none; border:1px solid var(--red); border-radius:6px; padding:3px 10px; cursor:pointer; opacity:0.7; transition:opacity 0.15s; }
+  .battle-forfeit-btn:hover { opacity:1; }
+  .battle-moves { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:8px 16px 14px; }
+  .battle-move-btn { padding:12px 10px; border-radius:14px; border:2px solid transparent; cursor:pointer; font-size:0.85rem; font-weight:700; text-align:left; transition:all 0.18s; display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto; gap:2px 8px; align-items:center; background:var(--surface2); color:var(--text); }
+  .battle-move-btn:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,0.35); }
   .battle-move-btn:disabled { opacity:0.4; cursor:not-allowed; }
-  .battle-move-type { font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:999px; color:#fff; text-transform:uppercase; letter-spacing:0.5px; }
-  .battle-move-power { font-size:0.7rem; color:var(--muted); }
+  .battle-move-btn:active:not(:disabled) { transform:translateY(0) scale(0.97); }
+  .battle-move-cat { font-size:1rem; grid-row:span 2; align-self:center; }
+  .battle-move-name { font-size:0.88rem; font-weight:800; }
+  .battle-move-meta { display:flex; align-items:center; gap:5px; }
+  .battle-move-type { font-size:0.6rem; font-weight:700; padding:1px 6px; border-radius:999px; color:#fff; text-transform:uppercase; letter-spacing:0.5px; }
+  .battle-move-power { font-size:0.65rem; color:var(--muted); }
+  .battle-move-switch-btn { grid-column:span 2; padding:10px; border-radius:12px; border:1px dashed var(--border); background:none; color:var(--muted); cursor:pointer; font-size:0.82rem; font-weight:700; transition:all 0.15s; }
+  .battle-move-switch-btn:hover { background:var(--surface2); color:var(--text); }
   /* Log */
-  .battle-log { background:var(--surface2); border-top:1px solid var(--border); padding:12px 16px; max-height:80px; overflow-y:auto; display:flex; flex-direction:column; gap:3px; }
-  .battle-log-line { font-size:0.8rem; color:var(--text); line-height:1.4; }
-  .battle-log-line.new { color:var(--accent); font-weight:600; }
+  .battle-log { background:var(--surface2); border-top:1px solid var(--border); padding:10px 16px; min-height:56px; max-height:160px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; }
+  .battle-log-line { font-size:0.82rem; color:var(--text); line-height:1.45; padding:1px 0; }
+  .battle-log-line.new { font-weight:700; }
+  .battle-log-line.log-dmg { color:#ff9800; }
+  .battle-log-line.log-super { color:#ffcb05; font-weight:800; }
+  .battle-log-line.log-status { color:#c77dff; }
+  .battle-log-line.log-faint { color:var(--red); font-weight:800; }
+  .battle-log-line.log-switch { color:#64b5f6; }
+  /* "Opponent choosing" indicator */
+  .battle-opp-thinking { display:flex; align-items:center; gap:8px; padding:10px 16px; font-size:0.8rem; color:var(--muted); border-top:1px solid var(--border); background:var(--surface); }
+  @keyframes dotPulse { 0%,80%,100%{opacity:0.2;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
+  .battle-opp-dot { width:5px; height:5px; border-radius:50%; background:var(--accent2); display:inline-block; animation:dotPulse 1.2s ease infinite; }
+  .battle-opp-dot:nth-child(2){animation-delay:0.2s}.battle-opp-dot:nth-child(3){animation-delay:0.4s}
   /* Switch panel */
-  .battle-switch-panel { padding:16px; background:var(--surface); border-top:1px solid var(--border); display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
-  .battle-switch-btn { display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 12px; border-radius:12px; border:2px solid var(--border); background:var(--surface2); cursor:pointer; transition:all 0.15s; min-width:70px; }
+  .battle-switch-panel { padding:12px 16px 16px; background:var(--surface); border-top:1px solid var(--border); }
+  .battle-switch-panel-title { font-size:0.75rem; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
+  .battle-switch-grid { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+  .battle-switch-btn { display:flex; flex-direction:column; align-items:center; gap:3px; padding:8px 10px; border-radius:12px; border:2px solid var(--border); background:var(--surface2); cursor:pointer; transition:all 0.15s; min-width:68px; }
   .battle-switch-btn:hover:not(:disabled) { border-color:var(--accent2); background:rgba(59,91,167,0.15); }
   .battle-switch-btn:disabled { opacity:0.35; cursor:not-allowed; }
   .battle-switch-btn img { width:48px; height:48px; object-fit:contain; image-rendering:pixelated; }
-  .battle-switch-btn span { font-size:0.7rem; font-weight:700; text-transform:capitalize; }
+  .battle-switch-btn span { font-size:0.68rem; font-weight:700; text-transform:capitalize; }
+  .battle-switch-cancel { width:100%; margin-top:8px; padding:8px; border-radius:10px; border:1px solid var(--border); background:none; color:var(--muted); cursor:pointer; font-size:0.8rem; font-weight:600; transition:all 0.15s; }
+  .battle-switch-cancel:hover { background:var(--surface2); color:var(--text); }
   /* Result screen */
   .battle-result { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:32px 24px; display:flex; flex-direction:column; align-items:center; gap:16px; text-align:center; }
   .battle-result-title { font-size:2rem; font-weight:900; }
@@ -1268,6 +1312,7 @@
   .battle-result-score { font-size:1rem; color:var(--muted); }
   /* Leaderboard */
   .battle-lb-row { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:10px; background:var(--surface2); }
+  .battle-lb-row.battle-lb-me { border:1px solid var(--accent2); background:rgba(59,91,167,0.12); }
   .battle-lb-rank { font-size:1.1rem; width:28px; text-align:center; flex-shrink:0; }
   .battle-lb-name { flex:1; font-weight:700; font-size:0.88rem; }
   .battle-lb-stat { font-size:0.8rem; color:var(--muted); white-space:nowrap; }
@@ -1637,22 +1682,26 @@
     <div id="battle-arena" style="display:none;width:100%">
       <div class="battle-arena">
         <!-- Field -->
-        <div class="battle-field" id="battle-field" style="height:280px">
+        <div class="battle-field" id="battle-field" data-bg="plains">
           <div class="battle-field-sky"></div>
           <div class="battle-field-ground"></div>
           <div class="battle-field-platform-enemy"></div>
           <div class="battle-field-platform-player"></div>
+          <!-- Turn badge -->
+          <div class="battle-turn-badge" id="b-turn-badge">Turn 1</div>
           <!-- Enemy HUD (top left) -->
           <div class="battle-hud-enemy">
             <div class="battle-hud-name"><span id="b-enemy-name">—</span><span class="battle-hud-level" id="b-enemy-level">Lv 50</span></div>
             <div class="battle-hp-bar-wrap"><div class="battle-hp-bar" id="b-enemy-hp-bar" style="width:100%;background:#4caf50"></div></div>
             <div class="battle-hp-text" id="b-enemy-hp-text">HP: —</div>
+            <div class="battle-hud-dots" id="b-enemy-dots"></div>
           </div>
           <!-- Player HUD (bottom right) -->
           <div class="battle-hud-player">
             <div class="battle-hud-name"><span id="b-player-name">—</span><span class="battle-hud-level" id="b-player-level">Lv 50</span></div>
             <div class="battle-hp-bar-wrap"><div class="battle-hp-bar" id="b-player-hp-bar" style="width:100%;background:#4caf50"></div></div>
             <div class="battle-hp-text" id="b-player-hp-text">HP: —</div>
+            <div class="battle-hud-dots" id="b-player-dots"></div>
           </div>
           <!-- Sprites -->
           <div class="battle-sprite-wrap enemy">
@@ -1664,17 +1713,30 @@
         </div>
         <!-- Log -->
         <div class="battle-log" id="battle-log"></div>
-        <!-- Moves / waiting -->
-        <div id="battle-moves-wrap">
-          <div class="battle-moves" id="battle-moves"></div>
-        </div>
-        <!-- Switch panel (hidden until needed) -->
-        <div class="battle-switch-panel" id="battle-switch-panel" style="display:none"></div>
-        <!-- Waiting for opponent move -->
-        <div id="battle-waiting-move" style="display:none">
-          <div class="battle-waiting" style="padding:12px 16px">
-            <div class="battle-waiting-spinner"></div>
-            <div style="font-size:0.8rem;color:var(--muted)">Waiting for opponent…</div>
+        <!-- Bottom bar: moves / switch / waiting -->
+        <div class="battle-bottom-bar" id="battle-bottom-bar">
+          <!-- Moves panel -->
+          <div id="battle-moves-wrap">
+            <div class="battle-move-header">
+              <span class="battle-move-header-label">Choose a move</span>
+              <button class="battle-forfeit-btn" onclick="battleForfeit()">🏳 Forfeit</button>
+            </div>
+            <div class="battle-moves" id="battle-moves"></div>
+          </div>
+          <!-- Switch panel (hidden until needed) -->
+          <div class="battle-switch-panel" id="battle-switch-panel" style="display:none">
+            <div class="battle-switch-panel-title">Switch Pokémon</div>
+            <div class="battle-switch-grid" id="battle-switch-grid"></div>
+            <button class="battle-switch-cancel" onclick="battleCancelSwitch()" id="battle-switch-cancel">← Back to moves</button>
+          </div>
+          <!-- Waiting for opponent move -->
+          <div id="battle-waiting-move" style="display:none">
+            <div class="battle-opp-thinking">
+              <span>Opponent is choosing</span>
+              <span class="battle-opp-dot"></span>
+              <span class="battle-opp-dot"></span>
+              <span class="battle-opp-dot"></span>
+            </div>
           </div>
         </div>
       </div>
@@ -8570,8 +8632,57 @@ function battleShowArena(){
   ['battle-vs-screen','battle-lobby','battle-result'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('battle-arena').style.display='';
   document.getElementById('battle-log').innerHTML='';
+  // Random battle background
+  const bgs=['plains','night','cave','snow','volcano'];
+  const field=document.getElementById('battle-field');
+  if(field)field.setAttribute('data-bg',bgs[Math.floor(Math.random()*bgs.length)]);
   battleRenderArena();
   battleShowMoves();
+  // Start poll-based sync fallback for both players (every 2.5s)
+  battleStartTurnPoll();
+}
+
+let _battleTurnPollTimer=null;
+function battleStartTurnPoll(){
+  battleStopTurnPoll();
+  _battleTurnPollTimer=setInterval(async()=>{
+    if(!battleRoomId||!battleState||battleState.status!=='active')return;
+    const isA=battleMySlot==='a';
+    const{data:room}=await sb.from('battle_rooms').select('pending_a,pending_b,state,status').eq('id',battleRoomId).single();
+    if(!room)return;
+    if(room.status==='finished'){battleStopTurnPoll();return;}
+    // If I'm waiting (submitted my move) and opponent has also submitted — try to resolve
+    const myPending=isA?battleState.pendingA:battleState.pendingB;
+    const oppFieldMove=isA?room.pending_b:room.pending_a;
+    if(myPending!==null&&myPending!==undefined&&oppFieldMove!==null&&oppFieldMove!==undefined){
+      const pA=isA?myPending:oppFieldMove;
+      const pB=isA?oppFieldMove:myPending;
+      const{error}=await sb.from('battle_rooms')
+        .update({pending_a:null,pending_b:null})
+        .eq('id',battleRoomId)
+        .not('pending_a','is',null)
+        .not('pending_b','is',null);
+      if(!error)battleResolveTurn(pA,pB);
+    }
+    // B always syncs state from DB
+    if(battleMySlot==='b'&&room.state){
+      const newState=JSON.parse(room.state);
+      if(newState.turn>_battleLastProcessedTurn){
+        _battleLastProcessedTurn=newState.turn;
+        const logDiff=newState.log.slice(battleState.log.length);
+        battleState=newState;
+        if(logDiff.length)battleUpdateLog(logDiff);
+        battleRenderArena();
+        const myActivePollB=battleState.teamB[battleState.activeB];
+        if(myActivePollB&&myActivePollB.fainted&&battleState.teamB.some(p=>!p.fainted)){
+          battleUpdateLog(['Choose your next Pokémon!']);battleShowSwitch(true);
+        } else { battleShowMoves(); }
+      }
+    }
+  },2500);
+}
+function battleStopTurnPoll(){
+  if(_battleTurnPollTimer){clearInterval(_battleTurnPollTimer);_battleTurnPollTimer=null;}
 }
 
 function battleRenderArena(){
@@ -8579,15 +8690,20 @@ function battleRenderArena(){
   const isA=battleMySlot==='a';
   const myTeam=isA?battleState.teamA:battleState.teamB;
   const oppTeam=isA?battleState.teamB:battleState.teamA;
-  const myIdx=Math.min(isA?battleState.activeA:battleState.activeB,myTeam.length-1);
-  const oppIdx=Math.min(isA?battleState.activeB:battleState.activeA,oppTeam.length-1);
+  const myActiveIdx=isA?battleState.activeA:battleState.activeB;
+  const oppActiveIdx=isA?battleState.activeB:battleState.activeA;
+  const myIdx=Math.min(myActiveIdx,myTeam.length-1);
+  const oppIdx=Math.min(oppActiveIdx,oppTeam.length-1);
   const me=myTeam[myIdx];const opp=oppTeam[oppIdx];
   if(!me||!opp)return;
 
-  const renderPk=(nameId,spriteId,barId,textId,pk,isEnemy)=>{
+  // Turn badge
+  const tb=document.getElementById('b-turn-badge');
+  if(tb)tb.textContent=`Turn ${battleState.turn}`;
+
+  const renderPk=(nameId,spriteId,barId,textId,dotsId,pk,activeIdx,team,isEnemy)=>{
     document.getElementById(nameId).textContent=pk.name+(pk.status?{burned:' 🔥',poisoned:' ☠️',paralyzed:' ⚡'}[pk.status]||'':'');
     const spr=document.getElementById(spriteId);
-    // Use back sprite for player, front for enemy — more authentic
     spr.src=isEnemy
       ?`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pk.id}.png`
       :`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${pk.id}.png`;
@@ -8597,9 +8713,14 @@ function battleRenderArena(){
     const bar=document.getElementById(barId);
     bar.style.width=pct+'%';bar.style.background=pct>50?'#4caf50':pct>20?'#ff9800':'#f44336';
     document.getElementById(textId).textContent=`HP: ${Math.max(0,pk.hp)}/${pk.maxHp}`;
+    // Team health dots
+    const dotsEl=document.getElementById(dotsId);
+    if(dotsEl&&team){
+      dotsEl.innerHTML=team.map((p,i)=>`<div class="battle-hud-dot${p.fainted?' fainted':''}${i===activeIdx?' active':''}"></div>`).join('');
+    }
   };
-  renderPk('b-enemy-name','b-enemy-sprite','b-enemy-hp-bar','b-enemy-hp-text',opp,true);
-  renderPk('b-player-name','b-player-sprite','b-player-hp-bar','b-player-hp-text',me,false);
+  renderPk('b-enemy-name','b-enemy-sprite','b-enemy-hp-bar','b-enemy-hp-text','b-enemy-dots',opp,oppActiveIdx,oppTeam,true);
+  renderPk('b-player-name','b-player-sprite','b-player-hp-bar','b-player-hp-text','b-player-dots',me,myActiveIdx,myTeam,false);
 }
 
 function battleShowMoves(){
@@ -8619,28 +8740,42 @@ function battleShowMoves(){
   document.getElementById('battle-moves-wrap').style.display='';
   document.getElementById('battle-waiting-move').style.display='none';
   const moves=getBattleMoves(me.id);
+  const catIcon={physical:'⚔️',special:'✨',status:'—'};
   document.getElementById('battle-moves').innerHTML=moves.map((m,i)=>{
     const col=TYPE_COLORS[m.type]||'#666';
-    return `<button class="battle-move-btn" style="border-color:${col}44;background:${col}18" onclick="battlePickMove(${i})">
-      <span style="font-size:0.9rem">${m.name}</span>
-      <span class="battle-move-type" style="background:${col}">${m.type}</span>
-      <span class="battle-move-power">${m.power?'Power: '+m.power:'Status'}</span>
+    const icon=catIcon[m.cat]||'—';
+    return `<button class="battle-move-btn" style="border-color:${col}55;background:${col}14" onclick="battlePickMove(${i})">
+      <span class="battle-move-cat">${icon}</span>
+      <span class="battle-move-name">${m.name}</span>
+      <span class="battle-move-meta">
+        <span class="battle-move-type" style="background:${col}">${m.type}</span>
+        <span class="battle-move-power">${m.power?'PWR '+m.power:'—'}</span>
+      </span>
     </button>`;
-  }).join('')+`<button class="battle-move-btn" style="grid-column:span 2;opacity:0.7" onclick="battleShowSwitch()">↕ Switch Pokémon</button>`;
+  }).join('')+`<button class="battle-move-switch-btn" onclick="battleShowSwitch()">↕ Switch Pokémon</button>`;
 }
 
-function battleShowSwitch(){
+function battleShowSwitch(forceSwitch){
   const isA=battleMySlot==='a';
   const myTeam=isA?battleState.teamA:battleState.teamB;
   const myIdx=isA?battleState.activeA:battleState.activeB;
+  document.getElementById('battle-moves-wrap').style.display='none';
+  document.getElementById('battle-waiting-move').style.display='none';
   const panel=document.getElementById('battle-switch-panel');
   panel.style.display='';
-  panel.innerHTML=myTeam.map((p,i)=>`
+  const cancelBtn=document.getElementById('battle-switch-cancel');
+  if(cancelBtn)cancelBtn.style.display=forceSwitch?'none':'';
+  const grid=document.getElementById('battle-switch-grid');
+  if(grid)grid.innerHTML=myTeam.map((p,i)=>`
     <button class="battle-switch-btn" ${(i===myIdx||p.fainted)?'disabled':''} onclick="battlePickSwitch(${i})">
       <img src="${SPRITE(p.id)}" alt="${p.name}"/>
       <span>${p.name}</span>
-      <span style="font-size:0.65rem;color:${p.fainted?'var(--red)':'#4caf50'}">${p.fainted?'Fainted':'HP: '+p.hp}</span>
+      <span style="font-size:0.62rem;color:${p.fainted?'var(--red)':p.hp/p.maxHp>0.5?'#4caf50':'#ff9800'}">${p.fainted?'Fainted':p.hp+'/'+p.maxHp}</span>
     </button>`).join('');
+}
+function battleCancelSwitch(){
+  document.getElementById('battle-switch-panel').style.display='none';
+  document.getElementById('battle-moves-wrap').style.display='';
 }
 
 async function battlePickMove(moveIdx){
@@ -8655,11 +8790,21 @@ async function battlePickMove(moveIdx){
 
 async function battlePickSwitch(slotIdx){
   document.getElementById('battle-switch-panel').style.display='none';
+  document.getElementById('battle-moves-wrap').style.display='';
   const code=100+slotIdx;
   const isA=battleMySlot==='a';
   if(isA)battleState.pendingA=code; else battleState.pendingB=code;
   battleShowMoves();
   await battleSubmitPending(code);
+}
+
+async function battleForfeit(){
+  if(!battleState||battleState.status!=='active')return;
+  if(!confirm('Forfeit this battle?'))return;
+  const winUid=battleMySlot==='a'?battleRoom.player_b:battleRoom.player_a;
+  await sb.from('battle_rooms').update({status:'finished',winner_id:winUid,pending_a:null,pending_b:null}).eq('id',battleRoomId);
+  battleState.status='finished';
+  battleFinishUI(false);
 }
 
 async function battleSubmitPending(myMove){
@@ -8731,7 +8876,13 @@ function battleOnRoomUpdate(room){
     battleState=newState;
     if(logDiff.length)battleUpdateLog(logDiff);
     battleRenderArena();
-    battleShowMoves();
+    // Check forced switch for B
+    const myTeamB=battleState.teamB;
+    const myActiveBIdx=battleState.activeB;
+    const myActiveB=myTeamB[myActiveBIdx];
+    if(myActiveB&&myActiveB.fainted&&myTeamB.some(p=>!p.fainted)){
+      battleUpdateLog(['Choose your next Pokémon!']);battleShowSwitch(true);
+    } else { battleShowMoves(); }
     return;
   }
 
@@ -8806,7 +8957,14 @@ function battleResolveTurn(moveA,moveB){
     battleUpdateLog(log);battleRenderArena();
     battleFinishUI(winSlot===battleMySlot);
   } else {
-    battleUpdateLog(log);battleRenderArena();battleShowMoves();
+    battleUpdateLog(log);battleRenderArena();
+    const isA=battleMySlot==='a';
+    const myTeam2=isA?teamA:teamB;
+    const myActiveIdx2=isA?battleState.activeA:battleState.activeB;
+    const myActive2=myTeam2[myActiveIdx2];
+    if(myActive2&&myActive2.fainted&&myTeam2.some(p=>!p.fainted)){
+      battleUpdateLog(['Choose your next Pokémon!']);battleShowSwitch(true);
+    } else { battleShowMoves(); }
     // Save state for B to sync, pending already cleared
     sb.from('battle_rooms').update({state:JSON.stringify(battleState)}).eq('id',battleRoomId).then(()=>{});
   }
@@ -8814,7 +8972,17 @@ function battleResolveTurn(moveA,moveB){
 
 function battleUpdateLog(lines){
   const el=document.getElementById('battle-log');if(!el||!lines?.length)return;
-  lines.forEach((l,i)=>{const d=document.createElement('div');d.className='battle-log-line'+(i===0?' new':'');d.textContent=l;el.appendChild(d);});
+  lines.forEach((l,i)=>{
+    const d=document.createElement('div');
+    let cls='battle-log-line';
+    if(i===0)cls+=' new';
+    if(l.includes('fainted'))cls+=' log-faint';
+    else if(l.includes('Super effective'))cls+=' log-super';
+    else if(l.includes('damage')||l.includes('dmg'))cls+=' log-dmg';
+    else if(l.includes('burned')||l.includes('paralyzed')||l.includes('poisoned')||l.includes('hurt by'))cls+=' log-status';
+    else if(l.includes('switched out')||l.includes('came in'))cls+=' log-switch';
+    d.className=cls;d.textContent=l;el.appendChild(d);
+  });
   el.scrollTop=el.scrollHeight;
 }
 
@@ -8841,6 +9009,7 @@ async function battleRematch(){
 function battleBackToLobby(){
   if(battleChannel){sb.removeChannel(battleChannel);battleChannel=null;}
   battleStopRoomPoll();
+  battleStopTurnPoll();
   _battleArenaShowing=false;_battleLastProcessedTurn=-1;
   ['battle-challenge-panel','battle-vs-screen','battle-arena','battle-result'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('battle-lobby').style.display='';
@@ -8997,7 +9166,17 @@ window.battleResolveTurn=function(moveA,moveB){
       sb.from('battle_rooms').update({status:'finished',winner_id:winUid,state:JSON.stringify(battleState),pending_a:null,pending_b:null}).eq('id',battleRoomId).then(()=>{});
       battleFinishUI(winSlot===battleMySlot);
     } else {
-      battleShowMoves();
+      // Check if my active Pokemon fainted — force switch
+      const isA=battleMySlot==='a';
+      const myTeam=isA?battleState.teamA:battleState.teamB;
+      const myActiveIdx=isA?battleState.activeA:battleState.activeB;
+      const myActive=myTeam[myActiveIdx];
+      if(myActive&&myActive.fainted&&myTeam.some(p=>!p.fainted)){
+        battleUpdateLog(['Choose your next Pokémon!']);
+        battleShowSwitch(true);
+      } else {
+        battleShowMoves();
+      }
       sb.from('battle_rooms').update({state:JSON.stringify(battleState)}).eq('id',battleRoomId).then(()=>{});
     }
   },maxDelay);
