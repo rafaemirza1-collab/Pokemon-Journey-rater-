@@ -8720,12 +8720,15 @@ function battleStartTurnPoll(){
         _battleLastProcessedTurn=newState.turn;
         const logDiff=newState.log.slice(battleState.log.length);
         battleState=newState;
-        if(logDiff.length)battleUpdateLog(logDiff);
+        if(logDiff.length){battleUpdateLog(logDiff);battleReplayAnimations(logDiff);}
         battleRenderArena();
         const myActivePollB=battleState.teamB[battleState.activeB];
-        if(myActivePollB&&myActivePollB.fainted&&battleState.teamB.some(p=>!p.fainted)){
-          battleUpdateLog(['Choose your next Pokémon!']);battleShowSwitch(true);
-        } else { battleShowMoves(); }
+        const animDelayPoll=logDiff.length*200+400;
+        setTimeout(()=>{
+          if(myActivePollB&&myActivePollB.fainted&&battleState.teamB.some(p=>!p.fainted)){
+            battleUpdateLog(['Choose your next Pokémon!']);battleShowSwitch(true);
+          } else { battleShowMoves(); }
+        },animDelayPoll);
       }
     }
   },2500);
@@ -8907,6 +8910,60 @@ async function battleSubmitPending(myMove){
   }catch(e){showToast('Connection error. Try again.');}
 }
 
+// ── Replay animations for Player B based on log lines ────────────
+function battleReplayAnimations(logDiff){
+  if(!logDiff||!logDiff.length||!battleState)return;
+  // Determine which sprite is enemy from B's perspective (player A = enemy for B)
+  const enemySprite='b-enemy-sprite';
+  const playerSprite='b-player-sprite';
+  let t=0;
+  logDiff.forEach(line=>{
+    // Damage to enemy (B's opponent = A) — lines like "−42 to Charizard" or "💥 Super effective! −42 to X"
+    const dmgMatch=line.match(/[−-](\d+) to (.+)/);
+    if(dmgMatch){
+      const dmg=dmgMatch[1];
+      const isCrit=logDiff.includes('⭐ Critical hit!');
+      const isSuper=line.startsWith('💥');
+      const isWeak=line.startsWith('😐');
+      // Figure out which sprite got hit: if the target name matches enemy active
+      const targetName=dmgMatch[2].trim();
+      const activeEnemy=battleState.teamA[battleState.activeA];
+      const isEnemyHit=activeEnemy&&activeEnemy.name===targetName;
+      const hitSprite=isEnemyHit?enemySprite:playerSprite;
+      const floatIsEnemy=isEnemyHit;
+      setTimeout(()=>{
+        if(isCrit)battleSoundCrit(); else if(isSuper)battleSoundSuperHit(); else battleSoundHit();
+        battleAnimHit(hitSprite,isSuper||isCrit);
+        battleAddDmgFloat(floatIsEnemy,'-'+dmg,isCrit?'#ff5722':isSuper?'#ffcb05':isWeak?'#aaa':'#fff');
+        if(isCrit)battleAddDmgFloat(floatIsEnemy,'CRIT!','#ff5722');
+      },t+=180);
+      return;
+    }
+    // Faint
+    if(line.includes('fainted!')){
+      const faintName=line.replace('💀 ','').replace(' fainted!','').trim();
+      const activeEnemy=battleState.teamA[battleState.activeA];
+      const isEnemyFaint=activeEnemy&&activeEnemy.name===faintName;
+      const faintSprite=isEnemyFaint?enemySprite:playerSprite;
+      setTimeout(()=>{battleSoundFaint();document.getElementById(faintSprite)?.classList.add('fainted');},t+=350);
+      return;
+    }
+    // Status sounds
+    if(line.includes('paralyzed')||line.includes('burned')||line.includes('poisoned')||
+       line.includes('frozen')||line.includes('confused')||line.includes('thawed')||line.includes('snapped out')){
+      setTimeout(()=>battleSoundStatus(),t+=80);
+    }
+    // Miss
+    if(line.includes('missed!')){setTimeout(()=>battleSoundMiss(),t+=80);}
+    // Self-confusion hit
+    if(line.includes('hurt itself in confusion')){
+      const selfMatch=line.match(/\((\d+)\)/);
+      const selfDmg=selfMatch?selfMatch[1]:'?';
+      setTimeout(()=>{battleSoundHit();battleAnimHit(playerSprite,false);battleAddDmgFloat(false,'-'+selfDmg,'#f44336');},t+=120);
+    }
+  });
+}
+
 // ── Realtime update handler ───────────────────────────────────────
 let _battleLastProcessedTurn=-1;
 let _battleArenaShowing=false;
@@ -8944,15 +9001,18 @@ function battleOnRoomUpdate(room){
     _battleLastProcessedTurn=newState.turn;
     const logDiff=newState.log.slice(battleState.log.length);
     battleState=newState;
-    if(logDiff.length)battleUpdateLog(logDiff);
+    if(logDiff.length){battleUpdateLog(logDiff);battleReplayAnimations(logDiff);}
     battleRenderArena();
     // Check forced switch for B
     const myTeamB=battleState.teamB;
     const myActiveBIdx=battleState.activeB;
     const myActiveB=myTeamB[myActiveBIdx];
-    if(myActiveB&&myActiveB.fainted&&myTeamB.some(p=>!p.fainted)){
-      battleUpdateLog(['Choose your next Pokémon!']);battleShowSwitch(true);
-    } else { battleShowMoves(); }
+    const animDelay=logDiff.length*200+400;
+    setTimeout(()=>{
+      if(myActiveB&&myActiveB.fainted&&myTeamB.some(p=>!p.fainted)){
+        battleUpdateLog(['Choose your next Pokémon!']);battleShowSwitch(true);
+      } else { battleShowMoves(); }
+    },animDelay);
     return;
   }
 
@@ -8993,16 +9053,18 @@ function battleResolveTurn(moveA,moveB){
     }
     const eff=getTypeEffectiveness(move.type,defender.types);
     if(eff===0){log.push(`🚫 No effect on ${defender.name}!`);return;}
-    const dmg=calcDamage(attacker,defender,move,attacker.types);
+    const{dmg,crit}=calcDamage(attacker,defender,move,attacker.types);
     defender.hp=Math.max(0,defender.hp-dmg);
+    if(crit)log.push(`⭐ Critical hit!`);
     if(eff>=2)log.push(`💥 Super effective! −${dmg} to ${defender.name}`);
     else if(eff<1)log.push(`😐 Not very effective. −${dmg} to ${defender.name}`);
     else log.push(`−${dmg} to ${defender.name}`);
     if(defender.hp<=0){defender.fainted=true;log.push(`💀 ${defender.name} fainted!`);}
   }
 
-  const spdA=pkA.stats.spe*(1+0.15*(pkA.statMods?.spe||0));
-  const spdB=pkB.stats.spe*(1+0.15*(pkB.statMods?.spe||0));
+  const paraSpd2=pk=>pk.status==='paralyzed'?0.5:1;
+  const spdA=pkA.stats.spe*(1+0.15*(pkA.statMods?.spe||0))*paraSpd2(pkA);
+  const spdB=pkB.stats.spe*(1+0.15*(pkB.statMods?.spe||0))*paraSpd2(pkB);
   if(spdA>=spdB){applyAction(pkA,pkB,moveA,teamA,true);if(!pkB.fainted)applyAction(pkB,pkA,moveB,teamB,false);}
   else{applyAction(pkB,pkA,moveB,teamB,false);if(!pkA.fainted)applyAction(pkA,pkB,moveA,teamA,true);}
 
@@ -9015,8 +9077,11 @@ function battleResolveTurn(moveA,moveB){
     }
   });
 
-  while(battleState.activeA<teamA.length&&teamA[battleState.activeA].fainted)battleState.activeA++;
-  while(battleState.activeB<teamB.length&&teamB[battleState.activeB].fainted)battleState.activeB++;
+  // DON'T auto-advance here — let forced-switch handle it. Only advance if no living replacements.
+  if(teamA.every(p=>p.fainted)){/* will be caught below */}
+  else if(teamA[battleState.activeA]?.fainted){/* keep activeA where it is — forced switch will handle */}
+  if(teamB.every(p=>p.fainted)){/* will be caught below */}
+  else if(teamB[battleState.activeB]?.fainted){/* keep activeB where it is — forced switch will handle */}
 
   battleState.turn++;
   battleState.log.push(...log);
@@ -9027,7 +9092,6 @@ function battleResolveTurn(moveA,moveB){
     const winSlot=aOut?'b':'a';
     const winUid=winSlot==='a'?battleRoom.player_a:battleRoom.player_b;
     battleState.status='finished';battleState.winnerId=winSlot;
-    // Save final state + winner, B will get update via realtime
     sb.from('battle_rooms').update({status:'finished',winner_id:winUid,state:JSON.stringify(battleState),pending_a:null,pending_b:null}).eq('id',battleRoomId).then(()=>{});
     battleUpdateLog(log);battleRenderArena();
     battleFinishUI(winSlot===battleMySlot);
@@ -9037,10 +9101,9 @@ function battleResolveTurn(moveA,moveB){
     const myTeam2=isA?teamA:teamB;
     const myActiveIdx2=isA?battleState.activeA:battleState.activeB;
     const myActive2=myTeam2[myActiveIdx2];
-    if(myActive2&&myActive2.fainted&&myTeam2.some(p=>!p.fainted)){
-      battleUpdateLog(['Choose your next Pokémon!']);battleShowSwitch(true);
+    if(myActive2?.fainted&&myTeam2.some(p=>!p.fainted)){
+      battleUpdateLog(['⚡ Choose your next Pokémon!']);battleShowSwitch(true);
     } else { battleShowMoves(); }
-    // Save state for B to sync, pending already cleared
     sb.from('battle_rooms').update({state:JSON.stringify(battleState)}).eq('id',battleRoomId).then(()=>{});
   }
 }
