@@ -1211,17 +1211,30 @@
   .battle-vs-title { font-size:1.1rem; font-weight:900; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
   /* Arena */
   .battle-arena { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:20px; overflow:hidden; }
-  .battle-field { display:flex; flex-direction:column; gap:0; background:linear-gradient(180deg,#1a2a1a 0%,#0d1a0d 50%,#1a1a2a 100%); padding:20px; min-height:220px; position:relative; }
-  .battle-enemy-side { display:flex; flex-direction:column; gap:6px; }
-  .battle-player-side { display:flex; flex-direction:column; gap:6px; align-self:flex-end; align-items:flex-end; margin-top:20px; }
-  .battle-pokemon-name { font-size:0.85rem; font-weight:700; }
-  .battle-hp-bar-wrap { width:160px; background:rgba(255,255,255,0.1); border-radius:999px; height:8px; overflow:hidden; }
-  .battle-hp-bar { height:100%; border-radius:999px; transition:width 0.5s ease, background 0.5s ease; }
-  .battle-hp-text { font-size:0.7rem; color:var(--muted); font-variant-numeric:tabular-nums; }
-  .battle-sprite-wrap { position:relative; display:inline-block; }
-  .battle-sprite { width:96px; height:96px; object-fit:contain; image-rendering:pixelated; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.6)); }
-  .battle-sprite.enemy { filter:drop-shadow(0 4px 12px rgba(0,0,0,0.6)) brightness(1.05); }
-  .battle-sprite.fainted { filter:brightness(0) opacity(0.3); transform:rotate(90deg); }
+  /* ── Battle field — real Pokemon layout ── */
+  .battle-field {
+    position:relative; overflow:hidden;
+    background:linear-gradient(180deg, #4a7c59 0%, #5a9e6f 35%, #6db87f 50%, #8fd4a0 52%, #c8e6c9 52%, #e8f5e9 100%);
+    min-height:260px; padding:0;
+  }
+  .battle-field-sky { position:absolute; inset:0 0 50% 0; background:linear-gradient(180deg,#87ceeb 0%,#b0e0f5 100%); }
+  .battle-field-ground { position:absolute; inset:50% 0 0 0; background:linear-gradient(180deg,#8fd4a0 0%,#6db87f 100%); }
+  .battle-field-platform-enemy { position:absolute; top:28%; left:55%; transform:translateX(-50%); width:110px; height:22px; background:radial-gradient(ellipse,rgba(0,0,0,0.25) 60%,transparent 100%); border-radius:50%; }
+  .battle-field-platform-player { position:absolute; top:58%; left:30%; transform:translateX(-50%); width:130px; height:26px; background:radial-gradient(ellipse,rgba(0,0,0,0.3) 60%,transparent 100%); border-radius:50%; }
+  .battle-hud-enemy { position:absolute; top:8px; left:12px; background:rgba(0,0,0,0.75); border:2px solid rgba(255,255,255,0.15); border-radius:12px; padding:8px 14px; min-width:170px; backdrop-filter:blur(4px); }
+  .battle-hud-player { position:absolute; bottom:8px; right:12px; background:rgba(0,0,0,0.75); border:2px solid rgba(255,255,255,0.15); border-radius:12px; padding:8px 14px; min-width:170px; backdrop-filter:blur(4px); }
+  .battle-hud-name { font-size:0.82rem; font-weight:800; color:#fff; margin-bottom:4px; text-transform:capitalize; display:flex; align-items:center; gap:6px; }
+  .battle-hud-level { font-size:0.65rem; color:#aaa; }
+  .battle-hp-bar-wrap { background:rgba(255,255,255,0.15); border-radius:999px; height:7px; overflow:hidden; margin-bottom:3px; }
+  .battle-hp-bar { height:100%; border-radius:999px; transition:width 0.6s ease, background 0.4s ease; }
+  .battle-hp-text { font-size:0.65rem; color:#ccc; font-variant-numeric:tabular-nums; text-align:right; }
+  .battle-sprite-wrap { position:absolute; }
+  .battle-sprite-wrap.enemy { top:2%; left:52%; transform:translateX(-50%); }
+  .battle-sprite-wrap.player { top:30%; left:20%; transform:translateX(-50%); }
+  .battle-sprite { width:112px; height:112px; object-fit:contain; image-rendering:pixelated; filter:drop-shadow(0 6px 16px rgba(0,0,0,0.5)); }
+  .battle-sprite.enemy { width:100px; height:100px; }
+  .battle-sprite.fainted { filter:brightness(0) opacity(0.25); transform:rotate(90deg) translateY(20px); transition:all 0.5s ease; }
+  .battle-pokemon-name { display:none; } /* replaced by HUD */
   @keyframes battleShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
   @keyframes battleFlash { 0%,100%{opacity:1} 50%{opacity:0.2} }
   .battle-sprite.hit { animation:battleShake 0.4s ease; }
@@ -1624,28 +1637,29 @@
     <div id="battle-arena" style="display:none;width:100%">
       <div class="battle-arena">
         <!-- Field -->
-        <div class="battle-field" id="battle-field">
-          <!-- Enemy -->
-          <div class="battle-enemy-side">
-            <div class="battle-pokemon-name" id="b-enemy-name">Opponent's Pokemon</div>
+        <div class="battle-field" id="battle-field" style="height:280px">
+          <div class="battle-field-sky"></div>
+          <div class="battle-field-ground"></div>
+          <div class="battle-field-platform-enemy"></div>
+          <div class="battle-field-platform-player"></div>
+          <!-- Enemy HUD (top left) -->
+          <div class="battle-hud-enemy">
+            <div class="battle-hud-name"><span id="b-enemy-name">—</span><span class="battle-hud-level" id="b-enemy-level">Lv 50</span></div>
             <div class="battle-hp-bar-wrap"><div class="battle-hp-bar" id="b-enemy-hp-bar" style="width:100%;background:#4caf50"></div></div>
-            <div class="battle-hp-text" id="b-enemy-hp-text">HP: 100/100</div>
+            <div class="battle-hp-text" id="b-enemy-hp-text">HP: —</div>
           </div>
-          <div style="display:flex;justify-content:flex-end;margin-top:8px">
-            <div class="battle-sprite-wrap">
-              <img class="battle-sprite enemy" id="b-enemy-sprite" src="" alt=""/>
-            </div>
-          </div>
-          <!-- Player -->
-          <div style="display:flex;justify-content:flex-start;margin-top:16px">
-            <div class="battle-sprite-wrap">
-              <img class="battle-sprite" id="b-player-sprite" src="" alt=""/>
-            </div>
-          </div>
-          <div class="battle-player-side">
-            <div class="battle-pokemon-name" id="b-player-name">Your Pokemon</div>
+          <!-- Player HUD (bottom right) -->
+          <div class="battle-hud-player">
+            <div class="battle-hud-name"><span id="b-player-name">—</span><span class="battle-hud-level" id="b-player-level">Lv 50</span></div>
             <div class="battle-hp-bar-wrap"><div class="battle-hp-bar" id="b-player-hp-bar" style="width:100%;background:#4caf50"></div></div>
-            <div class="battle-hp-text" id="b-player-hp-text">HP: 100/100</div>
+            <div class="battle-hp-text" id="b-player-hp-text">HP: —</div>
+          </div>
+          <!-- Sprites -->
+          <div class="battle-sprite-wrap enemy">
+            <img class="battle-sprite enemy" id="b-enemy-sprite" src="" alt=""/>
+          </div>
+          <div class="battle-sprite-wrap player">
+            <img class="battle-sprite" id="b-player-sprite" src="" alt=""/>
           </div>
         </div>
         <!-- Log -->
@@ -8565,23 +8579,27 @@ function battleRenderArena(){
   const isA=battleMySlot==='a';
   const myTeam=isA?battleState.teamA:battleState.teamB;
   const oppTeam=isA?battleState.teamB:battleState.teamA;
-  const myIdx=isA?battleState.activeA:battleState.activeB;
-  const oppIdx=isA?battleState.activeB:battleState.activeA;
-  const me=myTeam[Math.min(myIdx,myTeam.length-1)];
-  const opp=oppTeam[Math.min(oppIdx,oppTeam.length-1)];
+  const myIdx=Math.min(isA?battleState.activeA:battleState.activeB,myTeam.length-1);
+  const oppIdx=Math.min(isA?battleState.activeB:battleState.activeA,oppTeam.length-1);
+  const me=myTeam[myIdx];const opp=oppTeam[oppIdx];
   if(!me||!opp)return;
 
-  const setHp=(nameId,barId,textId,pk)=>{
-    document.getElementById(nameId).textContent=pk.name;
-    document.getElementById(nameId.replace('name','sprite')).src=SPRITE(pk.id);
-    document.getElementById(nameId.replace('name','sprite')).className='battle-sprite'+(nameId.includes('enemy')?' enemy':'')+(pk.fainted?' fainted':'');
+  const renderPk=(nameId,spriteId,barId,textId,pk,isEnemy)=>{
+    document.getElementById(nameId).textContent=pk.name+(pk.status?{burned:' 🔥',poisoned:' ☠️',paralyzed:' ⚡'}[pk.status]||'':'');
+    const spr=document.getElementById(spriteId);
+    // Use back sprite for player, front for enemy — more authentic
+    spr.src=isEnemy
+      ?`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pk.id}.png`
+      :`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${pk.id}.png`;
+    spr.onerror=()=>spr.src=SPRITE(pk.id);
+    spr.className='battle-sprite'+(isEnemy?' enemy':'')+(pk.fainted?' fainted':'');
     const pct=Math.max(0,(pk.hp/pk.maxHp)*100);
     const bar=document.getElementById(barId);
     bar.style.width=pct+'%';bar.style.background=pct>50?'#4caf50':pct>20?'#ff9800':'#f44336';
     document.getElementById(textId).textContent=`HP: ${Math.max(0,pk.hp)}/${pk.maxHp}`;
   };
-  setHp('b-enemy-name','b-enemy-hp-bar','b-enemy-hp-text',opp);
-  setHp('b-player-name','b-player-hp-bar','b-player-hp-text',me);
+  renderPk('b-enemy-name','b-enemy-sprite','b-enemy-hp-bar','b-enemy-hp-text',opp,true);
+  renderPk('b-player-name','b-player-sprite','b-player-hp-bar','b-player-hp-text',me,false);
 }
 
 function battleShowMoves(){
@@ -8645,23 +8663,31 @@ async function battlePickSwitch(slotIdx){
 }
 
 async function battleSubmitPending(myMove){
-  const field=battleMySlot==='a'?'pending_a':'pending_b';
-  const otherField=battleMySlot==='a'?'pending_b':'pending_a';
+  const isA=battleMySlot==='a';
+  const field=isA?'pending_a':'pending_b';
+  const otherField=isA?'pending_b':'pending_a';
   try{
     // Write my move
     await sb.from('battle_rooms').update({[field]:myMove}).eq('id',battleRoomId);
     // Check if opponent already moved
     const{data:room}=await sb.from('battle_rooms').select('pending_a,pending_b').eq('id',battleRoomId).single();
-    const otherMove=room?.[otherField];
+    if(!room)return;
+    const otherMove=room[otherField];
     if(otherMove!==null&&otherMove!==undefined){
-      // Both in — player A resolves (prevents double-resolve)
-      if(battleMySlot==='a'){
-        const pA=myMove,pB=otherMove;
-        // Clear pending first so B doesn't also trigger
-        await sb.from('battle_rooms').update({pending_a:null,pending_b:null}).eq('id',battleRoomId);
+      // Both moves are in — whoever submitted last resolves
+      // Use optimistic lock: try to claim resolution by clearing pending atomically
+      const pA=isA?myMove:otherMove;
+      const pB=isA?otherMove:myMove;
+      const{error}=await sb.from('battle_rooms')
+        .update({pending_a:null,pending_b:null})
+        .eq('id',battleRoomId)
+        .not('pending_a','is',null)
+        .not('pending_b','is',null);
+      if(!error){
+        // We won the lock — resolve the turn
         battleResolveTurn(pA,pB);
       }
-      // B just waits for the realtime update after A resolves
+      // If error, the other player already resolved — wait for realtime sync
     }
   }catch(e){showToast('Connection error. Try again.');}
 }
