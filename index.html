@@ -1252,6 +1252,11 @@
   .battle-sprite.enemy { width:108px; height:108px; }
   .battle-sprite.fainted { filter:brightness(0) opacity(0.2); transform:rotate(90deg) translateY(24px); transition:all 0.5s ease; }
   .battle-pokemon-name { display:none; }
+  /* Entry animations */
+  @keyframes slideInFromRight { from{transform:translateX(80px);opacity:0} to{transform:translateX(0);opacity:1} }
+  @keyframes slideInFromLeft { from{transform:translateX(-80px);opacity:0} to{transform:translateX(0);opacity:1} }
+  .battle-sprite.entering-enemy { animation:slideInFromRight 0.5s ease forwards; }
+  .battle-sprite.entering-player { animation:slideInFromLeft 0.5s ease forwards; }
   /* Turn counter */
   .battle-turn-badge { position:absolute; top:8px; right:12px; background:rgba(0,0,0,0.6); color:#fff; font-size:0.65rem; font-weight:700; padding:3px 8px; border-radius:999px; border:1px solid rgba(255,255,255,0.15); }
   @keyframes battleShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-10px)} 40%{transform:translateX(10px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
@@ -1280,11 +1285,11 @@
   .battle-move-switch-btn:hover { background:var(--surface2); color:var(--text); }
   /* Log */
   .battle-log { background:var(--surface2); border-top:1px solid var(--border); padding:10px 16px; min-height:56px; max-height:160px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; }
-  .battle-log-line { font-size:0.82rem; color:var(--text); line-height:1.45; padding:1px 0; }
-  .battle-log-line.new { font-weight:700; }
-  .battle-log-line.log-dmg { color:#ff9800; }
+  .battle-log-line { font-size:0.82rem; color:var(--muted); line-height:1.45; padding:1px 0; }
+  .battle-log-line.new { color:var(--text); font-weight:600; }
+  .battle-log-line.log-dmg { color:#ff9800; font-weight:600; }
   .battle-log-line.log-super { color:#ffcb05; font-weight:800; }
-  .battle-log-line.log-status { color:#c77dff; }
+  .battle-log-line.log-status { color:#c77dff; font-weight:600; }
   .battle-log-line.log-faint { color:var(--red); font-weight:800; }
   .battle-log-line.log-switch { color:#64b5f6; }
   /* "Opponent choosing" indicator */
@@ -8317,7 +8322,19 @@ const BATTLE_MOVES = {
 function getBattleMoves(pokemonId){
   const types=getPokemonTypes(pokemonId);
   const primary=types[0]||'normal';
-  return BATTLE_MOVES[primary]||BATTLE_MOVES.normal;
+  const secondary=types[1];
+  const pri=BATTLE_MOVES[primary]||BATTLE_MOVES.normal;
+  const sec=secondary&&BATTLE_MOVES[secondary];
+  // 4 moves: primary[0] (weak STAB), primary[1] (strong STAB), secondary[0] or primary[2] (coverage), primary[3] (status)
+  return [
+    pri[0],                             // reliable STAB move
+    pri[1],                             // power STAB move
+    sec?sec[1]:pri[2],                  // secondary type coverage (or nuke)
+    (pokemonId%4===0)?pri[3]:           // rotate status moves by ID
+     (pokemonId%4===1&&sec)?sec[3]||pri[3]:
+     (pokemonId%4===2)?pri[2]:
+     pri[3]
+  ].filter(Boolean).slice(0,4);
 }
 
 // ── Type effectiveness ───────────────────────────────────────────
@@ -8362,15 +8379,18 @@ function getBattleStats(pokemonId){
 function calcMaxHP(stats){return stats.hp*2+110;}
 function calcDamage(attacker,defender,move,attackerTypes){
   if(!move.power)return 0;
-  const atkStat=move.cat==='physical'?attacker.atk:attacker.spa;
-  const defStat=move.cat==='physical'?defender.def:defender.spd;
-  // STAB
+  // Use stats object + apply stat mods (each stage = ±10%)
+  const atkBase=move.cat==='physical'?attacker.stats.atk:attacker.stats.spa;
+  const defBase=move.cat==='physical'?defender.stats.def:defender.stats.spd;
+  const atkMod=move.cat==='physical'?(attacker.statMods?.atk||0):(attacker.statMods?.spa||0);
+  const defMod=move.cat==='physical'?(defender.statMods?.def||0):(defender.statMods?.spd||0);
+  const atkStat=Math.max(1,Math.floor(atkBase*(1+0.15*atkMod)));
+  const defStat=Math.max(1,Math.floor(defBase*(1+0.15*defMod)));
   const stab=attackerTypes.includes(move.type)?1.5:1;
-  // Type effectiveness
   const eff=getTypeEffectiveness(move.type,defender.types);
-  // Damage formula
-  const base=Math.floor((((2*50/5+2)*move.power*(atkStat/defStat))/50+2)*stab*eff);
-  // Random factor 0.85–1.0
+  // Paralysis halves attack contribution
+  const paraFactor=(attacker.status==='paralyzed'&&move.cat==='physical')?0.5:1;
+  const base=Math.floor((((2*50/5+2)*move.power*(atkStat/defStat))/50+2)*stab*eff*paraFactor);
   const rand=0.85+Math.random()*0.15;
   return Math.max(1,Math.floor(base*rand));
 }
@@ -8638,6 +8658,13 @@ function battleShowArena(){
   if(field)field.setAttribute('data-bg',bgs[Math.floor(Math.random()*bgs.length)]);
   battleRenderArena();
   battleShowMoves();
+  // Entry animations
+  setTimeout(()=>{
+    const es=document.getElementById('b-enemy-sprite');
+    const ps=document.getElementById('b-player-sprite');
+    if(es){es.classList.add('entering-enemy');setTimeout(()=>es.classList.remove('entering-enemy'),600);}
+    if(ps){ps.classList.add('entering-player');setTimeout(()=>ps.classList.remove('entering-player'),600);}
+  },50);
   // Start poll-based sync fallback for both players (every 2.5s)
   battleStartTurnPoll();
 }
@@ -8741,15 +8768,28 @@ function battleShowMoves(){
   document.getElementById('battle-waiting-move').style.display='none';
   const moves=getBattleMoves(me.id);
   const catIcon={physical:'⚔️',special:'✨',status:'—'};
+  // Get opponent for type hints
+  const isA2=battleMySlot==='a';
+  const oppTeam2=isA2?battleState.teamB:battleState.teamA;
+  const oppActiveIdx2=isA2?battleState.activeB:battleState.activeA;
+  const opp2=oppTeam2[Math.min(oppActiveIdx2,oppTeam2.length-1)];
   document.getElementById('battle-moves').innerHTML=moves.map((m,i)=>{
     const col=TYPE_COLORS[m.type]||'#666';
     const icon=catIcon[m.cat]||'—';
+    let effLabel='';let effStyle='';
+    if(m.power&&opp2){
+      const eff=getTypeEffectiveness(m.type,opp2.types);
+      if(eff>=2){effLabel='Super!';effStyle='color:#ffcb05;font-weight:900;font-size:0.62rem';}
+      else if(eff===0){effLabel='No effect';effStyle='color:#888;font-size:0.62rem';}
+      else if(eff<1){effLabel='Weak';effStyle='color:#888;font-size:0.62rem';}
+    }
     return `<button class="battle-move-btn" style="border-color:${col}55;background:${col}14" onclick="battlePickMove(${i})">
       <span class="battle-move-cat">${icon}</span>
       <span class="battle-move-name">${m.name}</span>
       <span class="battle-move-meta">
         <span class="battle-move-type" style="background:${col}">${m.type}</span>
         <span class="battle-move-power">${m.power?'PWR '+m.power:'—'}</span>
+        ${effLabel?`<span style="${effStyle}">${effLabel}</span>`:''}
       </span>
     </button>`;
   }).join('')+`<button class="battle-move-switch-btn" onclick="battleShowSwitch()">↕ Switch Pokémon</button>`;
@@ -8904,39 +8944,44 @@ function battleResolveTurn(moveA,moveB){
     if(moveIdx>=100){
       const ni=moveIdx-100;
       if(isPlayerA){battleState.activeA=ni;}else{battleState.activeB=ni;}
-      log.push(`${attacker.name} switched out! ${atkTeam[ni].name} came in!`);
-      return;
+      log.push(`↕ ${attacker.name} → ${atkTeam[ni].name}`);return;
     }
+    if(attacker.status==='paralyzed'&&Math.random()<0.25){log.push(`⚡ ${attacker.name} is fully paralyzed!`);return;}
     const move=getBattleMoves(attacker.id)[moveIdx];
     if(!move)return;
-    log.push(`${attacker.name} used ${move.name}!`);
+    log.push(`${attacker.name} → ${move.name}`);
     if(!move.power){
-      if(move.effect==='burn'&&!defender.status){defender.status='burned';log.push(`${defender.name} was burned! 🔥`);}
-      else if(move.effect==='para'&&!defender.status){defender.status='paralyzed';log.push(`${defender.name} is paralyzed! ⚡`);}
-      else if(move.effect==='poison'&&!defender.status){defender.status='poisoned';log.push(`${defender.name} was poisoned! ☠️`);}
-      else if(move.effect==='drain'){const d=Math.floor(defender.maxHp/8);defender.hp=Math.max(0,defender.hp-d);log.push(`${defender.name} lost ${d} HP from Leech Seed!`);}
-      else if(move.effect?.includes('+')){const[s,v]=move.effect.split('+');attacker.statMods[s]=(attacker.statMods[s]||0)+Number(v);log.push(`${attacker.name}'s ${s} rose!`);}
-      else if(move.effect?.includes('-')){const[s,v]=move.effect.split('-');defender.statMods[s]=(defender.statMods[s]||0)-Number(v);log.push(`${defender.name}'s ${s} fell!`);}
+      const sNames={atk:'Attack',def:'Defense',spa:'Sp.Atk',spd:'Sp.Def',spe:'Speed'};
+      if(move.effect==='burn'&&!defender.status){defender.status='burned';log.push(`🔥 ${defender.name} was burned!`);}
+      else if(move.effect==='para'&&!defender.status){defender.status='paralyzed';log.push(`⚡ ${defender.name} is paralyzed!`);}
+      else if(move.effect==='poison'&&!defender.status){defender.status='poisoned';log.push(`☠️ ${defender.name} was poisoned!`);}
+      else if(move.effect==='drain'){const d=Math.floor(defender.maxHp/8);defender.hp=Math.max(0,defender.hp-d);log.push(`🌿 ${defender.name} lost ${d} HP (Leech Seed)`);}
+      else if(move.effect==='reset'){[attacker,defender].forEach(p=>{Object.keys(p.statMods).forEach(k=>p.statMods[k]=0)});log.push(`${attacker.name} cleared all stat changes!`);}
+      else if(move.effect?.includes('+')){const[s,v]=move.effect.split('+');attacker.statMods[s]=(attacker.statMods[s]||0)+Number(v);log.push(`⬆️ ${attacker.name}'s ${sNames[s]||s} rose!`);}
+      else if(move.effect?.includes('-')){const[s,v]=move.effect.split('-');defender.statMods[s]=(defender.statMods[s]||0)-Number(v);log.push(`⬇️ ${defender.name}'s ${sNames[s]||s} fell!`);}
       return;
     }
     const eff=getTypeEffectiveness(move.type,defender.types);
-    if(eff===0){log.push(`It has no effect on ${defender.name}…`);return;}
+    if(eff===0){log.push(`🚫 No effect on ${defender.name}!`);return;}
     const dmg=calcDamage(attacker,defender,move,attacker.types);
     defender.hp=Math.max(0,defender.hp-dmg);
-    log.push(`Dealt ${dmg} damage!${eff>=2?' Super effective!':eff<1?' Not very effective…':''}`);
-    if(defender.hp<=0){defender.fainted=true;log.push(`${defender.name} fainted!`);}
+    if(eff>=2)log.push(`💥 Super effective! −${dmg} to ${defender.name}`);
+    else if(eff<1)log.push(`😐 Not very effective. −${dmg} to ${defender.name}`);
+    else log.push(`−${dmg} to ${defender.name}`);
+    if(defender.hp<=0){defender.fainted=true;log.push(`💀 ${defender.name} fainted!`);}
   }
 
-  const spdA=pkA.stats.spe*(1+0.1*(pkA.statMods?.spe||0));
-  const spdB=pkB.stats.spe*(1+0.1*(pkB.statMods?.spe||0));
+  const spdA=pkA.stats.spe*(1+0.15*(pkA.statMods?.spe||0));
+  const spdB=pkB.stats.spe*(1+0.15*(pkB.statMods?.spe||0));
   if(spdA>=spdB){applyAction(pkA,pkB,moveA,teamA,true);if(!pkB.fainted)applyAction(pkB,pkA,moveB,teamB,false);}
   else{applyAction(pkB,pkA,moveB,teamB,false);if(!pkA.fainted)applyAction(pkA,pkB,moveA,teamA,true);}
 
   [pkA,pkB].forEach(pk=>{
     if((pk.status==='burned'||pk.status==='poisoned')&&!pk.fainted){
-      const d=Math.floor(pk.maxHp/8);pk.hp=Math.max(0,pk.hp-d);
-      log.push(`${pk.name} hurt by ${pk.status}! (${d} dmg)`);
-      if(pk.hp<=0){pk.fainted=true;log.push(`${pk.name} fainted!`);}
+      const d=Math.floor(pk.maxHp/(pk.status==='poisoned'?8:16));pk.hp=Math.max(0,pk.hp-d);
+      const icon=pk.status==='burned'?'🔥':'☠️';
+      log.push(`${icon} ${pk.name} took ${d} from ${pk.status}`);
+      if(pk.hp<=0){pk.fainted=true;log.push(`💀 ${pk.name} fainted!`);}
     }
   });
 
@@ -8976,11 +9021,12 @@ function battleUpdateLog(lines){
     const d=document.createElement('div');
     let cls='battle-log-line';
     if(i===0)cls+=' new';
-    if(l.includes('fainted'))cls+=' log-faint';
-    else if(l.includes('Super effective'))cls+=' log-super';
-    else if(l.includes('damage')||l.includes('dmg'))cls+=' log-dmg';
-    else if(l.includes('burned')||l.includes('paralyzed')||l.includes('poisoned')||l.includes('hurt by'))cls+=' log-status';
-    else if(l.includes('switched out')||l.includes('came in'))cls+=' log-switch';
+    if(l.includes('💀')||l.includes('fainted'))cls+=' log-faint';
+    else if(l.includes('💥')||l.includes('Super effective'))cls+=' log-super';
+    else if(l.startsWith('−')||l.includes('dmg')||l.includes('damage'))cls+=' log-dmg';
+    else if(l.includes('🔥')||l.includes('☠️')||l.includes('⚡')||l.includes('burned')||l.includes('paralyzed')||l.includes('poisoned'))cls+=' log-status';
+    else if(l.includes('↕')||l.includes('→'))cls+='';
+    else if(l.includes('⬆️')||l.includes('⬇️'))cls+=' log-status';
     d.className=cls;d.textContent=l;el.appendChild(d);
   });
   el.scrollTop=el.scrollHeight;
@@ -9094,28 +9140,38 @@ window.battleResolveTurn=function(moveA,moveB){
     if(moveIdx>=100){
       const ni=moveIdx-100;
       if(isPlayerA){battleState.activeA=ni;}else{battleState.activeB=ni;}
-      log.push(`${attacker.name} switched out! ${atkTeam[ni].name} came in!`);
+      log.push(`↕ ${attacker.name} → ${atkTeam[ni].name}`);
+      queueAnim(()=>battleSoundStatus(),80);
+      return;
+    }
+    // Paralysis: 25% chance to be fully paralyzed this turn
+    if(attacker.status==='paralyzed'&&Math.random()<0.25){
+      log.push(`⚡ ${attacker.name} is fully paralyzed!`);
+      queueAnim(()=>battleSoundStatus(),100);
       return;
     }
     const move=getBattleMoves(attacker.id)[moveIdx];
     if(!move)return;
-    log.push(`${attacker.name} used ${move.name}!`);
+    log.push(`${attacker.name} → ${move.name}`);
     if(!move.power){
-      battleSoundStatus();
-      if(move.effect==='burn'&&!defender.status){defender.status='burned';log.push(`${defender.name} was burned! 🔥`);}
-      else if(move.effect==='para'&&!defender.status){defender.status='paralyzed';log.push(`${defender.name} is paralyzed! ⚡`);}
-      else if(move.effect==='poison'&&!defender.status){defender.status='poisoned';log.push(`${defender.name} was poisoned! ☠️`);}
-      else if(move.effect==='drain'){const d=Math.floor(defender.maxHp/8);defender.hp=Math.max(0,defender.hp-d);log.push(`${defender.name} lost ${d} HP!`);}
-      else if(move.effect?.includes('+')){const[s,v]=move.effect.split('+');attacker.statMods[s]=(attacker.statMods[s]||0)+Number(v);log.push(`${attacker.name}'s ${s} rose!`);}
-      else if(move.effect?.includes('-')){const[s,v]=move.effect.split('-');defender.statMods[s]=(defender.statMods[s]||0)-Number(v);log.push(`${defender.name}'s ${s} fell!`);}
+      queueAnim(()=>battleSoundStatus(),80);
+      if(move.effect==='burn'&&!defender.status){defender.status='burned';log.push(`🔥 ${defender.name} was burned!`);}
+      else if(move.effect==='para'&&!defender.status){defender.status='paralyzed';log.push(`⚡ ${defender.name} is paralyzed!`);}
+      else if(move.effect==='poison'&&!defender.status){defender.status='poisoned';log.push(`☠️ ${defender.name} was poisoned!`);}
+      else if(move.effect==='drain'){const d=Math.floor(defender.maxHp/8);defender.hp=Math.max(0,defender.hp-d);log.push(`🌿 ${defender.name} lost ${d} HP (Leech Seed)`);}
+      else if(move.effect==='reset'){[attacker,defender].forEach(p=>{Object.keys(p.statMods).forEach(k=>p.statMods[k]=0)});log.push(`${attacker.name} cleared all stat changes!`);}
+      else if(move.effect?.includes('+')){const[s,v]=move.effect.split('+');attacker.statMods[s]=(attacker.statMods[s]||0)+Number(v);const sNames={atk:'Attack',def:'Defense',spa:'Sp.Atk',spd:'Sp.Def',spe:'Speed'};log.push(`⬆️ ${attacker.name}'s ${sNames[s]||s} rose!`);}
+      else if(move.effect?.includes('-')){const[s,v]=move.effect.split('-');defender.statMods[s]=(defender.statMods[s]||0)-Number(v);const sNames={atk:'Attack',def:'Defense',spa:'Sp.Atk',spd:'Sp.Def',spe:'Speed'};log.push(`⬇️ ${defender.name}'s ${sNames[s]||s} fell!`);}
       return;
     }
     const eff=getTypeEffectiveness(move.type,defender.types);
-    if(eff===0){log.push(`No effect on ${defender.name}…`);return;}
+    if(eff===0){log.push(`🚫 No effect on ${defender.name}!`);return;}
     const dmg=calcDamage(attacker,defender,move,attacker.types);
     defender.hp=Math.max(0,defender.hp-dmg);
     const super2=eff>=2,weak=eff<1&&eff>0;
-    log.push(`Dealt ${dmg} dmg!${super2?' Super effective!':weak?' Not very effective…':''}`);
+    if(super2)log.push(`💥 Super effective! −${dmg} to ${defender.name}`);
+    else if(weak)log.push(`😐 Not very effective. −${dmg} to ${defender.name}`);
+    else log.push(`−${dmg} to ${defender.name}`);
     const defIsEnemy=(battleMySlot==='a'?defender===pkB:defender===pkA);
     const defSpriteId=defIsEnemy?'b-enemy-sprite':'b-player-sprite';
     queueAnim(()=>{
@@ -9125,21 +9181,24 @@ window.battleResolveTurn=function(moveA,moveB){
     },180);
     if(defender.hp<=0){
       defender.fainted=true;
-      log.push(`${defender.name} fainted!`);
+      log.push(`💀 ${defender.name} fainted!`);
       queueAnim(()=>{battleSoundFaint();document.getElementById(defSpriteId)?.classList.add('fainted');},350);
     }
   }
 
-  const spdA=pkA.stats.spe*(1+0.1*(pkA.statMods?.spe||0));
-  const spdB=pkB.stats.spe*(1+0.1*(pkB.statMods?.spe||0));
+  // Paralysis also halves speed (25% chance to skip is in applyAction)
+  const paraSpd=pk=>pk.status==='paralyzed'?0.5:1;
+  const spdA=pkA.stats.spe*(1+0.15*(pkA.statMods?.spe||0))*paraSpd(pkA);
+  const spdB=pkB.stats.spe*(1+0.15*(pkB.statMods?.spe||0))*paraSpd(pkB);
   if(spdA>=spdB){applyAction(pkA,pkB,moveA,teamA,true);if(!pkB.fainted)applyAction(pkB,pkA,moveB,teamB,false);}
   else{applyAction(pkB,pkA,moveB,teamB,false);if(!pkA.fainted)applyAction(pkA,pkB,moveA,teamA,true);}
 
   [pkA,pkB].forEach(pk=>{
     if((pk.status==='burned'||pk.status==='poisoned')&&!pk.fainted){
-      const d=Math.floor(pk.maxHp/8);pk.hp=Math.max(0,pk.hp-d);
-      log.push(`${pk.name} hurt by ${pk.status}! (${d} dmg)`);
-      if(pk.hp<=0){pk.fainted=true;log.push(`${pk.name} fainted!`);}
+      const d=Math.floor(pk.maxHp/(pk.status==='poisoned'?8:16));pk.hp=Math.max(0,pk.hp-d);
+      const icon=pk.status==='burned'?'🔥':'☠️';
+      log.push(`${icon} ${pk.name} took ${d} from ${pk.status}`);
+      if(pk.hp<=0){pk.fainted=true;log.push(`💀 ${pk.name} fainted!`);}
     }
   });
 
