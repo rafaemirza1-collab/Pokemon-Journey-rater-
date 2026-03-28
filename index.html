@@ -1179,6 +1179,91 @@
   .mg-back-btn:hover { color: var(--text); border-color: #555; }
   @media(max-width: 480px) { .mg-picker-grid { grid-template-columns: 1fr; } }
 
+  /* ── BATTLE ── */
+  .battle-view { display:flex; flex-direction:column; align-items:center; padding:16px; gap:16px; max-width:600px; margin:0 auto; width:100%; }
+  /* Lobby */
+  .battle-lobby-card { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:28px 24px; display:flex; flex-direction:column; align-items:center; gap:16px; }
+  .battle-lobby-title { font-size:1.6rem; font-weight:900; letter-spacing:-0.5px; }
+  .battle-lobby-desc { color:var(--muted); font-size:0.88rem; text-align:center; max-width:380px; line-height:1.6; }
+  .battle-btn { padding:13px 32px; border-radius:999px; background:linear-gradient(135deg,var(--accent2),#5b7fe0); color:#fff; font-size:0.95rem; font-weight:800; border:none; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 16px rgba(59,91,167,0.35); }
+  .battle-btn:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(59,91,167,0.5); }
+  .battle-btn.danger { background:linear-gradient(135deg,#e63946,#c1121f); box-shadow:0 4px 16px rgba(230,57,70,0.35); }
+  .battle-btn.danger:hover { box-shadow:0 8px 24px rgba(230,57,70,0.5); }
+  .battle-btn.ghost { background:var(--surface2); color:var(--text); box-shadow:none; border:1px solid var(--border); }
+  .battle-btn.ghost:hover { background:var(--border); box-shadow:none; transform:none; }
+  .battle-section-title { font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); align-self:flex-start; }
+  /* Challenge list */
+  .battle-challenge-list { width:100%; display:flex; flex-direction:column; gap:8px; }
+  .battle-challenge-card { display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 16px; }
+  .battle-challenge-avatar { width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,var(--accent2),var(--accent)); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.9rem; color:#fff; flex-shrink:0; }
+  .battle-challenge-name { font-weight:700; flex:1; font-size:0.95rem; }
+  .battle-challenge-btns { display:flex; gap:6px; }
+  .battle-challenge-btns button { padding:6px 14px; border-radius:999px; font-size:0.8rem; font-weight:700; border:none; cursor:pointer; }
+  .battle-accept-btn { background:linear-gradient(135deg,#4caf50,#2e7d32); color:#fff; }
+  .battle-decline-btn { background:var(--surface2); color:var(--muted); border:1px solid var(--border)!important; }
+  /* VS screen */
+  .battle-vs-screen { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:28px 20px; display:flex; flex-direction:column; align-items:center; gap:20px; }
+  .battle-vs-row { display:flex; align-items:center; gap:16px; width:100%; justify-content:center; }
+  .battle-vs-trainer { display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; }
+  .battle-vs-trainer-name { font-size:0.85rem; font-weight:700; color:var(--muted); }
+  .battle-vs-pokemon { width:80px; height:80px; object-fit:contain; image-rendering:pixelated; }
+  .battle-vs-badge { font-size:2rem; font-weight:900; color:var(--accent); }
+  .battle-vs-title { font-size:1.1rem; font-weight:900; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+  /* Arena */
+  .battle-arena { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:20px; overflow:hidden; }
+  .battle-field { display:flex; flex-direction:column; gap:0; background:linear-gradient(180deg,#1a2a1a 0%,#0d1a0d 50%,#1a1a2a 100%); padding:20px; min-height:220px; position:relative; }
+  .battle-enemy-side { display:flex; flex-direction:column; gap:6px; }
+  .battle-player-side { display:flex; flex-direction:column; gap:6px; align-self:flex-end; align-items:flex-end; margin-top:20px; }
+  .battle-pokemon-name { font-size:0.85rem; font-weight:700; }
+  .battle-hp-bar-wrap { width:160px; background:rgba(255,255,255,0.1); border-radius:999px; height:8px; overflow:hidden; }
+  .battle-hp-bar { height:100%; border-radius:999px; transition:width 0.5s ease, background 0.5s ease; }
+  .battle-hp-text { font-size:0.7rem; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .battle-sprite-wrap { position:relative; display:inline-block; }
+  .battle-sprite { width:96px; height:96px; object-fit:contain; image-rendering:pixelated; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.6)); }
+  .battle-sprite.enemy { filter:drop-shadow(0 4px 12px rgba(0,0,0,0.6)) brightness(1.05); }
+  .battle-sprite.fainted { filter:brightness(0) opacity(0.3); transform:rotate(90deg); }
+  @keyframes battleShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+  @keyframes battleFlash { 0%,100%{opacity:1} 50%{opacity:0.2} }
+  .battle-sprite.hit { animation:battleShake 0.4s ease; }
+  .battle-sprite.flash { animation:battleFlash 0.15s ease 3; }
+  @keyframes battleFloat { from{transform:translateY(0);opacity:1} to{transform:translateY(-40px);opacity:0} }
+  .battle-float { position:absolute; font-size:1.1rem; font-weight:900; pointer-events:none; animation:battleFloat 1s ease forwards; color:#fff; text-shadow:0 2px 4px rgba(0,0,0,0.8); white-space:nowrap; }
+  /* Move buttons */
+  .battle-moves { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:16px; background:var(--surface); border-top:1px solid var(--border); }
+  .battle-move-btn { padding:14px 10px; border-radius:14px; border:2px solid transparent; cursor:pointer; font-size:0.85rem; font-weight:700; text-align:center; transition:all 0.18s; display:flex; flex-direction:column; gap:3px; align-items:center; background:var(--surface2); color:var(--text); }
+  .battle-move-btn:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,0.3); }
+  .battle-move-btn:disabled { opacity:0.4; cursor:not-allowed; }
+  .battle-move-type { font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:999px; color:#fff; text-transform:uppercase; letter-spacing:0.5px; }
+  .battle-move-power { font-size:0.7rem; color:var(--muted); }
+  /* Log */
+  .battle-log { background:var(--surface2); border-top:1px solid var(--border); padding:12px 16px; max-height:80px; overflow-y:auto; display:flex; flex-direction:column; gap:3px; }
+  .battle-log-line { font-size:0.8rem; color:var(--text); line-height:1.4; }
+  .battle-log-line.new { color:var(--accent); font-weight:600; }
+  /* Switch panel */
+  .battle-switch-panel { padding:16px; background:var(--surface); border-top:1px solid var(--border); display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+  .battle-switch-btn { display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 12px; border-radius:12px; border:2px solid var(--border); background:var(--surface2); cursor:pointer; transition:all 0.15s; min-width:70px; }
+  .battle-switch-btn:hover:not(:disabled) { border-color:var(--accent2); background:rgba(59,91,167,0.15); }
+  .battle-switch-btn:disabled { opacity:0.35; cursor:not-allowed; }
+  .battle-switch-btn img { width:48px; height:48px; object-fit:contain; image-rendering:pixelated; }
+  .battle-switch-btn span { font-size:0.7rem; font-weight:700; text-transform:capitalize; }
+  /* Result screen */
+  .battle-result { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:32px 24px; display:flex; flex-direction:column; align-items:center; gap:16px; text-align:center; }
+  .battle-result-title { font-size:2rem; font-weight:900; }
+  .battle-result-title.win { color:#4caf50; }
+  .battle-result-title.loss { color:var(--red); }
+  .battle-result-title.draw { color:var(--accent); }
+  .battle-result-score { font-size:1rem; color:var(--muted); }
+  /* Waiting overlay */
+  .battle-waiting { display:flex; flex-direction:column; align-items:center; gap:12px; padding:20px; }
+  .battle-waiting-spinner { width:40px; height:40px; border:3px solid var(--border); border-top-color:var(--accent2); border-radius:50%; animation:spin 0.8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  /* Trainer search */
+  .battle-trainer-search { width:100%; display:flex; flex-direction:column; gap:8px; }
+  .battle-trainer-search input { width:100%; padding:12px 16px; border-radius:12px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-size:0.9rem; box-sizing:border-box; }
+  .battle-trainer-search input:focus { outline:none; border-color:var(--accent2); }
+  .battle-trainer-results { display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto; }
+  .battle-trainer-result { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--surface2); border-radius:12px; cursor:pointer; border:1px solid var(--border); transition:background 0.15s; }
+  .battle-trainer-result:hover { background:var(--border); }
   /* ── BERRY CHASE ── */
   .bc-lobby-card { display:flex; flex-direction:column; align-items:center; gap:14px; width:100%; max-width:460px; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:28px 24px; }
   .bc-lobby-title { font-size:1.5rem; font-weight:900; letter-spacing:-0.5px; }
@@ -1364,7 +1449,8 @@
     <button class="nav-tab" data-view="teams" onclick="switchView('teams')">&#x1F6E1; Teams</button>
     <button class="nav-tab" data-view="trainers" onclick="switchView('trainers')">🏆 Trainers</button>
     <button class="nav-tab" data-view="hottakes" onclick="switchView('hottakes')">🔥 Hot Takes</button>
-      <button class="nav-tab" data-view="dripbattle" onclick="switchView('dripbattle')">⚡ Drip Battle</button>
+      <button class="nav-tab" data-view="battle" onclick="switchView('battle')">⚔️ Battle</button>
+    <button class="nav-tab" data-view="dripbattle" onclick="switchView('dripbattle')">⚡ Drip Battle</button>
       <button class="nav-tab" data-view="wtp" onclick="switchView('wtp')">🎮 Minigames</button>
   </div>
   <div class="nav-right">
@@ -1412,6 +1498,9 @@
     <button class="nav-drawer-item" data-drawer-view="hottakes" onclick="drawerNav('hottakes','Hot Takes')">
       <span class="nav-drawer-item-icon">🔥</span>Hot Takes
     </button>
+    <button class="nav-drawer-item" data-drawer-view="battle" onclick="drawerNav('battle','Battle')">
+      <span class="nav-drawer-item-icon">⚔️</span>Battle
+    </button>
     <button class="nav-drawer-item" data-drawer-view="dripbattle" onclick="drawerNav('dripbattle','Drip Battle')">
       <span class="nav-drawer-item-icon">⚡</span>Drip Battle
     </button>
@@ -1446,6 +1535,128 @@
   <svg width="16" height="16" fill="none" stroke="#777" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
   <input type="text" id="mobile-search-input" placeholder="Search Pokémon..." oninput="onSearch(this.value); document.getElementById('search-input').value=this.value" autocomplete="off"/>
   <button onclick="toggleMobileSearch()" style="background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:0 4px">&#x2715;</button>
+</div>
+
+<!-- BATTLE VIEW -->
+<div id="view-battle" class="view">
+  <div class="battle-view">
+
+    <!-- LOBBY -->
+    <div id="battle-lobby">
+      <div class="battle-lobby-card">
+        <div class="battle-lobby-title">⚔️ Squad Battle</div>
+        <div class="battle-lobby-desc">Challenge friends to a real-time Pokemon battle using your squad. Pick your moves, outsmart your opponent, win glory.</div>
+        <button class="battle-btn" onclick="battleShowChallenge()">⚔️ Challenge a Trainer</button>
+      </div>
+
+      <!-- Incoming challenges -->
+      <div id="battle-incoming-wrap" style="width:100%;display:none;margin-top:16px">
+        <div class="battle-section-title" style="margin-bottom:8px">Incoming Challenges</div>
+        <div class="battle-challenge-list" id="battle-incoming-list"></div>
+      </div>
+
+      <!-- Recent results -->
+      <div style="width:100%;margin-top:16px">
+        <div class="battle-section-title" style="margin-bottom:8px">Your Record</div>
+        <div id="battle-record" style="font-size:0.95rem;color:var(--muted);text-align:center;padding:12px">Loading…</div>
+      </div>
+    </div>
+
+    <!-- CHALLENGE PANEL -->
+    <div id="battle-challenge-panel" style="display:none;width:100%">
+      <div class="battle-lobby-card">
+        <div class="battle-lobby-title" style="font-size:1.2rem">Challenge a Trainer</div>
+        <div class="battle-trainer-search">
+          <input type="text" id="battle-search-input" placeholder="Search by username…" oninput="battleSearchTrainers(this.value)" autocomplete="off"/>
+          <div class="battle-trainer-results" id="battle-search-results"></div>
+        </div>
+        <button class="battle-btn ghost" onclick="battleHideChallenge()" style="margin-top:4px">← Back</button>
+      </div>
+    </div>
+
+    <!-- VS SCREEN -->
+    <div id="battle-vs-screen" style="display:none;width:100%">
+      <div class="battle-vs-screen">
+        <div class="battle-vs-title">Battle Starting!</div>
+        <div class="battle-vs-row">
+          <div class="battle-vs-trainer">
+            <div class="battle-vs-trainer-name" id="bvs-name-a">You</div>
+            <img class="battle-vs-pokemon" id="bvs-sprite-a" src="" alt=""/>
+            <div id="bvs-poke-a" style="font-size:0.8rem;font-weight:700;text-transform:capitalize"></div>
+          </div>
+          <div class="battle-vs-badge">VS</div>
+          <div class="battle-vs-trainer">
+            <div class="battle-vs-trainer-name" id="bvs-name-b">Opponent</div>
+            <img class="battle-vs-pokemon" id="bvs-sprite-b" src="" alt=""/>
+            <div id="bvs-poke-b" style="font-size:0.8rem;font-weight:700;text-transform:capitalize"></div>
+          </div>
+        </div>
+        <div class="battle-waiting">
+          <div class="battle-waiting-spinner"></div>
+          <div id="bvs-status" style="font-size:0.85rem;color:var(--muted)">Waiting for opponent…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARENA -->
+    <div id="battle-arena" style="display:none;width:100%">
+      <div class="battle-arena">
+        <!-- Field -->
+        <div class="battle-field" id="battle-field">
+          <!-- Enemy -->
+          <div class="battle-enemy-side">
+            <div class="battle-pokemon-name" id="b-enemy-name">Opponent's Pokemon</div>
+            <div class="battle-hp-bar-wrap"><div class="battle-hp-bar" id="b-enemy-hp-bar" style="width:100%;background:#4caf50"></div></div>
+            <div class="battle-hp-text" id="b-enemy-hp-text">HP: 100/100</div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:8px">
+            <div class="battle-sprite-wrap">
+              <img class="battle-sprite enemy" id="b-enemy-sprite" src="" alt=""/>
+            </div>
+          </div>
+          <!-- Player -->
+          <div style="display:flex;justify-content:flex-start;margin-top:16px">
+            <div class="battle-sprite-wrap">
+              <img class="battle-sprite" id="b-player-sprite" src="" alt=""/>
+            </div>
+          </div>
+          <div class="battle-player-side">
+            <div class="battle-pokemon-name" id="b-player-name">Your Pokemon</div>
+            <div class="battle-hp-bar-wrap"><div class="battle-hp-bar" id="b-player-hp-bar" style="width:100%;background:#4caf50"></div></div>
+            <div class="battle-hp-text" id="b-player-hp-text">HP: 100/100</div>
+          </div>
+        </div>
+        <!-- Log -->
+        <div class="battle-log" id="battle-log"></div>
+        <!-- Moves / waiting -->
+        <div id="battle-moves-wrap">
+          <div class="battle-moves" id="battle-moves"></div>
+        </div>
+        <!-- Switch panel (hidden until needed) -->
+        <div class="battle-switch-panel" id="battle-switch-panel" style="display:none"></div>
+        <!-- Waiting for opponent move -->
+        <div id="battle-waiting-move" style="display:none">
+          <div class="battle-waiting" style="padding:12px 16px">
+            <div class="battle-waiting-spinner"></div>
+            <div style="font-size:0.8rem;color:var(--muted)">Waiting for opponent…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULT SCREEN -->
+    <div id="battle-result" style="display:none;width:100%">
+      <div class="battle-result">
+        <div class="battle-result-title" id="br-title">You Win!</div>
+        <div class="battle-result-score" id="br-detail"></div>
+        <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;justify-content:center">
+          <button class="battle-btn" onclick="battleRematch()">⚔️ Rematch</button>
+          <button class="battle-btn ghost" onclick="battleBackToLobby()">← Lobby</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <!-- DRIP BATTLE VIEW -->
@@ -4937,13 +5148,14 @@ function switchView(view) {
   document.getElementById(`view-${view}`).classList.add('active');
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.view===view));
   document.querySelectorAll('.nav-drawer-item').forEach(b => b.classList.toggle('active', b.dataset.drawerView===view));
-  const labels = {browse:'Pokédex',rankings:'Rankings',teams:'Teams',trainers:'Trainers',hottakes:'Hot Takes',dripbattle:'Drip Battle',wtp:'Minigames'};
+  const labels = {browse:'Pokédex',rankings:'Rankings',teams:'Teams',trainers:'Trainers',hottakes:'Hot Takes',battle:'Battle',dripbattle:'Drip Battle',wtp:'Minigames'};
   const el = document.getElementById('nav-current-view');
   if (el && labels[view]) el.textContent = labels[view];
   if (view === 'rankings' && _tabStale('rankings')) { _tabTouch('rankings'); renderRankings(); }
   if (view === 'teams' && _tabStale('teams')) { _tabTouch('teams'); loadTeams(); }
   if (view === 'trainers' && _tabStale('trainers')) { _tabTouch('trainers'); initTrainersView(); }
   if (view === 'hottakes' && _tabStale('hottakes')) { _tabTouch('hottakes'); loadHotTakes(); }
+  if (view === 'battle') initBattleView();
   if (view === 'dripbattle') loadDripRound();
   if (view === 'wtp') initWTP();
 }
@@ -7959,6 +8171,617 @@ async function bcLoadLeaderboard(){
     const rl=['🥇','🥈','🥉','4','5'],rc=['gold','silver','bronze','',''];
     col.innerHTML=rows.map((row,i)=>`<div class="wtp-lb-col-row"><div class="wtp-lb-col-rank ${rc[i]}">${rl[i]}</div><div class="wtp-lb-col-username">${esc(row.username||'Anonymous')}${row.user_id===myUid?' <span class="wtp-lb-col-you">you</span>':''}</div><div class="wtp-lb-col-score">${row.score}</div></div>`).join('');
   }catch(e){col.innerHTML='<div class="wtp-lb-col-empty">Could not load</div>';}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SQUAD BATTLE SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+// ── Move database (type → 4 moves) ──────────────────────────────
+const BATTLE_MOVES = {
+  normal:   [{name:'Tackle',power:40,type:'normal',cat:'physical'},{name:'Body Slam',power:85,type:'normal',cat:'physical'},{name:'Hyper Beam',power:150,type:'normal',cat:'special'},{name:'Growl',power:0,type:'normal',cat:'status',effect:'atk-1'}],
+  fire:     [{name:'Ember',power:40,type:'fire',cat:'special'},{name:'Flamethrower',power:90,type:'fire',cat:'special'},{name:'Fire Blast',power:110,type:'fire',cat:'special'},{name:'Will-O-Wisp',power:0,type:'fire',cat:'status',effect:'burn'}],
+  water:    [{name:'Water Gun',power:40,type:'water',cat:'special'},{name:'Surf',power:90,type:'water',cat:'special'},{name:'Hydro Pump',power:110,type:'water',cat:'special'},{name:'Rain Dance',power:0,type:'water',cat:'status',effect:'def+1'}],
+  grass:    [{name:'Vine Whip',power:45,type:'grass',cat:'physical'},{name:'Razor Leaf',power:55,type:'grass',cat:'physical'},{name:'Solar Beam',power:120,type:'grass',cat:'special'},{name:'Leech Seed',power:0,type:'grass',cat:'status',effect:'drain'}],
+  electric: [{name:'Thunder Shock',power:40,type:'electric',cat:'special'},{name:'Thunderbolt',power:90,type:'electric',cat:'special'},{name:'Thunder',power:110,type:'electric',cat:'special'},{name:'Thunder Wave',power:0,type:'electric',cat:'status',effect:'para'}],
+  ice:      [{name:'Ice Shard',power:40,type:'ice',cat:'physical'},{name:'Ice Beam',power:90,type:'ice',cat:'special'},{name:'Blizzard',power:110,type:'ice',cat:'special'},{name:'Haze',power:0,type:'ice',cat:'status',effect:'reset'}],
+  fighting: [{name:'Karate Chop',power:50,type:'fighting',cat:'physical'},{name:'Close Combat',power:120,type:'fighting',cat:'physical'},{name:'Superpower',power:120,type:'fighting',cat:'physical'},{name:'Bulk Up',power:0,type:'fighting',cat:'status',effect:'atk+1'}],
+  poison:   [{name:'Poison Sting',power:15,type:'poison',cat:'physical'},{name:'Sludge Bomb',power:90,type:'poison',cat:'special'},{name:'Gunk Shot',power:120,type:'poison',cat:'physical'},{name:'Toxic',power:0,type:'poison',cat:'status',effect:'poison'}],
+  ground:   [{name:'Mud-Slap',power:20,type:'ground',cat:'special'},{name:'Earthquake',power:100,type:'ground',cat:'physical'},{name:'Earth Power',power:90,type:'ground',cat:'special'},{name:'Sand Attack',power:0,type:'ground',cat:'status',effect:'acc-1'}],
+  flying:   [{name:'Gust',power:40,type:'flying',cat:'special'},{name:'Air Slash',power:75,type:'flying',cat:'special'},{name:'Hurricane',power:110,type:'flying',cat:'special'},{name:'Tailwind',power:0,type:'flying',cat:'status',effect:'spd+1'}],
+  psychic:  [{name:'Confusion',power:50,type:'psychic',cat:'special'},{name:'Psychic',power:90,type:'psychic',cat:'special'},{name:'Psybeam',power:65,type:'psychic',cat:'special'},{name:'Calm Mind',power:0,type:'psychic',cat:'status',effect:'spa+1'}],
+  bug:      [{name:'Bug Bite',power:60,type:'bug',cat:'physical'},{name:'X-Scissor',power:80,type:'bug',cat:'physical'},{name:'Bug Buzz',power:90,type:'bug',cat:'special'},{name:'String Shot',power:0,type:'bug',cat:'status',effect:'spd-1'}],
+  rock:     [{name:'Rock Throw',power:50,type:'rock',cat:'physical'},{name:'Rock Slide',power:75,type:'rock',cat:'physical'},{name:'Stone Edge',power:100,type:'rock',cat:'physical'},{name:'Stealth Rock',power:0,type:'rock',cat:'status',effect:'hazard'}],
+  ghost:    [{name:'Shadow Sneak',power:40,type:'ghost',cat:'physical'},{name:'Shadow Ball',power:80,type:'ghost',cat:'special'},{name:'Shadow Force',power:120,type:'ghost',cat:'physical'},{name:'Curse',power:0,type:'ghost',cat:'status',effect:'curse'}],
+  dragon:   [{name:'Dragon Rage',power:60,type:'dragon',cat:'special'},{name:'Dragon Claw',power:80,type:'dragon',cat:'physical'},{name:'Draco Meteor',power:130,type:'dragon',cat:'special'},{name:'Dragon Dance',power:0,type:'dragon',cat:'status',effect:'atk+1'}],
+  dark:     [{name:'Bite',power:60,type:'dark',cat:'physical'},{name:'Crunch',power:80,type:'dark',cat:'physical'},{name:'Dark Pulse',power:80,type:'dark',cat:'special'},{name:'Nasty Plot',power:0,type:'dark',cat:'status',effect:'spa+2'}],
+  steel:    [{name:'Metal Claw',power:50,type:'steel',cat:'physical'},{name:'Iron Head',power:80,type:'steel',cat:'physical'},{name:'Flash Cannon',power:80,type:'steel',cat:'special'},{name:'Iron Defense',power:0,type:'steel',cat:'status',effect:'def+2'}],
+  fairy:    [{name:'Fairy Wind',power:40,type:'fairy',cat:'special'},{name:'Moonblast',power:95,type:'fairy',cat:'special'},{name:'Dazzling Gleam',power:80,type:'fairy',cat:'special'},{name:'Charm',power:0,type:'fairy',cat:'status',effect:'atk-2'}],
+};
+function getBattleMoves(pokemonId){
+  const types=getPokemonTypes(pokemonId);
+  const primary=types[0]||'normal';
+  return BATTLE_MOVES[primary]||BATTLE_MOVES.normal;
+}
+
+// ── Type effectiveness ───────────────────────────────────────────
+const TYPE_CHART={
+  fire:{grass:2,ice:2,bug:2,steel:2,water:0.5,fire:0.5,rock:0.5,dragon:0.5},
+  water:{fire:2,ground:2,rock:2,water:0.5,grass:0.5,dragon:0.5},
+  grass:{water:2,ground:2,rock:2,fire:0.5,grass:0.5,poison:0.5,flying:0.5,bug:0.5,dragon:0.5,steel:0.5},
+  electric:{water:2,flying:2,ground:0,electric:0.5,grass:0.5,dragon:0.5},
+  ice:{grass:2,ground:2,flying:2,dragon:2,fire:0.5,water:0.5,ice:0.5,steel:0.5},
+  fighting:{normal:2,ice:2,rock:2,dark:2,steel:2,poison:0.5,bug:0.5,psychic:0.5,flying:0.5,fairy:0.5,ghost:0},
+  poison:{grass:2,fairy:2,poison:0.5,ground:0.5,rock:0.5,ghost:0.5,steel:0},
+  ground:{fire:2,electric:2,poison:2,rock:2,steel:2,grass:0.5,bug:0.5,flying:0},
+  flying:{grass:2,fighting:2,bug:2,electric:0.5,rock:0.5,steel:0.5},
+  psychic:{fighting:2,poison:2,psychic:0.5,steel:0.5,dark:0},
+  bug:{grass:2,psychic:2,dark:2,fire:0.5,fighting:0.5,poison:0.5,flying:0.5,ghost:0.5,steel:0.5,fairy:0.5},
+  rock:{fire:2,ice:2,flying:2,bug:2,fighting:0.5,ground:0.5,steel:0.5},
+  ghost:{ghost:2,psychic:2,normal:0,dark:0.5},
+  dragon:{dragon:2,steel:0.5,fairy:0},
+  dark:{ghost:2,psychic:2,fighting:0.5,dark:0.5,fairy:0.5},
+  steel:{ice:2,rock:2,fairy:2,fire:0.5,water:0.5,electric:0.5,steel:0.5},
+  fairy:{fighting:2,dragon:2,dark:2,fire:0.5,poison:0.5,steel:0.5},
+  normal:{rock:0.5,ghost:0,steel:0.5},
+};
+function getTypeEffectiveness(atkType,defTypes){
+  let m=1;
+  (defTypes||[]).filter(Boolean).forEach(dt=>{m*=(TYPE_CHART[atkType]?.[dt]??1);});
+  return m;
+}
+
+// ── Pokemon stat calculation ─────────────────────────────────────
+function getBattleStats(pokemonId){
+  // Base stats by ID range (rough approximation)
+  const id=pokemonId;
+  let hp,atk,def,spa,spd,spe;
+  if(id<=151){hp=45+Math.floor(id/3);atk=45+Math.floor(id/4);def=40+Math.floor(id/5);spa=45+Math.floor(id/4);spd=40+Math.floor(id/5);spe=45+Math.floor(id/4);}
+  else if(id<=251){hp=50+Math.floor(id/4);atk=55+Math.floor(id/5);def=50+Math.floor(id/6);spa=55+Math.floor(id/5);spd=50+Math.floor(id/6);spe=55+Math.floor(id/5);}
+  else{hp=55+Math.floor(id/5);atk=60+Math.floor(id/6);def=55+Math.floor(id/7);spa=60+Math.floor(id/6);spd=55+Math.floor(id/7);spe=60+Math.floor(id/6);}
+  // Legendaries get a boost
+  if(typeof LEGENDARY_IDS!=='undefined'&&LEGENDARY_IDS.has(id)){hp+=30;atk+=30;def+=20;spa+=30;spd+=20;spe+=20;}
+  return {hp:Math.min(hp,255),atk:Math.min(atk,165),def:Math.min(def,130),spa:Math.min(spa,165),spd:Math.min(spd,130),spe:Math.min(spe,140)};
+}
+function calcMaxHP(stats){return stats.hp*2+110;}
+function calcDamage(attacker,defender,move,attackerTypes){
+  if(!move.power)return 0;
+  const atkStat=move.cat==='physical'?attacker.atk:attacker.spa;
+  const defStat=move.cat==='physical'?defender.def:defender.spd;
+  // STAB
+  const stab=attackerTypes.includes(move.type)?1.5:1;
+  // Type effectiveness
+  const eff=getTypeEffectiveness(move.type,defender.types);
+  // Damage formula
+  const base=Math.floor((((2*50/5+2)*move.power*(atkStat/defStat))/50+2)*stab*eff);
+  // Random factor 0.85–1.0
+  const rand=0.85+Math.random()*0.15;
+  return Math.max(1,Math.floor(base*rand));
+}
+
+// ── State ────────────────────────────────────────────────────────
+let battleRoom=null;         // current room row from DB
+let battleRoomId=null;
+let battleChannel=null;      // supabase realtime channel
+let battleMySlot=null;       // 'a' or 'b'
+let battleState=null;        // live state object
+let battleLastOpponentId=null;
+let battlePendingChallengeId=null;
+let battleIncomingChannel=null;
+
+// ── Init ─────────────────────────────────────────────────────────
+async function initBattleView(){
+  battleBackToLobby();
+  if(!dbReady)return;
+  battleLoadRecord();
+  battleListenIncoming();
+}
+
+async function battleLoadRecord(){
+  const el=document.getElementById('battle-record');
+  if(!el)return;
+  try{
+    const uid=getUID();
+    const{data:wins}=await sb.from('battle_rooms').select('id',{count:'exact',head:true}).eq('winner_id',uid);
+    const{data:losses,count:lc}=await sb.from('battle_rooms').select('id',{count:'exact',head:true}).or(`player_a.eq.${uid},player_b.eq.${uid}`).not('winner_id','is',null).neq('winner_id',uid);
+    const{count:wc}=await sb.from('battle_rooms').select('id',{count:'exact',head:true}).eq('winner_id',uid);
+    el.innerHTML=`<span style="color:#4caf50;font-weight:700">W: ${wc||0}</span> &nbsp;|&nbsp; <span style="color:var(--red);font-weight:700">L: ${lc||0}</span>`;
+  }catch(e){el.textContent='Could not load record.';}
+}
+
+// ── Listen for incoming challenges ───────────────────────────────
+function battleListenIncoming(){
+  if(!dbReady)return;
+  if(battleIncomingChannel){sb.removeChannel(battleIncomingChannel);battleIncomingChannel=null;}
+  const uid=getUID();
+  battleIncomingChannel=sb.channel('battle-incoming-'+uid)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'battle_rooms',filter:`player_b=eq.${uid}`},payload=>{
+      battleRefreshIncoming();
+    }).subscribe();
+  battleRefreshIncoming();
+}
+
+async function battleRefreshIncoming(){
+  if(!dbReady)return;
+  const uid=getUID();
+  try{
+    const{data:rows}=await sb.from('battle_rooms').select('*').eq('player_b',uid).eq('status','pending');
+    const wrap=document.getElementById('battle-incoming-wrap');
+    const list=document.getElementById('battle-incoming-list');
+    if(!wrap||!list)return;
+    if(!rows||!rows.length){wrap.style.display='none';return;}
+    wrap.style.display='';
+    list.innerHTML=rows.map(r=>`
+      <div class="battle-challenge-card">
+        <div class="battle-challenge-avatar">${(r.player_a_username||'?')[0].toUpperCase()}</div>
+        <div class="battle-challenge-name">${esc(r.player_a_username||'Unknown')}</div>
+        <div class="battle-challenge-btns">
+          <button class="battle-accept-btn" onclick="battleAccept('${r.id}','${r.player_a}','${esc(r.player_a_username||'Opponent')}')">Accept</button>
+          <button class="battle-decline-btn" onclick="battleDecline('${r.id}')">Decline</button>
+        </div>
+      </div>`).join('');
+  }catch(e){}
+}
+
+// ── Challenge flow ────────────────────────────────────────────────
+function battleShowChallenge(){
+  if(!dbReady){showToast('Sign in to battle!');return;}
+  document.getElementById('battle-lobby').style.display='none';
+  document.getElementById('battle-challenge-panel').style.display='';
+  document.getElementById('battle-search-input').value='';
+  document.getElementById('battle-search-results').innerHTML='';
+}
+function battleHideChallenge(){
+  document.getElementById('battle-challenge-panel').style.display='none';
+  document.getElementById('battle-lobby').style.display='';
+}
+
+async function battleSearchTrainers(q){
+  const el=document.getElementById('battle-search-results');
+  if(!q||q.length<2){el.innerHTML='';return;}
+  try{
+    const{data:rows}=await sb.from('user_profiles').select('user_id,username').ilike('username','%'+q+'%').neq('user_id',getUID()).limit(8);
+    if(!rows||!rows.length){el.innerHTML='<div style="padding:10px;color:var(--muted);font-size:0.85rem">No trainers found</div>';return;}
+    el.innerHTML=rows.map(r=>`
+      <div class="battle-trainer-result" onclick="battleChallenge('${r.user_id}','${esc(r.username||'Trainer')}')">
+        <div class="battle-challenge-avatar" style="width:32px;height:32px;font-size:0.8rem">${(r.username||'?')[0].toUpperCase()}</div>
+        <span style="font-weight:700;font-size:0.9rem">${esc(r.username||'Trainer')}</span>
+      </div>`).join('');
+  }catch(e){el.innerHTML='<div style="padding:10px;color:var(--muted);font-size:0.85rem">Error searching</div>';}
+}
+
+async function battleChallenge(opponentId, opponentName){
+  if(!dbReady)return;
+  // Get my squad
+  const mySquad=await battleGetSquad(getUID());
+  if(!mySquad||!mySquad.length){showToast('You need a squad to battle! Set one up in your profile.');return;}
+  battleLastOpponentId=opponentId;
+  try{
+    const{data:room,error}=await sb.from('battle_rooms').insert({
+      player_a:getUID(),player_a_username:getUsername(),
+      player_b:opponentId,player_b_username:opponentName,
+      status:'pending',
+      player_a_squad:mySquad,
+      created_at:new Date().toISOString()
+    }).select().single();
+    if(error)throw error;
+    battleRoomId=room.id;
+    battleMySlot='a';
+    battleHideChallenge();
+    battleShowVS(room);
+    battleWaitForAccept(room.id);
+    showToast('Challenge sent to '+opponentName+'!');
+  }catch(e){showToast('Could not send challenge. Try again.');}
+}
+
+async function battleAccept(roomId, opponentId, opponentName){
+  if(!dbReady)return;
+  const mySquad=await battleGetSquad(getUID());
+  if(!mySquad||!mySquad.length){showToast('You need a squad to battle! Set one up in your profile.');return;}
+  try{
+    const{data:room,error}=await sb.from('battle_rooms').update({
+      status:'active',
+      player_b_squad:mySquad,
+      state:null
+    }).eq('id',roomId).select().single();
+    if(error)throw error;
+    battleRoomId=roomId;
+    battleMySlot='b';
+    battleLastOpponentId=opponentId;
+    battleRefreshIncoming();
+    battleStartBattle(room);
+  }catch(e){showToast('Could not accept. Try again.');}
+}
+
+async function battleDecline(roomId){
+  try{
+    await sb.from('battle_rooms').update({status:'declined'}).eq('id',roomId);
+    battleRefreshIncoming();
+    showToast('Challenge declined.');
+  }catch(e){}
+}
+
+// ── Squad helpers ─────────────────────────────────────────────────
+async function battleGetSquad(uid){
+  try{
+    const{data}=await sb.from('user_squads').select('slots').eq('user_id',uid).single();
+    if(!data?.slots)return null;
+    const ids=(Array.isArray(data.slots)?data.slots:JSON.parse(data.slots)).filter(Boolean);
+    return ids.length?ids:null;
+  }catch(e){return null;}
+}
+
+// ── VS screen ────────────────────────────────────────────────────
+function battleShowVS(room){
+  document.getElementById('battle-lobby').style.display='none';
+  document.getElementById('battle-challenge-panel').style.display='none';
+  document.getElementById('battle-vs-screen').style.display='';
+  document.getElementById('battle-arena').style.display='none';
+  document.getElementById('battle-result').style.display='none';
+
+  const isA=battleMySlot==='a';
+  const myName=getUsername();
+  const oppName=isA?(room.player_b_username||'Opponent'):(room.player_a_username||'Opponent');
+  document.getElementById('bvs-name-a').textContent=isA?myName:oppName;
+  document.getElementById('bvs-name-b').textContent=isA?oppName:myName;
+
+  const mySquad=isA?room.player_a_squad:room.player_b_squad;
+  const oppSquad=isA?room.player_b_squad:room.player_a_squad;
+  const myFirst=mySquad?mySquad[0]:null;
+  const oppFirst=oppSquad?oppSquad[0]:null;
+  if(myFirst)document.getElementById('bvs-sprite-a').src=SPRITE(myFirst);
+  if(oppFirst)document.getElementById('bvs-sprite-b').src=SPRITE(oppFirst);
+  document.getElementById('bvs-poke-a').textContent=myFirst?(POKEMON_LIST.find(p=>p.id===myFirst)?.name||''):'?';
+  document.getElementById('bvs-poke-b').textContent=oppFirst?(POKEMON_LIST.find(p=>p.id===oppFirst)?.name||''):'?';
+  document.getElementById('bvs-status').textContent='Waiting for opponent…';
+}
+
+function battleWaitForAccept(roomId){
+  if(battleChannel){sb.removeChannel(battleChannel);battleChannel=null;}
+  battleChannel=sb.channel('battle-room-'+roomId)
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'battle_rooms',filter:`id=eq.${roomId}`},payload=>{
+      const room=payload.new;
+      if(room.status==='active'){
+        battleStartBattle(room);
+      } else if(room.status==='declined'){
+        document.getElementById('bvs-status').textContent='Challenge declined.';
+        setTimeout(battleBackToLobby,2000);
+      }
+    }).subscribe();
+}
+
+// ── Battle engine ─────────────────────────────────────────────────
+function battleBuildPokemon(id){
+  const stats=getBattleStats(id);
+  const maxHp=calcMaxHP(stats);
+  const types=getPokemonTypes(id);
+  const name=(POKEMON_LIST.find(p=>p.id===id)?.name||'Pokemon').replace(/-/g,' ');
+  return {id,name,types,maxHp,hp:maxHp,stats,fainted:false,statMods:{atk:0,def:0,spa:0,spd:0,spe:0},status:null};
+}
+
+function battleBuildTeam(squadIds){
+  return squadIds.filter(Boolean).map(id=>battleBuildPokemon(id));
+}
+
+function battleStartBattle(room){
+  if(battleChannel&&room.status==='pending'){return;}
+  // Clean up channel from waiting
+  if(battleChannel){sb.removeChannel(battleChannel);battleChannel=null;}
+
+  const squadA=Array.isArray(room.player_a_squad)?room.player_a_squad:JSON.parse(room.player_a_squad||'[]');
+  const squadB=Array.isArray(room.player_b_squad)?room.player_b_squad:JSON.parse(room.player_b_squad||'[]');
+
+  // Build initial state
+  battleState={
+    teamA:battleBuildTeam(squadA),
+    teamB:battleBuildTeam(squadB),
+    activeA:0,
+    activeB:0,
+    turn:1,
+    pendingA:null,   // chosen move by player A this turn
+    pendingB:null,   // chosen move by player B this turn
+    log:[],
+    status:'active', // active | finished
+    winnerId:null
+  };
+
+  // Show VS screen briefly then arena
+  document.getElementById('bvs-status').textContent='Battle starting!';
+  setTimeout(()=>battleShowArena(),1200);
+
+  // Subscribe to realtime updates
+  battleChannel=sb.channel('battle-room-'+battleRoomId)
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'battle_rooms',filter:`id=eq.${battleRoomId}`},payload=>{
+      battleOnRoomUpdate(payload.new);
+    }).subscribe();
+}
+
+function battleShowArena(){
+  document.getElementById('battle-vs-screen').style.display='none';
+  document.getElementById('battle-arena').style.display='';
+  document.getElementById('battle-lobby').style.display='none';
+  document.getElementById('battle-result').style.display='none';
+  battleRenderArena();
+  battleShowMoves();
+}
+
+function battleRenderArena(){
+  if(!battleState)return;
+  const myTeam=battleMySlot==='a'?battleState.teamA:battleState.teamB;
+  const oppTeam=battleMySlot==='a'?battleState.teamB:battleState.teamA;
+  const myActive=battleMySlot==='a'?battleState.activeA:battleState.activeB;
+  const oppActive=battleMySlot==='a'?battleState.activeB:battleState.activeA;
+
+  const me=myTeam[myActive];
+  const opp=oppTeam[oppActive];
+
+  // Enemy
+  document.getElementById('b-enemy-name').textContent=opp.name;
+  document.getElementById('b-enemy-sprite').src=SPRITE(opp.id);
+  document.getElementById('b-enemy-sprite').className='battle-sprite enemy'+(opp.fainted?' fainted':'');
+  const oppHpPct=Math.max(0,(opp.hp/opp.maxHp)*100);
+  const oppHpBar=document.getElementById('b-enemy-hp-bar');
+  oppHpBar.style.width=oppHpPct+'%';
+  oppHpBar.style.background=oppHpPct>50?'#4caf50':oppHpPct>20?'#ff9800':'#f44336';
+  document.getElementById('b-enemy-hp-text').textContent=`HP: ${Math.max(0,opp.hp)}/${opp.maxHp}`;
+
+  // Player
+  document.getElementById('b-player-name').textContent=me.name;
+  document.getElementById('b-player-sprite').src=SPRITE(me.id);
+  document.getElementById('b-player-sprite').className='battle-sprite'+(me.fainted?' fainted':'');
+  const myHpPct=Math.max(0,(me.hp/me.maxHp)*100);
+  const myHpBar=document.getElementById('b-player-hp-bar');
+  myHpBar.style.width=myHpPct+'%';
+  myHpBar.style.background=myHpPct>50?'#4caf50':myHpPct>20?'#ff9800':'#f44336';
+  document.getElementById('b-player-hp-text').textContent=`HP: ${Math.max(0,me.hp)}/${me.maxHp}`;
+}
+
+function battleShowMoves(){
+  if(!battleState)return;
+  const myTeam=battleMySlot==='a'?battleState.teamA:battleState.teamB;
+  const myActive=battleMySlot==='a'?battleState.activeA:battleState.activeB;
+  const me=myTeam[myActive];
+  const moves=getBattleMoves(me.id);
+  const myPending=battleMySlot==='a'?battleState.pendingA:battleState.pendingB;
+
+  document.getElementById('battle-switch-panel').style.display='none';
+  document.getElementById('battle-waiting-move').style.display='none';
+
+  if(myPending!==null){
+    // Already submitted move, waiting for opponent
+    document.getElementById('battle-moves-wrap').style.display='none';
+    document.getElementById('battle-waiting-move').style.display='';
+    return;
+  }
+
+  document.getElementById('battle-moves-wrap').style.display='';
+  const movesEl=document.getElementById('battle-moves');
+  movesEl.innerHTML=moves.map((m,i)=>{
+    const col=TYPE_COLORS[m.type]||'#666';
+    const effText=m.power?`Power: ${m.power}`:'Status';
+    return `<button class="battle-move-btn" style="border-color:${col}44;background:${col}18"
+      onclick="battlePickMove(${i})">
+      <span style="font-size:0.9rem">${m.name}</span>
+      <span class="battle-move-type" style="background:${col}">${m.type}</span>
+      <span class="battle-move-power">${effText}</span>
+    </button>`;
+  }).join('');
+
+  // Add switch button
+  movesEl.innerHTML+=`<button class="battle-move-btn" style="grid-column:span 2;opacity:0.7" onclick="battleShowSwitch()">↕ Switch Pokemon</button>`;
+}
+
+function battleShowSwitch(){
+  const myTeam=battleMySlot==='a'?battleState.teamA:battleState.teamB;
+  const myActive=battleMySlot==='a'?battleState.activeA:battleState.activeB;
+  const panel=document.getElementById('battle-switch-panel');
+  panel.style.display='';
+  panel.innerHTML=myTeam.map((p,i)=>{
+    const disabled=i===myActive||p.fainted;
+    return `<button class="battle-switch-btn" ${disabled?'disabled':''} onclick="battlePickSwitch(${i})">
+      <img src="${SPRITE(p.id)}" alt="${p.name}"/>
+      <span>${p.name}</span>
+      <span style="font-size:0.65rem;color:${p.fainted?'var(--red)':'#4caf50'}">${p.fainted?'Fainted':`HP: ${p.hp}`}</span>
+    </button>`;
+  }).join('');
+}
+
+async function battlePickMove(moveIdx){
+  if(!battleState||battleState.status!=='active')return;
+  const field=battleMySlot==='a'?'pending_a':'pending_b';
+  if(battleMySlot==='a'&&battleState.pendingA!==null)return;
+  if(battleMySlot==='b'&&battleState.pendingB!==null)return;
+
+  // Optimistically update UI
+  if(battleMySlot==='a')battleState.pendingA=moveIdx;
+  else battleState.pendingB=moveIdx;
+  battleShowMoves();
+
+  try{
+    // Fetch current room state
+    const{data:room}=await sb.from('battle_rooms').select('state,pending_a,pending_b').eq('id',battleRoomId).single();
+    const update={[field]:moveIdx};
+    // Check if both moves are in — if so, resolve
+    const otherField=battleMySlot==='a'?'pending_b':'pending_a';
+    const otherPending=room[otherField];
+    if(otherPending!==null&&otherPending!==undefined){
+      // Both chosen — resolve turn
+      update.pending_a=battleMySlot==='a'?moveIdx:room.pending_a;
+      update.pending_b=battleMySlot==='b'?moveIdx:room.pending_b;
+      await sb.from('battle_rooms').update(update).eq('id',battleRoomId);
+    } else {
+      await sb.from('battle_rooms').update(update).eq('id',battleRoomId);
+    }
+  }catch(e){showToast('Connection error. Try again.');}
+}
+
+async function battlePickSwitch(slotIdx){
+  document.getElementById('battle-switch-panel').style.display='none';
+  const field=battleMySlot==='a'?'pending_a':'pending_b';
+  const switchCode=100+slotIdx; // 100+ = switch command
+  if(battleMySlot==='a')battleState.pendingA=switchCode;
+  else battleState.pendingB=switchCode;
+  battleShowMoves();
+  try{
+    const{data:room}=await sb.from('battle_rooms').select('pending_a,pending_b').eq('id',battleRoomId).single();
+    const update={[field]:switchCode};
+    const otherField=battleMySlot==='a'?'pending_b':'pending_a';
+    if(room[otherField]!==null&&room[otherField]!==undefined){
+      update.pending_a=battleMySlot==='a'?switchCode:room.pending_a;
+      update.pending_b=battleMySlot==='b'?switchCode:room.pending_b;
+    }
+    await sb.from('battle_rooms').update(update).eq('id',battleRoomId);
+  }catch(e){}
+}
+
+// ── Realtime update handler ───────────────────────────────────────
+function battleOnRoomUpdate(room){
+  if(room.status==='declined'){battleBackToLobby();showToast('Battle cancelled.');return;}
+  if(room.status==='active'&&document.getElementById('battle-vs-screen').style.display!=='none'){
+    battleStartBattle(room);return;
+  }
+  if(room.status!=='active')return;
+
+  const pA=room.pending_a;
+  const pB=room.pending_b;
+  if(pA===null||pA===undefined||pB===null||pB===undefined)return;
+
+  // Both moves received — resolve turn
+  battleResolveTurn(pA,pB,room.state?JSON.parse(room.state):null);
+}
+
+function battleResolveTurn(moveA,moveB,savedState){
+  if(!battleState)return;
+  const teamA=battleState.teamA;
+  const teamB=battleState.teamB;
+  const pkA=teamA[battleState.activeA];
+  const pkB=teamB[battleState.activeB];
+  const log=[];
+
+  function applyMove(attacker,defender,moveIdx,attackerTeam,defenderTeam,activeAttackerIdx,activeDefenderIdx){
+    if(moveIdx>=100){
+      // Switch
+      const newIdx=moveIdx-100;
+      if(attacker===pkA){battleState.activeA=newIdx;log.push(`${attacker.name} switched out! ${attackerTeam[newIdx].name} came in!`);}
+      else{battleState.activeB=newIdx;log.push(`${attacker.name} switched out! ${attackerTeam[newIdx].name} came in!`);}
+      return;
+    }
+    const moves=getBattleMoves(attacker.id);
+    const move=moves[moveIdx];
+    if(!move)return;
+    if(!move.power){
+      log.push(`${attacker.name} used ${move.name}!`);
+      // Status effects
+      if(move.effect){
+        if(move.effect==='burn'){defender.status='burned';log.push(`${defender.name} was burned!`);}
+        else if(move.effect==='para'){defender.status='paralyzed';log.push(`${defender.name} is paralyzed!`);}
+        else if(move.effect==='poison'){defender.status='poisoned';log.push(`${defender.name} was poisoned!`);}
+        else if(move.effect==='drain'){defender.hp=Math.max(0,defender.hp-Math.floor(defender.maxHp/8));log.push(`${defender.name} is seeded!`);}
+        else if(move.effect&&move.effect.includes('+')){const[stat,val]=move.effect.split('+');attacker.statMods[stat]=(attacker.statMods[stat]||0)+parseInt(val);log.push(`${attacker.name}'s ${stat} rose!`);}
+        else if(move.effect&&move.effect.includes('-')){const[stat,val]=move.effect.split('-');defender.statMods[stat]=(defender.statMods[stat]||0)-parseInt(val);log.push(`${defender.name}'s ${stat} fell!`);}
+      }
+      return;
+    }
+    // Physical/special damage
+    const eff=getTypeEffectiveness(move.type,defender.types);
+    const dmg=calcDamage(attacker,defender,move,attacker.types);
+    defender.hp=Math.max(0,defender.hp-dmg);
+    log.push(`${attacker.name} used ${move.name}! (${dmg} dmg${eff>=2?' Super effective!':eff===0?' No effect...':eff<1?' Not very effective...':''})`);
+    if(defender.hp<=0){defender.fainted=true;log.push(`${defender.name} fainted!`);}
+  }
+
+  // Speed determines who goes first (unless priority move)
+  const spdA=pkA.stats.spe*(1+0.1*(pkA.statMods.spe||0));
+  const spdB=pkB.stats.spe*(1+0.1*(pkB.statMods.spe||0));
+  if(spdA>=spdB){
+    if(!pkA.fainted)applyMove(pkA,pkB,moveA,teamA,teamB);
+    if(!pkB.fainted)applyMove(pkB,pkA,moveB,teamB,teamA);
+  } else {
+    if(!pkB.fainted)applyMove(pkB,pkA,moveB,teamB,teamA);
+    if(!pkA.fainted)applyMove(pkA,pkB,moveA,teamA,teamB);
+  }
+
+  // Status damage
+  [pkA,pkB].forEach(pk=>{
+    if(pk.status==='burned'||pk.status==='poisoned'){
+      const dmg=Math.floor(pk.maxHp/8);pk.hp=Math.max(0,pk.hp-dmg);
+      log.push(`${pk.name} is hurt by its ${pk.status}! (${dmg} dmg)`);
+      if(pk.hp<=0){pk.fainted=true;log.push(`${pk.name} fainted!`);}
+    }
+  });
+
+  // Auto-advance to next living Pokemon
+  while(battleState.activeA<teamA.length&&teamA[battleState.activeA].fainted)battleState.activeA++;
+  while(battleState.activeB<teamB.length&&teamB[battleState.activeB].fainted)battleState.activeB++;
+
+  battleState.pendingA=null;battleState.pendingB=null;
+  battleState.turn++;
+  battleState.log.push(...log);
+
+  // Check win condition
+  const aAllFainted=teamA.every(p=>p.fainted);
+  const bAllFainted=teamB.every(p=>p.fainted);
+  if(aAllFainted||bAllFainted){
+    const winnerId=aAllFainted?(battleState.teamB[0]?.id?battleRoom?.player_b:null):null;
+    const winnerSlot=aAllFainted?'b':'a';
+    battleState.status='finished';
+    battleState.winnerId=winnerSlot;
+    battleFinish(winnerSlot,log);
+  } else {
+    battleRenderArena();
+    battleUpdateLog(log);
+    battleShowMoves();
+    // Clear pending in DB so next turn can begin
+    sb.from('battle_rooms').update({pending_a:null,pending_b:null,state:JSON.stringify(battleState)}).eq('id',battleRoomId).then(()=>{});
+  }
+}
+
+function battleUpdateLog(newLines){
+  const el=document.getElementById('battle-log');if(!el)return;
+  el.innerHTML+=newLines.map((l,i)=>`<div class="battle-log-line${i===0?' new':''}">${esc(l)}</div>`).join('');
+  el.scrollTop=el.scrollHeight;
+}
+
+async function battleFinish(winnerSlot,log){
+  const iWon=(winnerSlot===battleMySlot);
+  battleUpdateLog(log||[]);
+  battleRenderArena();
+
+  // Save to DB
+  try{
+    const winnerUid=winnerSlot==='a'?battleRoom?.player_a:battleRoom?.player_b;
+    await sb.from('battle_rooms').update({status:'finished',winner_id:winnerUid,state:JSON.stringify(battleState)}).eq('id',battleRoomId);
+  }catch(e){}
+
+  setTimeout(()=>{
+    document.getElementById('battle-arena').style.display='none';
+    document.getElementById('battle-result').style.display='';
+    const title=document.getElementById('br-title');
+    title.textContent=iWon?'You Win! 🎉':'You Lost...';
+    title.className='battle-result-title '+(iWon?'win':'loss');
+    document.getElementById('br-detail').textContent=`Turn ${battleState.turn} • ${iWon?'Victory!':'Better luck next time.'}`;
+    battleLoadRecord();
+    if(battleChannel){sb.removeChannel(battleChannel);battleChannel=null;}
+  },1500);
+}
+
+async function battleRematch(){
+  if(!battleLastOpponentId)return;
+  const{data:profile}=await sb.from('user_profiles').select('username').eq('user_id',battleLastOpponentId).single();
+  const name=profile?.username||'Trainer';
+  battleBackToLobby();
+  battleShowChallenge();
+  setTimeout(()=>{document.getElementById('battle-search-input').value=name;battleSearchTrainers(name);},300);
+}
+
+function battleBackToLobby(){
+  if(battleChannel){sb.removeChannel(battleChannel);battleChannel=null;}
+  document.getElementById('battle-lobby').style.display='';
+  document.getElementById('battle-challenge-panel').style.display='none';
+  document.getElementById('battle-vs-screen').style.display='none';
+  document.getElementById('battle-arena').style.display='none';
+  document.getElementById('battle-result').style.display='none';
+  battleState=null;battleRoomId=null;battleMySlot=null;battleRoom=null;
 }
 
 </script>
