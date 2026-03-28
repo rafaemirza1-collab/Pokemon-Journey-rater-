@@ -1281,6 +1281,7 @@
   .battle-move-meta { display:flex; align-items:center; gap:5px; }
   .battle-move-type { font-size:0.6rem; font-weight:700; padding:1px 6px; border-radius:999px; color:#fff; text-transform:uppercase; letter-spacing:0.5px; }
   .battle-move-power { font-size:0.65rem; color:var(--muted); }
+  .battle-move-pp { font-size:0.6rem; font-weight:700; grid-column:span 2; text-align:right; margin-top:1px; }
   .battle-move-switch-btn { grid-column:span 2; padding:10px; border-radius:12px; border:1px dashed var(--border); background:none; color:var(--muted); cursor:pointer; font-size:0.82rem; font-weight:700; transition:all 0.15s; }
   .battle-move-switch-btn:hover { background:var(--surface2); color:var(--text); }
   /* Log */
@@ -1291,6 +1292,8 @@
   .battle-log-line.log-super { color:#ffcb05; font-weight:800; }
   .battle-log-line.log-status { color:#c77dff; font-weight:600; }
   .battle-log-line.log-faint { color:var(--red); font-weight:800; }
+  .battle-log-line.log-crit { color:#ff5722; font-weight:800; }
+  .battle-log-line.log-miss { color:#666; font-style:italic; }
   .battle-log-line.log-switch { color:#64b5f6; }
   /* "Opponent choosing" indicator */
   .battle-opp-thinking { display:flex; align-items:center; gap:8px; padding:10px 16px; font-size:0.8rem; color:var(--muted); border-top:1px solid var(--border); background:var(--surface); }
@@ -8299,25 +8302,26 @@ async function bcLoadLeaderboard(){
 // ═══════════════════════════════════════════════════════════════
 
 // ── Move database (type → 4 moves) ──────────────────────────────
+// acc: accuracy 0-100 (undefined = always hits), pp: uses, crit: high crit ratio, drain: heals attacker
 const BATTLE_MOVES = {
-  normal:   [{name:'Tackle',power:40,type:'normal',cat:'physical'},{name:'Body Slam',power:85,type:'normal',cat:'physical'},{name:'Hyper Beam',power:150,type:'normal',cat:'special'},{name:'Growl',power:0,type:'normal',cat:'status',effect:'atk-1'}],
-  fire:     [{name:'Ember',power:40,type:'fire',cat:'special'},{name:'Flamethrower',power:90,type:'fire',cat:'special'},{name:'Fire Blast',power:110,type:'fire',cat:'special'},{name:'Will-O-Wisp',power:0,type:'fire',cat:'status',effect:'burn'}],
-  water:    [{name:'Water Gun',power:40,type:'water',cat:'special'},{name:'Surf',power:90,type:'water',cat:'special'},{name:'Hydro Pump',power:110,type:'water',cat:'special'},{name:'Rain Dance',power:0,type:'water',cat:'status',effect:'def+1'}],
-  grass:    [{name:'Vine Whip',power:45,type:'grass',cat:'physical'},{name:'Razor Leaf',power:55,type:'grass',cat:'physical'},{name:'Solar Beam',power:120,type:'grass',cat:'special'},{name:'Leech Seed',power:0,type:'grass',cat:'status',effect:'drain'}],
-  electric: [{name:'Thunder Shock',power:40,type:'electric',cat:'special'},{name:'Thunderbolt',power:90,type:'electric',cat:'special'},{name:'Thunder',power:110,type:'electric',cat:'special'},{name:'Thunder Wave',power:0,type:'electric',cat:'status',effect:'para'}],
-  ice:      [{name:'Ice Shard',power:40,type:'ice',cat:'physical'},{name:'Ice Beam',power:90,type:'ice',cat:'special'},{name:'Blizzard',power:110,type:'ice',cat:'special'},{name:'Haze',power:0,type:'ice',cat:'status',effect:'reset'}],
-  fighting: [{name:'Karate Chop',power:50,type:'fighting',cat:'physical'},{name:'Close Combat',power:120,type:'fighting',cat:'physical'},{name:'Superpower',power:120,type:'fighting',cat:'physical'},{name:'Bulk Up',power:0,type:'fighting',cat:'status',effect:'atk+1'}],
-  poison:   [{name:'Poison Sting',power:15,type:'poison',cat:'physical'},{name:'Sludge Bomb',power:90,type:'poison',cat:'special'},{name:'Gunk Shot',power:120,type:'poison',cat:'physical'},{name:'Toxic',power:0,type:'poison',cat:'status',effect:'poison'}],
-  ground:   [{name:'Mud-Slap',power:20,type:'ground',cat:'special'},{name:'Earthquake',power:100,type:'ground',cat:'physical'},{name:'Earth Power',power:90,type:'ground',cat:'special'},{name:'Sand Attack',power:0,type:'ground',cat:'status',effect:'acc-1'}],
-  flying:   [{name:'Gust',power:40,type:'flying',cat:'special'},{name:'Air Slash',power:75,type:'flying',cat:'special'},{name:'Hurricane',power:110,type:'flying',cat:'special'},{name:'Tailwind',power:0,type:'flying',cat:'status',effect:'spd+1'}],
-  psychic:  [{name:'Confusion',power:50,type:'psychic',cat:'special'},{name:'Psychic',power:90,type:'psychic',cat:'special'},{name:'Psybeam',power:65,type:'psychic',cat:'special'},{name:'Calm Mind',power:0,type:'psychic',cat:'status',effect:'spa+1'}],
-  bug:      [{name:'Bug Bite',power:60,type:'bug',cat:'physical'},{name:'X-Scissor',power:80,type:'bug',cat:'physical'},{name:'Bug Buzz',power:90,type:'bug',cat:'special'},{name:'String Shot',power:0,type:'bug',cat:'status',effect:'spd-1'}],
-  rock:     [{name:'Rock Throw',power:50,type:'rock',cat:'physical'},{name:'Rock Slide',power:75,type:'rock',cat:'physical'},{name:'Stone Edge',power:100,type:'rock',cat:'physical'},{name:'Stealth Rock',power:0,type:'rock',cat:'status',effect:'hazard'}],
-  ghost:    [{name:'Shadow Sneak',power:40,type:'ghost',cat:'physical'},{name:'Shadow Ball',power:80,type:'ghost',cat:'special'},{name:'Shadow Force',power:120,type:'ghost',cat:'physical'},{name:'Curse',power:0,type:'ghost',cat:'status',effect:'curse'}],
-  dragon:   [{name:'Dragon Rage',power:60,type:'dragon',cat:'special'},{name:'Dragon Claw',power:80,type:'dragon',cat:'physical'},{name:'Draco Meteor',power:130,type:'dragon',cat:'special'},{name:'Dragon Dance',power:0,type:'dragon',cat:'status',effect:'atk+1'}],
-  dark:     [{name:'Bite',power:60,type:'dark',cat:'physical'},{name:'Crunch',power:80,type:'dark',cat:'physical'},{name:'Dark Pulse',power:80,type:'dark',cat:'special'},{name:'Nasty Plot',power:0,type:'dark',cat:'status',effect:'spa+2'}],
-  steel:    [{name:'Metal Claw',power:50,type:'steel',cat:'physical'},{name:'Iron Head',power:80,type:'steel',cat:'physical'},{name:'Flash Cannon',power:80,type:'steel',cat:'special'},{name:'Iron Defense',power:0,type:'steel',cat:'status',effect:'def+2'}],
-  fairy:    [{name:'Fairy Wind',power:40,type:'fairy',cat:'special'},{name:'Moonblast',power:95,type:'fairy',cat:'special'},{name:'Dazzling Gleam',power:80,type:'fairy',cat:'special'},{name:'Charm',power:0,type:'fairy',cat:'status',effect:'atk-2'}],
+  normal:   [{name:'Tackle',power:40,type:'normal',cat:'physical',acc:100,pp:35},{name:'Body Slam',power:85,type:'normal',cat:'physical',acc:100,pp:15},{name:'Hyper Beam',power:150,type:'normal',cat:'special',acc:90,pp:5},{name:'Growl',power:0,type:'normal',cat:'status',effect:'atk-1',pp:40}],
+  fire:     [{name:'Ember',power:40,type:'fire',cat:'special',acc:100,pp:25},{name:'Flamethrower',power:90,type:'fire',cat:'special',acc:100,pp:15,effect:'burn10'},{name:'Fire Blast',power:110,type:'fire',cat:'special',acc:85,pp:5,effect:'burn10'},{name:'Will-O-Wisp',power:0,type:'fire',cat:'status',effect:'burn',pp:15}],
+  water:    [{name:'Water Gun',power:40,type:'water',cat:'special',acc:100,pp:25},{name:'Surf',power:90,type:'water',cat:'special',acc:100,pp:15},{name:'Hydro Pump',power:110,type:'water',cat:'special',acc:80,pp:5},{name:'Rain Dance',power:0,type:'water',cat:'status',effect:'def+1',pp:5}],
+  grass:    [{name:'Vine Whip',power:45,type:'grass',cat:'physical',acc:100,pp:25},{name:'Razor Leaf',power:55,type:'grass',cat:'physical',acc:95,pp:25,crit:true},{name:'Solar Beam',power:120,type:'grass',cat:'special',acc:100,pp:10},{name:'Leech Seed',power:0,type:'grass',cat:'status',effect:'drain',pp:10}],
+  electric: [{name:'Thunder Shock',power:40,type:'electric',cat:'special',acc:100,pp:30},{name:'Thunderbolt',power:90,type:'electric',cat:'special',acc:100,pp:15,effect:'para10'},{name:'Thunder',power:110,type:'electric',cat:'special',acc:70,pp:10,effect:'para30'},{name:'Thunder Wave',power:0,type:'electric',cat:'status',effect:'para',pp:20}],
+  ice:      [{name:'Ice Shard',power:40,type:'ice',cat:'physical',acc:100,pp:30},{name:'Ice Beam',power:90,type:'ice',cat:'special',acc:100,pp:10,effect:'freeze10'},{name:'Blizzard',power:110,type:'ice',cat:'special',acc:70,pp:5,effect:'freeze30'},{name:'Haze',power:0,type:'ice',cat:'status',effect:'reset',pp:30}],
+  fighting: [{name:'Karate Chop',power:50,type:'fighting',cat:'physical',acc:100,pp:25,crit:true},{name:'Close Combat',power:120,type:'fighting',cat:'physical',acc:100,pp:5,effect:'deffall'},{name:'Drain Punch',power:75,type:'fighting',cat:'physical',acc:100,pp:10,drain:true},{name:'Bulk Up',power:0,type:'fighting',cat:'status',effect:'atk+1',pp:20}],
+  poison:   [{name:'Poison Sting',power:15,type:'poison',cat:'physical',acc:100,pp:35,effect:'poison20'},{name:'Sludge Bomb',power:90,type:'poison',cat:'special',acc:100,pp:10,effect:'poison30'},{name:'Gunk Shot',power:120,type:'poison',cat:'physical',acc:80,pp:5,effect:'poison30'},{name:'Toxic',power:0,type:'poison',cat:'status',effect:'poison',pp:10}],
+  ground:   [{name:'Mud-Slap',power:20,type:'ground',cat:'special',acc:100,pp:10,effect:'acc-1'},{name:'Earthquake',power:100,type:'ground',cat:'physical',acc:100,pp:10},{name:'Earth Power',power:90,type:'ground',cat:'special',acc:100,pp:10,effect:'spd-1_30'},{name:'Sand Attack',power:0,type:'ground',cat:'status',effect:'acc-1',pp:15}],
+  flying:   [{name:'Gust',power:40,type:'flying',cat:'special',acc:100,pp:35},{name:'Air Slash',power:75,type:'flying',cat:'special',acc:95,pp:15,effect:'flinch30'},{name:'Hurricane',power:110,type:'flying',cat:'special',acc:70,pp:10,effect:'confuse30'},{name:'Tailwind',power:0,type:'flying',cat:'status',effect:'spd+1',pp:15}],
+  psychic:  [{name:'Confusion',power:50,type:'psychic',cat:'special',acc:100,pp:25,effect:'confuse10'},{name:'Psychic',power:90,type:'psychic',cat:'special',acc:100,pp:10,effect:'spd-1_10'},{name:'Psybeam',power:65,type:'psychic',cat:'special',acc:100,pp:20,effect:'confuse20'},{name:'Calm Mind',power:0,type:'psychic',cat:'status',effect:'spa+1',pp:20}],
+  bug:      [{name:'Bug Bite',power:60,type:'bug',cat:'physical',acc:100,pp:20},{name:'X-Scissor',power:80,type:'bug',cat:'physical',acc:100,pp:15},{name:'Bug Buzz',power:90,type:'bug',cat:'special',acc:100,pp:10,effect:'spd-1_10'},{name:'String Shot',power:0,type:'bug',cat:'status',effect:'spd-1',pp:40}],
+  rock:     [{name:'Rock Throw',power:50,type:'rock',cat:'physical',acc:90,pp:15},{name:'Rock Slide',power:75,type:'rock',cat:'physical',acc:90,pp:10,effect:'flinch30'},{name:'Stone Edge',power:100,type:'rock',cat:'physical',acc:80,pp:5,crit:true},{name:'Stealth Rock',power:0,type:'rock',cat:'status',effect:'hazard',pp:20}],
+  ghost:    [{name:'Shadow Sneak',power:40,type:'ghost',cat:'physical',acc:100,pp:30},{name:'Shadow Ball',power:80,type:'ghost',cat:'special',acc:100,pp:15,effect:'spd-1_20'},{name:'Shadow Force',power:120,type:'ghost',cat:'physical',acc:100,pp:5},{name:'Confuse Ray',power:0,type:'ghost',cat:'status',effect:'confuse',pp:10}],
+  dragon:   [{name:'Dragon Rage',power:60,type:'dragon',cat:'special',acc:100,pp:10},{name:'Dragon Claw',power:80,type:'dragon',cat:'physical',acc:100,pp:15},{name:'Draco Meteor',power:130,type:'dragon',cat:'special',acc:90,pp:5,effect:'spa-2'},{name:'Dragon Dance',power:0,type:'dragon',cat:'status',effect:'atk+1',pp:20}],
+  dark:     [{name:'Bite',power:60,type:'dark',cat:'physical',acc:100,pp:25,effect:'flinch30'},{name:'Crunch',power:80,type:'dark',cat:'physical',acc:100,pp:15,effect:'def-1_20'},{name:'Dark Pulse',power:80,type:'dark',cat:'special',acc:100,pp:15,effect:'flinch20'},{name:'Nasty Plot',power:0,type:'dark',cat:'status',effect:'spa+2',pp:20}],
+  steel:    [{name:'Metal Claw',power:50,type:'steel',cat:'physical',acc:95,pp:35,effect:'atk+1_10'},{name:'Iron Head',power:80,type:'steel',cat:'physical',acc:100,pp:15,effect:'flinch30'},{name:'Flash Cannon',power:80,type:'steel',cat:'special',acc:100,pp:10,effect:'spd-1_10'},{name:'Iron Defense',power:0,type:'steel',cat:'status',effect:'def+2',pp:15}],
+  fairy:    [{name:'Fairy Wind',power:40,type:'fairy',cat:'special',acc:100,pp:30},{name:'Moonblast',power:95,type:'fairy',cat:'special',acc:100,pp:15,effect:'spa-1_30'},{name:'Dazzling Gleam',power:80,type:'fairy',cat:'special',acc:100,pp:10},{name:'Charm',power:0,type:'fairy',cat:'status',effect:'atk-2',pp:20}],
 };
 function getBattleMoves(pokemonId){
   const types=getPokemonTypes(pokemonId);
@@ -8377,22 +8381,28 @@ function getBattleStats(pokemonId){
   return {hp:Math.min(hp,255),atk:Math.min(atk,165),def:Math.min(def,130),spa:Math.min(spa,165),spd:Math.min(spd,130),spe:Math.min(spe,140)};
 }
 function calcMaxHP(stats){return stats.hp*2+110;}
+// Returns {dmg, crit}
 function calcDamage(attacker,defender,move,attackerTypes){
-  if(!move.power)return 0;
-  // Use stats object + apply stat mods (each stage = ±10%)
+  if(!move.power)return {dmg:0,crit:false};
   const atkBase=move.cat==='physical'?attacker.stats.atk:attacker.stats.spa;
   const defBase=move.cat==='physical'?defender.stats.def:defender.stats.spd;
   const atkMod=move.cat==='physical'?(attacker.statMods?.atk||0):(attacker.statMods?.spa||0);
   const defMod=move.cat==='physical'?(defender.statMods?.def||0):(defender.statMods?.spd||0);
-  const atkStat=Math.max(1,Math.floor(atkBase*(1+0.15*atkMod)));
-  const defStat=Math.max(1,Math.floor(defBase*(1+0.15*defMod)));
+  // Stage multipliers: ±0.15 per stage (capped at ±6 already)
+  const atkMult=atkMod>=0?(2+atkMod)/2:(2/(2-atkMod));
+  const defMult=defMod>=0?(2+defMod)/2:(2/(2-defMod));
+  const atkStat=Math.max(1,Math.floor(atkBase*atkMult));
+  const defStat=Math.max(1,Math.floor(defBase*defMult));
   const stab=attackerTypes.includes(move.type)?1.5:1;
   const eff=getTypeEffectiveness(move.type,defender.types);
-  // Paralysis halves attack contribution
   const paraFactor=(attacker.status==='paralyzed'&&move.cat==='physical')?0.5:1;
-  const base=Math.floor((((2*50/5+2)*move.power*(atkStat/defStat))/50+2)*stab*eff*paraFactor);
+  // Critical hit: 6.25% base, high-crit moves 12.5%
+  const critChance=move.crit?0.125:0.0625;
+  const crit=Math.random()<critChance;
+  const critMult=crit?1.5:1;
+  const base=Math.floor((((2*50/5+2)*move.power*(atkStat/defStat))/50+2)*stab*eff*paraFactor*critMult);
   const rand=0.85+Math.random()*0.15;
-  return Math.max(1,Math.floor(base*rand));
+  return {dmg:Math.max(1,Math.floor(base*rand)),crit};
 }
 
 // ── State ────────────────────────────────────────────────────────
@@ -8621,9 +8631,21 @@ function battleStopRoomPoll(){
 function battleBuildPokemon(id){
   const stats=getBattleStats(id);
   const maxHp=calcMaxHP(stats);
+  const moves=getBattleMoves(id);
+  // Track PP per move slot
+  const pp=moves.map(m=>({max:m.pp||10,cur:m.pp||10}));
   return {id,name:(allPokemon.find(p=>p.id===id)?.name||'Pokemon').replace(/-/g,' '),
     types:getPokemonTypes(id),maxHp,hp:maxHp,stats,fainted:false,
-    statMods:{atk:0,def:0,spa:0,spd:0,spe:0},status:null};
+    statMods:{atk:0,def:0,spa:0,spd:0,spe:0,acc:0,eva:0},
+    status:null,  // 'burned'|'poisoned'|'paralyzed'|'frozen'|'asleep'
+    confused:false,  // confusion tracked separately (wears off)
+    confuseTimer:0,  // turns remaining
+    sleepTimer:0,    // turns remaining
+    pp};
+}
+// Clamp stat mod to ±6 stages
+function clampMod(pk,stat,delta){
+  pk.statMods[stat]=Math.max(-6,Math.min(6,(pk.statMods[stat]||0)+delta));
 }
 function battleBuildTeam(squadIds){
   return (Array.isArray(squadIds)?squadIds:[]).filter(Boolean).map(id=>battleBuildPokemon(Number(id)));
@@ -8729,7 +8751,8 @@ function battleRenderArena(){
   if(tb)tb.textContent=`Turn ${battleState.turn}`;
 
   const renderPk=(nameId,spriteId,barId,textId,dotsId,pk,activeIdx,team,isEnemy)=>{
-    document.getElementById(nameId).textContent=pk.name+(pk.status?{burned:' 🔥',poisoned:' ☠️',paralyzed:' ⚡'}[pk.status]||'':'');
+    const statusIcon=pk.status?({burned:'🔥',poisoned:'☠️',paralyzed:'⚡',frozen:'🧊',asleep:'💤'}[pk.status]||''):'';
+    document.getElementById(nameId).textContent=pk.name+(statusIcon?' '+statusIcon:'')+(pk.confused?' 😵':'');
     const spr=document.getElementById(spriteId);
     spr.src=isEnemy
       ?`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pk.id}.png`
@@ -8783,14 +8806,21 @@ function battleShowMoves(){
       else if(eff===0){effLabel='No effect';effStyle='color:#888;font-size:0.62rem';}
       else if(eff<1){effLabel='Weak';effStyle='color:#888;font-size:0.62rem';}
     }
-    return `<button class="battle-move-btn" style="border-color:${col}55;background:${col}14" onclick="battlePickMove(${i})">
+    const ppData=me.pp&&me.pp[i];
+    const ppCur=ppData?ppData.cur:m.pp||10;
+    const ppMax=ppData?ppData.max:m.pp||10;
+    const ppColor=ppCur<=0?'#f44336':ppCur<=ppMax*0.3?'#ff9800':'#4caf50';
+    const outOfPP=ppCur<=0;
+    const accText=(m.acc&&m.acc<100)?`${m.acc}%`:'';
+    return `<button class="battle-move-btn" style="border-color:${col}55;background:${col}14;${outOfPP?'opacity:0.45':''}" onclick="${outOfPP?'':'battlePickMove('+i+')'}" ${outOfPP?'disabled':''}>
       <span class="battle-move-cat">${icon}</span>
       <span class="battle-move-name">${m.name}</span>
       <span class="battle-move-meta">
         <span class="battle-move-type" style="background:${col}">${m.type}</span>
-        <span class="battle-move-power">${m.power?'PWR '+m.power:'—'}</span>
+        <span class="battle-move-power">${m.power?'PWR '+m.power:'—'}${accText?' '+accText:''}</span>
         ${effLabel?`<span style="${effStyle}">${effLabel}</span>`:''}
       </span>
+      <span class="battle-move-pp" style="color:${ppColor}">${ppCur}/${ppMax} PP</span>
     </button>`;
   }).join('')+`<button class="battle-move-switch-btn" onclick="battleShowSwitch()">↕ Switch Pokémon</button>`;
 }
@@ -9022,10 +9052,11 @@ function battleUpdateLog(lines){
     let cls='battle-log-line';
     if(i===0)cls+=' new';
     if(l.includes('💀')||l.includes('fainted'))cls+=' log-faint';
+    else if(l.includes('⭐'))cls+=' log-crit';
     else if(l.includes('💥')||l.includes('Super effective'))cls+=' log-super';
-    else if(l.startsWith('−')||l.includes('dmg')||l.includes('damage'))cls+=' log-dmg';
-    else if(l.includes('🔥')||l.includes('☠️')||l.includes('⚡')||l.includes('burned')||l.includes('paralyzed')||l.includes('poisoned'))cls+=' log-status';
-    else if(l.includes('↕')||l.includes('→'))cls+='';
+    else if(l.startsWith('−')||l.includes('💚'))cls+=' log-dmg';
+    else if(l.includes('💨')||l.includes('missed'))cls+=' log-miss';
+    else if(l.includes('🔥')||l.includes('☠️')||l.includes('⚡')||l.includes('🧊')||l.includes('😵')||l.includes('😊'))cls+=' log-status';
     else if(l.includes('⬆️')||l.includes('⬇️'))cls+=' log-status';
     d.className=cls;d.textContent=l;el.appendChild(d);
   });
@@ -9080,11 +9111,21 @@ function battleBeep(freq,dur,type='square',vol=0.15){
 }
 function battleSoundHit(){battleBeep(220,0.08,'sawtooth',0.2);setTimeout(()=>battleBeep(180,0.1,'sawtooth',0.15),60);}
 function battleSoundSuperHit(){battleBeep(440,0.06,'square',0.25);setTimeout(()=>battleBeep(550,0.08,'square',0.2),50);setTimeout(()=>battleBeep(660,0.12,'square',0.18),110);}
+function battleSoundCrit(){battleBeep(880,0.05,'square',0.3);setTimeout(()=>battleBeep(1100,0.08,'square',0.25),40);setTimeout(()=>battleBeep(1320,0.15,'triangle',0.2),90);}
+function battleSoundMiss(){battleBeep(200,0.05,'sine',0.08);setTimeout(()=>battleBeep(180,0.08,'sine',0.06),60);}
 function battleSoundFaint(){battleBeep(300,0.1,'sawtooth',0.2);setTimeout(()=>battleBeep(200,0.15,'sawtooth',0.18),100);setTimeout(()=>battleBeep(100,0.3,'sawtooth',0.15),220);}
 function battleSoundWin(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>battleBeep(f,0.15,'triangle',0.2),i*120));}
 function battleSoundLose(){[300,250,200,150].forEach((f,i)=>setTimeout(()=>battleBeep(f,0.18,'sawtooth',0.15),i*140));}
 function battleSoundStatus(){battleBeep(350,0.05,'sine',0.1);setTimeout(()=>battleBeep(350,0.05,'sine',0.1),100);}
 function battleSoundChallenge(){battleBeep(600,0.08,'square',0.15);setTimeout(()=>battleBeep(800,0.12,'square',0.18),100);}
+
+// ── Stat change flash on sprite ──────────────────────────────────
+function battleFlashStat(spriteId,positive){
+  const el=document.getElementById(spriteId);if(!el)return;
+  el.style.transition='filter 0.15s';
+  el.style.filter=positive?'brightness(2) sepia(1) hue-rotate(80deg)':'brightness(2) sepia(1) hue-rotate(0deg)';
+  setTimeout(()=>{el.style.filter='';el.style.transition='';},300);
+}
 
 // ── Hit animation on sprite ──────────────────────────────────────
 function battleAnimHit(spriteId,superEffective){
@@ -9121,9 +9162,7 @@ function battleSpawnConfetti(){
   }
 }
 
-// ── Enhanced battleResolveTurn with animations ───────────────────
-// Patch applyAction in battleResolveTurn to fire animations + sounds
-// We override battleResolveTurn here with the animated version
+// ── Full animated battleResolveTurn — crits, PP, confusion, secondary effects, drain ──
 const _battleResolveTurnOriginal=battleResolveTurn;
 window.battleResolveTurn=function(moveA,moveB){
   if(!battleState)return;
@@ -9131,73 +9170,153 @@ window.battleResolveTurn=function(moveA,moveB){
   const pkA=teamA[battleState.activeA];
   const pkB=teamB[battleState.activeB];
   const log=[];
-  const animQueue=[];  // [{fn,delay}]
+  const animQueue=[];
   let t=0;
-
   function queueAnim(fn,delay){animQueue.push({fn,delay:t+=delay});}
 
+  const SNAMES={atk:'Attack',def:'Defense',spa:'Sp.Atk',spd:'Sp.Def',spe:'Speed',acc:'Accuracy'};
+
+  function applyStatChange(pk,stat,delta,log){
+    const before=pk.statMods[stat]||0;
+    clampMod(pk,stat,delta);
+    const after=pk.statMods[stat];
+    if(after===before){log.push(`${pk.name}'s ${SNAMES[stat]||stat} won't go ${delta>0?'higher':'lower'}!`);return;}
+    const arrow=delta>0?'⬆️':'⬇️';
+    const mag=Math.abs(delta)>=2?'sharply ':'';
+    log.push(`${arrow} ${pk.name}'s ${SNAMES[stat]||stat} ${delta>0?`${mag}rose`:`${mag}fell`}!`);
+    queueAnim(()=>battleFlashStat(pk===pkA?'b-player-sprite':'b-enemy-sprite',delta>0),120);
+  }
+
+  function trySecondaryEffect(move,attacker,defender,chance,log){
+    if(!move.effect||!chance||Math.random()*100>=chance)return;
+    const e=move.effect;
+    if(e==='burn'&&!defender.status){defender.status='burned';log.push(`🔥 ${defender.name} was burned!`);}
+    else if(e==='para'&&!defender.status){defender.status='paralyzed';log.push(`⚡ ${defender.name} is paralyzed!`);}
+    else if(e==='poison'&&!defender.status){defender.status='poisoned';log.push(`☠️ ${defender.name} was poisoned!`);}
+    else if(e==='freeze'&&!defender.status){defender.status='frozen';defender.sleepTimer=1+Math.floor(Math.random()*2);log.push(`🧊 ${defender.name} was frozen solid!`);}
+    else if(e==='confuse'&&!defender.confused){defender.confused=true;defender.confuseTimer=2+Math.floor(Math.random()*3);log.push(`😵 ${defender.name} became confused!`);}
+    else if(e==='flinch'){defender._flinched=true;}
+  }
+
   function applyAction(attacker,defender,moveIdx,atkTeam,isPlayerA){
+    // Clear flinch flag from last turn
+    delete attacker._flinched;
     if(moveIdx>=100){
       const ni=moveIdx-100;
-      if(isPlayerA){battleState.activeA=ni;}else{battleState.activeB=ni;}
+      if(isPlayerA)battleState.activeA=ni; else battleState.activeB=ni;
       log.push(`↕ ${attacker.name} → ${atkTeam[ni].name}`);
       queueAnim(()=>battleSoundStatus(),80);
       return;
     }
-    // Paralysis: 25% chance to be fully paralyzed this turn
+    // Frozen: skip turn, thaw 20% per turn
+    if(attacker.status==='frozen'){
+      if(Math.random()<0.2){attacker.status=null;log.push(`🌡️ ${attacker.name} thawed out!`);}
+      else{log.push(`🧊 ${attacker.name} is frozen solid!`);queueAnim(()=>battleSoundStatus(),80);return;}
+    }
+    // Paralysis: 25% skip
     if(attacker.status==='paralyzed'&&Math.random()<0.25){
       log.push(`⚡ ${attacker.name} is fully paralyzed!`);
       queueAnim(()=>battleSoundStatus(),100);
       return;
     }
-    const move=getBattleMoves(attacker.id)[moveIdx];
+    // Confusion: tick down, 33% self-hit
+    if(attacker.confused){
+      attacker.confuseTimer--;
+      if(attacker.confuseTimer<=0){attacker.confused=false;log.push(`😊 ${attacker.name} snapped out of confusion!`);}
+      else if(Math.random()<0.33){
+        const selfDmg=Math.max(1,Math.floor(attacker.maxHp/8));
+        attacker.hp=Math.max(0,attacker.hp-selfDmg);
+        log.push(`😵 ${attacker.name} hurt itself in confusion! (${selfDmg})`);
+        const atkSpriteId=(attacker===pkA)?'b-player-sprite':'b-enemy-sprite';
+        const atkIsEnemy=attacker===pkB;
+        queueAnim(()=>{battleSoundHit();battleAnimHit(atkSpriteId,false);battleAddDmgFloat(atkIsEnemy,'-'+selfDmg,'#f44336');},120);
+        if(attacker.hp<=0){attacker.fainted=true;log.push(`💀 ${attacker.name} fainted!`);queueAnim(()=>{battleSoundFaint();document.getElementById(atkSpriteId)?.classList.add('fainted');},300);}
+        return;
+      }
+    }
+    const moves=getBattleMoves(attacker.id);
+    const move=moves[moveIdx];
     if(!move)return;
+    // PP tracking
+    if(attacker.pp&&attacker.pp[moveIdx]){
+      attacker.pp[moveIdx].cur=Math.max(0,attacker.pp[moveIdx].cur-1);
+      if(attacker.pp[moveIdx].cur===0)log.push(`⚠️ ${move.name} has no PP left!`);
+    }
     log.push(`${attacker.name} → ${move.name}`);
-    if(!move.power){
-      queueAnim(()=>battleSoundStatus(),80);
-      if(move.effect==='burn'&&!defender.status){defender.status='burned';log.push(`🔥 ${defender.name} was burned!`);}
-      else if(move.effect==='para'&&!defender.status){defender.status='paralyzed';log.push(`⚡ ${defender.name} is paralyzed!`);}
-      else if(move.effect==='poison'&&!defender.status){defender.status='poisoned';log.push(`☠️ ${defender.name} was poisoned!`);}
-      else if(move.effect==='drain'){const d=Math.floor(defender.maxHp/8);defender.hp=Math.max(0,defender.hp-d);log.push(`🌿 ${defender.name} lost ${d} HP (Leech Seed)`);}
-      else if(move.effect==='reset'){[attacker,defender].forEach(p=>{Object.keys(p.statMods).forEach(k=>p.statMods[k]=0)});log.push(`${attacker.name} cleared all stat changes!`);}
-      else if(move.effect?.includes('+')){const[s,v]=move.effect.split('+');attacker.statMods[s]=(attacker.statMods[s]||0)+Number(v);const sNames={atk:'Attack',def:'Defense',spa:'Sp.Atk',spd:'Sp.Def',spe:'Speed'};log.push(`⬆️ ${attacker.name}'s ${sNames[s]||s} rose!`);}
-      else if(move.effect?.includes('-')){const[s,v]=move.effect.split('-');defender.statMods[s]=(defender.statMods[s]||0)-Number(v);const sNames={atk:'Attack',def:'Defense',spa:'Sp.Atk',spd:'Sp.Def',spe:'Speed'};log.push(`⬇️ ${defender.name}'s ${sNames[s]||s} fell!`);}
+
+    // Accuracy check (evasion modifier)
+    const baseAcc=move.acc??100;
+    const accMod=(attacker.statMods?.acc||0)-(defender.statMods?.acc||0);
+    const accMult=accMod>=0?(3+accMod)/3:(3/(3-accMod));
+    if(move.power&&Math.random()*100>baseAcc*accMult){
+      log.push(`💨 ${attacker.name} missed!`);
+      queueAnim(()=>battleSoundMiss(),80);
       return;
     }
+
+    if(!move.power){
+      queueAnim(()=>battleSoundStatus(),80);
+      const e=move.effect;
+      if(e==='burn'&&!defender.status){defender.status='burned';log.push(`🔥 ${defender.name} was burned!`);}
+      else if(e==='para'&&!defender.status){defender.status='paralyzed';log.push(`⚡ ${defender.name} is paralyzed!`);}
+      else if(e==='poison'&&!defender.status){defender.status='poisoned';log.push(`☠️ ${defender.name} was poisoned!`);}
+      else if(e==='confuse'&&!defender.confused){defender.confused=true;defender.confuseTimer=2+Math.floor(Math.random()*3);log.push(`😵 ${defender.name} became confused!`);}
+      else if(e==='drain'){const d=Math.floor(defender.maxHp/8);defender.hp=Math.max(0,defender.hp-d);log.push(`🌿 ${defender.name} lost ${d} HP (Leech Seed)`);}
+      else if(e==='reset'){[attacker,defender].forEach(p=>{Object.keys(p.statMods).forEach(k=>p.statMods[k]=0)});log.push(`✨ All stat changes cleared!`);}
+      else if(e==='deffall'){applyStatChange(attacker,'def',-1,log);applyStatChange(attacker,'spd',-1,log);}
+      else if(e&&e.includes('+')){const[s,v]=e.split('+');applyStatChange(attacker,s,Number(v),log);}
+      else if(e&&e.includes('-')&&!e.includes('_')){const[s,v]=e.split('-');applyStatChange(defender,s,-Number(v),log);}
+      return;
+    }
+
     const eff=getTypeEffectiveness(move.type,defender.types);
-    if(eff===0){log.push(`🚫 No effect on ${defender.name}!`);return;}
-    const dmg=calcDamage(attacker,defender,move,attacker.types);
+    if(eff===0){log.push(`🚫 No effect on ${defender.name}!`);queueAnim(()=>battleSoundMiss(),80);return;}
+    const{dmg,crit}=calcDamage(attacker,defender,move,attacker.types);
     defender.hp=Math.max(0,defender.hp-dmg);
     const super2=eff>=2,weak=eff<1&&eff>0;
+    if(crit)log.push(`⭐ Critical hit!`);
     if(super2)log.push(`💥 Super effective! −${dmg} to ${defender.name}`);
     else if(weak)log.push(`😐 Not very effective. −${dmg} to ${defender.name}`);
     else log.push(`−${dmg} to ${defender.name}`);
+    // Drain: heal attacker
+    if(move.drain){const heal=Math.max(1,Math.floor(dmg/2));attacker.hp=Math.min(attacker.maxHp,attacker.hp+heal);log.push(`💚 ${attacker.name} recovered ${heal} HP!`);}
     const defIsEnemy=(battleMySlot==='a'?defender===pkB:defender===pkA);
     const defSpriteId=defIsEnemy?'b-enemy-sprite':'b-player-sprite';
     queueAnim(()=>{
-      if(super2)battleSoundSuperHit(); else battleSoundHit();
-      battleAnimHit(defSpriteId,super2);
-      battleAddDmgFloat(defIsEnemy,'-'+dmg,super2?'#ffcb05':weak?'#aaa':'#fff');
+      if(crit)battleSoundCrit(); else if(super2)battleSoundSuperHit(); else battleSoundHit();
+      battleAnimHit(defSpriteId,super2||crit);
+      battleAddDmgFloat(defIsEnemy,'-'+dmg,crit?'#ff5722':super2?'#ffcb05':weak?'#aaa':'#fff');
+      if(crit)battleAddDmgFloat(defIsEnemy,'CRIT!','#ff5722');
     },180);
     if(defender.hp<=0){
       defender.fainted=true;
       log.push(`💀 ${defender.name} fainted!`);
       queueAnim(()=>{battleSoundFaint();document.getElementById(defSpriteId)?.classList.add('fainted');},350);
+    } else {
+      // Secondary effects from move data (e.g. burn10 = 10% burn chance)
+      const e=move.effect||'';
+      const secMatch=e.match(/^(burn|para|poison|freeze|confuse|flinch)(\d+)$/);
+      if(secMatch)trySecondaryEffect({effect:secMatch[1]},attacker,defender,Number(secMatch[2]),log);
+      // Stat change secondaries e.g. "spd-1_10" (10% spd drop)
+      const statMatch=e.match(/^([a-z]+)([+-]\d+)_(\d+)$/);
+      if(statMatch&&Math.random()*100<Number(statMatch[3])){
+        applyStatChange(defender,statMatch[1],Number(statMatch[2]),log);
+      }
     }
   }
 
-  // Paralysis also halves speed (25% chance to skip is in applyAction)
   const paraSpd=pk=>pk.status==='paralyzed'?0.5:1;
-  const spdA=pkA.stats.spe*(1+0.15*(pkA.statMods?.spe||0))*paraSpd(pkA);
-  const spdB=pkB.stats.spe*(1+0.15*(pkB.statMods?.spe||0))*paraSpd(pkB);
-  if(spdA>=spdB){applyAction(pkA,pkB,moveA,teamA,true);if(!pkB.fainted)applyAction(pkB,pkA,moveB,teamB,false);}
-  else{applyAction(pkB,pkA,moveB,teamB,false);if(!pkA.fainted)applyAction(pkA,pkB,moveA,teamA,true);}
+  const spdA=pkA.stats.spe*Math.max(0,(2+(pkA.statMods?.spe||0))/2)*paraSpd(pkA);
+  const spdB=pkB.stats.spe*Math.max(0,(2+(pkB.statMods?.spe||0))/2)*paraSpd(pkB);
+  if(spdA>=spdB){applyAction(pkA,pkB,moveA,teamA,true);if(!pkB.fainted&&!pkB._flinched)applyAction(pkB,pkA,moveB,teamB,false);}
+  else{applyAction(pkB,pkA,moveB,teamB,false);if(!pkA.fainted&&!pkA._flinched)applyAction(pkA,pkB,moveA,teamA,true);}
 
+  // End-of-turn: burn/poison damage
   [pkA,pkB].forEach(pk=>{
     if((pk.status==='burned'||pk.status==='poisoned')&&!pk.fainted){
-      const d=Math.floor(pk.maxHp/(pk.status==='poisoned'?8:16));pk.hp=Math.max(0,pk.hp-d);
-      const icon=pk.status==='burned'?'🔥':'☠️';
-      log.push(`${icon} ${pk.name} took ${d} from ${pk.status}`);
+      const d=Math.floor(pk.maxHp/(pk.status==='poisoned'?8:16));
+      pk.hp=Math.max(0,pk.hp-d);
+      log.push(`${pk.status==='burned'?'🔥':'☠️'} ${pk.name} took ${d} from ${pk.status}`);
       if(pk.hp<=0){pk.fainted=true;log.push(`💀 ${pk.name} fainted!`);}
     }
   });
@@ -9207,11 +9326,9 @@ window.battleResolveTurn=function(moveA,moveB){
 
   battleState.turn++;
   battleState.log.push(...log);
-
   const aOut=teamA.every(p=>p.fainted);
   const bOut=teamB.every(p=>p.fainted);
 
-  // Run animation queue then update UI
   const maxDelay=animQueue.length?animQueue[animQueue.length-1].delay+200:0;
   animQueue.forEach(({fn,delay})=>setTimeout(fn,delay));
 
@@ -9225,13 +9342,12 @@ window.battleResolveTurn=function(moveA,moveB){
       sb.from('battle_rooms').update({status:'finished',winner_id:winUid,state:JSON.stringify(battleState),pending_a:null,pending_b:null}).eq('id',battleRoomId).then(()=>{});
       battleFinishUI(winSlot===battleMySlot);
     } else {
-      // Check if my active Pokemon fainted — force switch
       const isA=battleMySlot==='a';
       const myTeam=isA?battleState.teamA:battleState.teamB;
       const myActiveIdx=isA?battleState.activeA:battleState.activeB;
       const myActive=myTeam[myActiveIdx];
       if(myActive&&myActive.fainted&&myTeam.some(p=>!p.fainted)){
-        battleUpdateLog(['Choose your next Pokémon!']);
+        battleUpdateLog(['⚡ Choose your next Pokémon!']);
         battleShowSwitch(true);
       } else {
         battleShowMoves();
