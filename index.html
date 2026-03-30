@@ -8913,55 +8913,141 @@ async function battleSubmitPending(myMove){
 // ── Replay animations for Player B based on log lines ────────────
 function battleReplayAnimations(logDiff){
   if(!logDiff||!logDiff.length||!battleState)return;
-  // Determine which sprite is enemy from B's perspective (player A = enemy for B)
+  // From B's POV: enemy = teamA (player A), player = teamB (player B = me)
   const enemySprite='b-enemy-sprite';
   const playerSprite='b-player-sprite';
+  // Build a quick name→sprite lookup from CURRENT state (after resolve)
+  const nameToSprite={};
+  battleState.teamA.forEach(p=>nameToSprite[p.name]=enemySprite);
+  battleState.teamB.forEach(p=>nameToSprite[p.name]=playerSprite);
+  // Helper: is a given pokemon name on team A (the enemy from B's view)?
+  const isEnemyName=name=>battleState.teamA.some(p=>p.name===name);
+
   let t=0;
-  logDiff.forEach(line=>{
-    // Damage to enemy (B's opponent = A) — lines like "−42 to Charizard" or "💥 Super effective! −42 to X"
-    const dmgMatch=line.match(/[−-](\d+) to (.+)/);
+  for(let i=0;i<logDiff.length;i++){
+    const line=logDiff[i];
+    const nextLine=logDiff[i+1]||'';
+
+    // ── Switch-in (↕ OldName → NewName) ─────────────────────────
+    if(line.startsWith('↕')){
+      const swMatch=line.match(/→ (.+)/);
+      if(swMatch){
+        const newName=swMatch[1].trim();
+        const sprite=nameToSprite[newName]||( isEnemyName(newName)?enemySprite:playerSprite);
+        const isEnemy=sprite===enemySprite;
+        setTimeout(()=>{
+          battleSoundStatus();
+          const el=document.getElementById(sprite);
+          if(el){el.classList.remove('entering-enemy','entering-player');void el.offsetWidth;el.classList.add(isEnemy?'entering-enemy':'entering-player');setTimeout(()=>el.classList.remove('entering-enemy','entering-player'),600);}
+        },t+=250);
+      }
+      continue;
+    }
+
+    // ── Missed ───────────────────────────────────────────────────
+    if(line.includes('missed!')||line.includes('missed')){
+      const missMatch=line.match(/^(.+?) missed/);
+      if(missMatch){
+        const atkName=missMatch[1].trim();
+        const defSprite=isEnemyName(atkName)?playerSprite:enemySprite; // defender = opposite of attacker
+        setTimeout(()=>{battleSoundMiss();battleAddDmgFloat(defSprite===enemySprite,'miss','#aaa');},t+=120);
+      }
+      continue;
+    }
+
+    // ── No effect ────────────────────────────────────────────────
+    if(line.startsWith('🚫')){continue;}
+
+    // ── Damage line ──────────────────────────────────────────────
+    const dmgMatch=line.match(/[−\-](\d+) to (.+)/);
     if(dmgMatch){
       const dmg=dmgMatch[1];
-      const isCrit=logDiff.includes('⭐ Critical hit!');
+      const targetName=dmgMatch[2].trim();
+      const hitSprite=nameToSprite[targetName]||(isEnemyName(targetName)?enemySprite:playerSprite);
+      const floatIsEnemy=hitSprite===enemySprite;
       const isSuper=line.startsWith('💥');
       const isWeak=line.startsWith('😐');
-      // Figure out which sprite got hit: if the target name matches enemy active
-      const targetName=dmgMatch[2].trim();
-      const activeEnemy=battleState.teamA[battleState.activeA];
-      const isEnemyHit=activeEnemy&&activeEnemy.name===targetName;
-      const hitSprite=isEnemyHit?enemySprite:playerSprite;
-      const floatIsEnemy=isEnemyHit;
+      // Crit: look at the PREVIOUS line (crit log comes before damage line)
+      const prevLine=logDiff[i-1]||'';
+      const isCrit=prevLine.includes('⭐');
       setTimeout(()=>{
         if(isCrit)battleSoundCrit(); else if(isSuper)battleSoundSuperHit(); else battleSoundHit();
         battleAnimHit(hitSprite,isSuper||isCrit);
         battleAddDmgFloat(floatIsEnemy,'-'+dmg,isCrit?'#ff5722':isSuper?'#ffcb05':isWeak?'#aaa':'#fff');
         if(isCrit)battleAddDmgFloat(floatIsEnemy,'CRIT!','#ff5722');
-      },t+=180);
-      return;
+      },t+=200);
+      continue;
     }
-    // Faint
+
+    // ── Drain heal ───────────────────────────────────────────────
+    if(line.includes('💚')){
+      const healMatch=line.match(/💚 (.+?) re(?:stored|covered) (\d+)/);
+      if(healMatch){
+        const healName=healMatch[1].trim();
+        const healSprite=nameToSprite[healName]||(isEnemyName(healName)?enemySprite:playerSprite);
+        setTimeout(()=>battleAddDmgFloat(healSprite===enemySprite,'+'+healMatch[2],'#4caf50'),t+=100);
+      }
+      continue;
+    }
+
+    // ── Faint ────────────────────────────────────────────────────
     if(line.includes('fainted!')){
       const faintName=line.replace('💀 ','').replace(' fainted!','').trim();
-      const activeEnemy=battleState.teamA[battleState.activeA];
-      const isEnemyFaint=activeEnemy&&activeEnemy.name===faintName;
-      const faintSprite=isEnemyFaint?enemySprite:playerSprite;
-      setTimeout(()=>{battleSoundFaint();document.getElementById(faintSprite)?.classList.add('fainted');},t+=350);
-      return;
+      const faintSprite=nameToSprite[faintName]||(isEnemyName(faintName)?enemySprite:playerSprite);
+      setTimeout(()=>{
+        battleSoundFaint();
+        document.getElementById(faintSprite)?.classList.add('fainted');
+      },t+=350);
+      continue;
     }
-    // Status sounds
+
+    // ── Stat change ──────────────────────────────────────────────
+    if(line.startsWith('⬆️')||line.startsWith('⬇️')){
+      const statMatch=line.match(/[⬆️⬇️]+ (.+?)'s/u);
+      if(statMatch){
+        const pkName=statMatch[1].trim();
+        const statSprite=nameToSprite[pkName]||(isEnemyName(pkName)?enemySprite:playerSprite);
+        const positive=line.startsWith('⬆️');
+        setTimeout(()=>battleFlashStat(statSprite,positive),t+=80);
+      }
+      continue;
+    }
+
+    // ── Status applied / status tick ─────────────────────────────
     if(line.includes('paralyzed')||line.includes('burned')||line.includes('poisoned')||
-       line.includes('frozen')||line.includes('confused')||line.includes('thawed')||line.includes('snapped out')){
+       line.includes('frozen')||line.includes('confused')||line.includes('thawed')||
+       line.includes('snapped out')||line.includes('fully paralyzed')||line.includes('is frozen')){
       setTimeout(()=>battleSoundStatus(),t+=80);
+      continue;
     }
-    // Miss
-    if(line.includes('missed!')){setTimeout(()=>battleSoundMiss(),t+=80);}
-    // Self-confusion hit
+
+    // ── Burn/poison end-of-turn tick damage ──────────────────────
+    const tickMatch=line.match(/🔥|☠️.*took (\d+)/);
+    if(tickMatch){
+      const tickDmg=line.match(/took (\d+)/);
+      if(tickDmg){
+        // Find whose name it is
+        const tickName=line.replace(/^[🔥☠️ ]+/,'').split(' took')[0].trim();
+        const tickSprite=nameToSprite[tickName]||(isEnemyName(tickName)?enemySprite:playerSprite);
+        setTimeout(()=>{battleAnimHit(tickSprite,false);battleAddDmgFloat(tickSprite===enemySprite,'-'+tickDmg[1],'#ff9800');},t+=120);
+      }
+      continue;
+    }
+
+    // ── Self-hit confusion ────────────────────────────────────────
     if(line.includes('hurt itself in confusion')){
-      const selfMatch=line.match(/\((\d+)\)/);
-      const selfDmg=selfMatch?selfMatch[1]:'?';
-      setTimeout(()=>{battleSoundHit();battleAnimHit(playerSprite,false);battleAddDmgFloat(false,'-'+selfDmg,'#f44336');},t+=120);
+      const confMatch=line.match(/\((\d+)\)/);
+      const confDmg=confMatch?confMatch[1]:'?';
+      // The confused pokemon is the one that hurt itself — find it in the line
+      const confName=line.split(' hurt')[0].replace('😵 ','').trim();
+      const confSprite=nameToSprite[confName]||(isEnemyName(confName)?enemySprite:playerSprite);
+      setTimeout(()=>{battleSoundHit();battleAnimHit(confSprite,false);battleAddDmgFloat(confSprite===enemySprite,'-'+confDmg,'#f44336');},t+=120);
+      continue;
     }
-  });
+
+    // ── Miss sound ───────────────────────────────────────────────
+    if(line.includes('💨')){setTimeout(()=>battleSoundMiss(),t+=80);}
+  }
 }
 
 // ── Realtime update handler ───────────────────────────────────────
@@ -9047,8 +9133,9 @@ function battleResolveTurn(moveA,moveB){
       else if(move.effect==='poison'&&!defender.status){defender.status='poisoned';log.push(`☠️ ${defender.name} was poisoned!`);}
       else if(move.effect==='drain'){const d=Math.floor(defender.maxHp/8);defender.hp=Math.max(0,defender.hp-d);log.push(`🌿 ${defender.name} lost ${d} HP (Leech Seed)`);}
       else if(move.effect==='reset'){[attacker,defender].forEach(p=>{Object.keys(p.statMods).forEach(k=>p.statMods[k]=0)});log.push(`${attacker.name} cleared all stat changes!`);}
-      else if(move.effect?.includes('+')){const[s,v]=move.effect.split('+');attacker.statMods[s]=(attacker.statMods[s]||0)+Number(v);log.push(`⬆️ ${attacker.name}'s ${sNames[s]||s} rose!`);}
-      else if(move.effect?.includes('-')){const[s,v]=move.effect.split('-');defender.statMods[s]=(defender.statMods[s]||0)-Number(v);log.push(`⬇️ ${defender.name}'s ${sNames[s]||s} fell!`);}
+      else if(move.effect==='deffall'){clampMod(attacker,'def',-1);clampMod(attacker,'spd',-1);log.push(`⬇️ ${attacker.name}'s Defense and Sp.Def fell!`);}
+      else if(move.effect?.includes('+')){const[s,v]=move.effect.split('+');clampMod(attacker,s,Number(v));log.push(`⬆️ ${attacker.name}'s ${sNames[s]||s} rose!`);}
+      else if(move.effect?.includes('-')&&!move.effect.includes('_')){const[s,v]=move.effect.split('-');clampMod(defender,s,-Number(v));log.push(`⬇️ ${defender.name}'s ${sNames[s]||s} fell!`);}
       return;
     }
     const eff=getTypeEffectiveness(move.type,defender.types);
@@ -9063,8 +9150,8 @@ function battleResolveTurn(moveA,moveB){
   }
 
   const paraSpd2=pk=>pk.status==='paralyzed'?0.5:1;
-  const spdA=pkA.stats.spe*(1+0.15*(pkA.statMods?.spe||0))*paraSpd2(pkA);
-  const spdB=pkB.stats.spe*(1+0.15*(pkB.statMods?.spe||0))*paraSpd2(pkB);
+  const spdA=pkA.stats.spe*Math.max(0,(2+(pkA.statMods?.spe||0))/2)*paraSpd2(pkA);
+  const spdB=pkB.stats.spe*Math.max(0,(2+(pkB.statMods?.spe||0))/2)*paraSpd2(pkB);
   if(spdA>=spdB){applyAction(pkA,pkB,moveA,teamA,true);if(!pkB.fainted)applyAction(pkB,pkA,moveB,teamB,false);}
   else{applyAction(pkB,pkA,moveB,teamB,false);if(!pkA.fainted)applyAction(pkA,pkB,moveA,teamA,true);}
 
@@ -9091,7 +9178,7 @@ function battleResolveTurn(moveA,moveB){
   if(aOut||bOut){
     const winSlot=aOut?'b':'a';
     const winUid=winSlot==='a'?battleRoom.player_a:battleRoom.player_b;
-    battleState.status='finished';battleState.winnerId=winSlot;
+    battleState.status='finished';battleState.winnerId=winUid;
     sb.from('battle_rooms').update({status:'finished',winner_id:winUid,state:JSON.stringify(battleState),pending_a:null,pending_b:null}).eq('id',battleRoomId).then(()=>{});
     battleUpdateLog(log);battleRenderArena();
     battleFinishUI(winSlot===battleMySlot);
@@ -9309,7 +9396,7 @@ window.battleResolveTurn=function(moveA,moveB){
 
     // Accuracy check (evasion modifier)
     const baseAcc=move.acc??100;
-    const accMod=(attacker.statMods?.acc||0)-(defender.statMods?.acc||0);
+    const accMod=(attacker.statMods?.acc||0)-(defender.statMods?.eva||0);
     const accMult=accMod>=0?(3+accMod)/3:(3/(3-accMod));
     if(move.power&&Math.random()*100>baseAcc*accMult){
       log.push(`💨 ${attacker.name} missed!`);
@@ -9384,9 +9471,7 @@ window.battleResolveTurn=function(moveA,moveB){
     }
   });
 
-  while(battleState.activeA<teamA.length&&teamA[battleState.activeA].fainted)battleState.activeA++;
-  while(battleState.activeB<teamB.length&&teamB[battleState.activeB].fainted)battleState.activeB++;
-
+  // DON'T auto-advance activeA/activeB here — forced-switch UI handles it
   battleState.turn++;
   battleState.log.push(...log);
   const aOut=teamA.every(p=>p.fainted);
@@ -9401,7 +9486,7 @@ window.battleResolveTurn=function(moveA,moveB){
     if(aOut||bOut){
       const winSlot=aOut?'b':'a';
       const winUid=winSlot==='a'?battleRoom.player_a:battleRoom.player_b;
-      battleState.status='finished';battleState.winnerId=winSlot;
+      battleState.status='finished';battleState.winnerId=winUid;
       sb.from('battle_rooms').update({status:'finished',winner_id:winUid,state:JSON.stringify(battleState),pending_a:null,pending_b:null}).eq('id',battleRoomId).then(()=>{});
       battleFinishUI(winSlot===battleMySlot);
     } else {
