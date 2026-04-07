@@ -700,6 +700,8 @@
       .builder-slots { grid-template-columns: repeat(3, 1fr); }
       .builder-slot { height: 80px; }
       .builder-pokemon-list { grid-template-columns: repeat(3, 1fr); max-height: 220px; }
+      .builder-move-slots { grid-template-columns: 1fr 1fr; }
+      .type-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); }
 
       /* ── TRAINERS ── */
       #view-trainers { padding: 16px 12px; }
@@ -777,6 +779,32 @@
     .builder-submit-btn { padding: 14px; border-radius: 999px; background: linear-gradient(135deg, var(--accent2), #5b21b6); color: white; font-weight: 700; font-size: 0.95rem; border: none; cursor: pointer; transition: opacity 0.2s; }
     .builder-submit-btn:hover { opacity: 0.85; }
     .builder-submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── TEAM ANALYSIS ── */
+    .builder-team-row { display: flex; flex-direction: column; gap: 10px; }
+    .builder-poke-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px; display: flex; align-items: flex-start; gap: 10px; }
+    .builder-poke-card img { width: 56px; height: 56px; object-fit: contain; image-rendering: pixelated; flex-shrink: 0; }
+    .builder-poke-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+    .builder-poke-name-label { font-size: 0.75rem; font-weight: 800; text-transform: capitalize; color: var(--text); }
+    .builder-move-slots { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .builder-move-input { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 5px 9px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.72rem; outline: none; width: 100%; transition: border-color 0.2s; }
+    .builder-move-input:focus { border-color: var(--accent2); }
+    .builder-move-input::placeholder { color: #444; }
+    .builder-move-type-sel { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 4px 6px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.68rem; outline: none; width: 100%; cursor: pointer; }
+    .builder-analysis-section { border-top: 1px solid var(--border); padding-top: 18px; display: flex; flex-direction: column; gap: 6px; }
+    .builder-analysis-title { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 4px; }
+    .type-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; }
+    .type-cell { border-radius: 10px; padding: 7px 8px; display: flex; flex-direction: column; align-items: center; gap: 3px; background: var(--surface2); border: 1px solid var(--border); }
+    .type-cell-name { font-size: 0.6rem; font-weight: 700; text-transform: capitalize; color: var(--text); }
+    .type-cell-badges { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; }
+    .type-cell-badge { font-size: 0.58rem; font-weight: 800; padding: 2px 5px; border-radius: 5px; }
+    .type-cell-badge.weak { background: #e63946; color: #fff; }
+    .type-cell-badge.resist { background: #2a9d5c; color: #fff; }
+    .type-cell-badge.immune { background: #555; color: #fff; }
+    .type-cell-badge.super { background: #FFCB05; color: #000; }
+    .type-cell-badge.missing { background: #333; color: #666; }
+    .type-cell.major-weak { border-color: #e63946; background: rgba(230,57,70,0.08); }
+    .coverage-missing { font-size: 0.72rem; color: var(--muted); font-style: italic; padding: 6px 0; }
 
     /* Team detail modal */
     .team-detail-overlay { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); align-items: center; justify-content: center; padding: 20px; }
@@ -2100,6 +2128,21 @@
       <input class="builder-field" id="builder-search" type="text" placeholder="Search Pokémon..." oninput="filterBuilderPokemon(this.value)" style="margin-bottom:10px"/>
       <div class="builder-pokemon-grid" id="builder-pokemon-grid"></div>
     </div>
+    <!-- MOVE SLOTS PER POKEMON -->
+    <div id="builder-team-row" class="builder-team-row" style="display:none"></div>
+
+    <!-- TEAM DEFENSE ANALYSIS -->
+    <div id="builder-defense-section" class="builder-analysis-section" style="display:none">
+      <div class="builder-analysis-title">🛡️ Team Defense</div>
+      <div class="type-grid" id="builder-defense-grid"></div>
+    </div>
+
+    <!-- TEAM OFFENSE COVERAGE -->
+    <div id="builder-coverage-section" class="builder-analysis-section" style="display:none">
+      <div class="builder-analysis-title">⚔️ Team Type Coverage</div>
+      <div class="type-grid" id="builder-coverage-grid"></div>
+    </div>
+
     <button class="builder-submit-btn" id="builder-submit-btn" onclick="submitTeam()">Share Team</button>
   </div>
 </div>
@@ -5365,7 +5408,155 @@ function showToast(msg) {
 let teamsData = [];
 let teamSort = 'recent';
 let builderSlots = [null,null,null,null,null,null];
+let builderMoves = [[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]];
 let builderSearchQuery = '';
+
+// ─── Type Chart (reuses TYPE_CHART + getTypeEffectiveness defined later in file) ───
+const ALL_TYPES = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
+
+function getDefMultiplier(attackType, defTypes) {
+  // Forward-compatible: TYPE_CHART and getTypeEffectiveness are defined later in the script
+  if (typeof getTypeEffectiveness === 'function') return getTypeEffectiveness(attackType, defTypes);
+  // Fallback inline if called before definition (shouldn't happen at runtime)
+  return 1;
+}
+
+function calcTeamDefense() {
+  // Returns { [attackType]: { weakCount, resistCount, immuneCount } }
+  const filled = builderSlots.filter(Boolean);
+  const result = {};
+  for (const at of ALL_TYPES) {
+    let weakCount = 0, resistCount = 0, immuneCount = 0;
+    for (const p of filled) {
+      const types = getPokemonTypes(p.id).filter(Boolean);
+      const m = getDefMultiplier(at, types);
+      if (m === 0) immuneCount++;
+      else if (m >= 2) weakCount++;
+      else if (m <= 0.5) resistCount++;
+    }
+    result[at] = { weakCount, resistCount, immuneCount };
+  }
+  return result;
+}
+
+function calcTeamCoverage() {
+  // Returns { [defType]: maxMult } — best coverage across all move types
+  const movesUsed = new Set();
+  builderMoves.forEach((slots, si) => {
+    if (!builderSlots[si]) return;
+    slots.forEach(m => { if (m) movesUsed.add(m); });
+  });
+  const result = {};
+  for (const dt of ALL_TYPES) {
+    let best = 0;
+    for (const at of movesUsed) {
+      const row = TYPE_CHART[at] || {};
+      const m = row[dt] !== undefined ? row[dt] : 1;
+      if (m > best) best = m;
+    }
+    result[dt] = best;
+  }
+  return result;
+}
+
+function renderBuilderAnalysis() {
+  const filled = builderSlots.filter(Boolean);
+  const defSec = document.getElementById('builder-defense-section');
+  const covSec = document.getElementById('builder-coverage-section');
+  if (!filled.length) {
+    if (defSec) defSec.style.display = 'none';
+    if (covSec) covSec.style.display = 'none';
+    return;
+  }
+  // Defense
+  if (defSec) {
+    defSec.style.display = '';
+    const defData = calcTeamDefense();
+    const grid = document.getElementById('builder-defense-grid');
+    if (grid) {
+      grid.innerHTML = ALL_TYPES.map(at => {
+        const { weakCount, resistCount, immuneCount } = defData[at];
+        const isMajor = weakCount >= 3;
+        let badges = '';
+        if (weakCount) badges += `<span class="type-cell-badge weak">×${weakCount} weak</span>`;
+        if (resistCount) badges += `<span class="type-cell-badge resist">×${resistCount} resist</span>`;
+        if (immuneCount) badges += `<span class="type-cell-badge immune">×${immuneCount} immune</span>`;
+        if (!weakCount && !resistCount && !immuneCount) badges = `<span class="type-cell-badge missing">neutral</span>`;
+        return `<div class="type-cell${isMajor ? ' major-weak' : ''}" title="${at}${isMajor ? ' — Major weakness!' : ''}">
+          <span class="type-cell-name" style="color:${getTypeColor(at)}">${at}</span>
+          <div class="type-cell-badges">${badges}</div>
+        </div>`;
+      }).join('');
+    }
+  }
+  // Coverage
+  if (covSec) {
+    const movesUsed = new Set();
+    builderMoves.forEach((slots, si) => {
+      if (!builderSlots[si]) return;
+      slots.forEach(m => { if (m) movesUsed.add(m); });
+    });
+    covSec.style.display = movesUsed.size ? '' : 'none';
+    if (movesUsed.size) {
+      const covData = calcTeamCoverage();
+      const grid = document.getElementById('builder-coverage-grid');
+      if (grid) {
+        grid.innerHTML = ALL_TYPES.map(dt => {
+          const best = covData[dt];
+          let badge = '';
+          if (best >= 2) badge = `<span class="type-cell-badge super">2× SE</span>`;
+          else if (best === 1) badge = `<span class="type-cell-badge resist">1× OK</span>`;
+          else if (best === 0.5) badge = `<span class="type-cell-badge missing">½× NVE</span>`;
+          else badge = `<span class="type-cell-badge missing">no moves</span>`;
+          return `<div class="type-cell" title="${dt}">
+            <span class="type-cell-name" style="color:${getTypeColor(dt)}">${dt}</span>
+            <div class="type-cell-badges">${badge}</div>
+          </div>`;
+        }).join('');
+      }
+    }
+  }
+}
+
+function updateBuilderMove(slotIndex, moveIndex, value) {
+  builderMoves[slotIndex][moveIndex] = value.trim().toLowerCase() || null;
+  renderBuilderAnalysis();
+}
+
+function updateBuilderMoveType(slotIndex, moveIndex, type) {
+  // Store the move type for coverage calculation (overrides move name for type calc)
+  if (!builderSlots[slotIndex]) return;
+  builderMoves[slotIndex][moveIndex] = type || null;
+  renderBuilderAnalysis();
+}
+
+function renderBuilderTeamRow() {
+  const el = document.getElementById('builder-team-row');
+  if (!el) return;
+  const filled = builderSlots.map((p, i) => ({ p, i })).filter(x => x.p);
+  if (!filled.length) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.innerHTML = filled.map(({ p, i }) => {
+    const types = getPokemonTypes(p.id).filter(Boolean);
+    const typeBadges = types.map(t => `<span style="background:${getTypeColor(t)};color:#fff;font-size:0.52rem;font-weight:700;padding:1px 5px;border-radius:4px;text-transform:uppercase">${t}</span>`).join(' ');
+    const moveTypeOpts = ALL_TYPES.map(t => `<option value="${t}">${t}</option>`).join('');
+    const moveSels = [0,1,2,3].map(mi => {
+      const cur = builderMoves[i][mi];
+      const isType = cur && ALL_TYPES.includes(cur);
+      return `<select class="builder-move-type-sel" onchange="updateBuilderMoveType(${i},${mi},this.value)" title="Move ${mi+1} type">
+        <option value="">Move ${mi+1} type…</option>
+        ${ALL_TYPES.map(t => `<option value="${t}"${isType && cur===t?' selected':''}>${t}</option>`).join('')}
+      </select>`;
+    }).join('');
+    return `<div class="builder-poke-card">
+      <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png" alt="${p.name}"/>
+      <div class="builder-poke-info">
+        <div class="builder-poke-name-label">${p.name.replace(/-/g,' ')} <span style="margin-left:4px">${typeBadges}</span></div>
+        <div class="builder-move-slots">${moveSels}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
 
 // ─── Feed ───
 async function loadTeams() {
@@ -5451,6 +5642,7 @@ function renderTeamsFeed() {
 // ─── Builder ───
 function openBuilder() {
   builderSlots = [null,null,null,null,null,null];
+  builderMoves = [[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]];
   builderSearchQuery = '';
   document.getElementById('builder-name').value = '';
   document.getElementById('builder-desc').value = '';
@@ -5459,6 +5651,8 @@ function openBuilder() {
   document.body.style.overflow = 'hidden';
   renderBuilderSlots();
   renderBuilderPokemon();
+  renderBuilderTeamRow();
+  renderBuilderAnalysis();
 }
 
 function closeBuilder() {
@@ -5508,15 +5702,30 @@ function addToTeam(id, name) {
   builderSlots[slot] = { id, name };
   renderBuilderSlots();
   renderBuilderPokemon();
+  renderBuilderTeamRow();
+  renderBuilderAnalysis();
 }
 
 function removeFromTeam(index) {
+  // Compact: keep slots/moves that are filled, push nulls to end
+  const filledPairs = builderSlots.map((p, i) => ({ p, m: builderMoves[i] })).filter(x => x.p);
+  filledPairs.splice(filledPairs.findIndex((_, ii) => {
+    // find which pair corresponds to the removed index
+    return builderSlots.slice(0, index + 1).filter(Boolean).length - 1 === ii;
+  }), 1);
+  // simpler: just null out, then compact
   builderSlots[index] = null;
-  // Compact: shift non-null slots to front
-  const filled = builderSlots.filter(Boolean);
-  builderSlots = [...filled, ...Array(6 - filled.length).fill(null)];
+  builderMoves[index] = [null,null,null,null];
+  const pairs = builderSlots.map((p, i) => ({ p, m: builderMoves[i] }));
+  const filledP = pairs.filter(x => x.p);
+  const emptyCount = 6 - filledP.length;
+  const compacted = [...filledP, ...Array(emptyCount).fill({ p: null, m: [null,null,null,null] })];
+  builderSlots = compacted.map(x => x.p);
+  builderMoves = compacted.map(x => x.m);
   renderBuilderSlots();
   renderBuilderPokemon();
+  renderBuilderTeamRow();
+  renderBuilderAnalysis();
 }
 
 async function submitTeam() {
@@ -6866,13 +7075,7 @@ let discCurrentAction = null;
 let discLastActivity = Date.now();
 
 function initDiscovery() {
-  ['mousemove','scroll','keydown','click','touchstart'].forEach(ev =>
-    document.addEventListener(ev, () => { discLastActivity = Date.now(); }, { passive: true })
-  );
-  // Check if user recently dismissed — if so, respect the cooldown
-  const lastDismiss = parseInt(localStorage.getItem('pr_disc_dismissed') || '0');
-  const cooldownLeft = Math.max(0, (lastDismiss + 8 * 60 * 1000) - Date.now());
-  scheduleDisc(Math.max(60000, cooldownLeft)); // first popup no sooner than 60s
+  // Popups disabled — cleaner user experience
 }
 
 function scheduleDisc(delay) {
@@ -7044,25 +7247,7 @@ let htTimer = null;
 let htScrollFired = false;
 
 function initHotTake() {
-  const last = parseInt(localStorage.getItem('pr_ht_last') || '0');
-  const now = Date.now();
-  if (now - last < 24 * 60 * 60 * 1000) return; // shown in last 24h — skip
-
-  // Timer trigger: 15 seconds
-  clearTimeout(htTimer);
-  htTimer = setTimeout(showHotTake, 15000);
-
-  // Scroll trigger: 400px down
-  if (!htScrollFired) {
-    const onScroll = () => {
-      if (window.scrollY > 400 && !document.getElementById('hot-take-card').classList.contains('visible')) {
-        const last2 = parseInt(localStorage.getItem('pr_ht_last') || '0');
-        if (Date.now() - last2 >= 24 * 60 * 60 * 1000) showHotTake();
-      }
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    htScrollFired = true;
-  }
+  // Popups disabled — users can access Hot Takes via the nav tab
 }
 
 function showHotTake() {
